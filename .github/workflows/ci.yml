@@ -11,8 +11,24 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          lfs: true
+          submodules: recursive
+
+      - name: Install vcpkg and GLFW3
+        shell: pwsh
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git "$env:GITHUB_WORKSPACE/vcpkg"
+          & "$env:GITHUB_WORKSPACE/vcpkg/bootstrap-vcpkg.bat"
+          & "$env:GITHUB_WORKSPACE/vcpkg/vcpkg.exe" install glfw3:x64-windows
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Configure (CMake)
-        run: cmake -S . -B builds/desktop/cmake -DCMAKE_BUILD_TYPE=Release
+        run: >-
+          cmake -S . -B builds/desktop/cmake -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake"
+          -DVCPKG_TARGET_TRIPLET=x64-windows
       - name: Build
         run: cmake --build builds/desktop/cmake --config Release -j
       - name: Smoke test headless render
@@ -27,4 +43,3 @@ jobs:
         with:
           name: headless-out
           path: out.png
-
