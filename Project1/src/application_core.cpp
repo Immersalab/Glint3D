@@ -390,11 +390,17 @@ void ApplicationCore::handleMouseButton(int button, int action, int mods)
         if (action == GLFW_PRESS) {
             // Disable cursor for camera movement
             glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            // Reset mouse baseline to prevent initial jerk when entering look mode
+            glfwGetCursorPos(m_window, &m_lastMouseX, &m_lastMouseY);
+            m_firstMouse = true;
         } else {
             // Re-enable cursor
             glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
             // End any gizmo drag on release of RMB
             m_gizmoDragging = false;
+            // Reset baseline on exit as well
+            glfwGetCursorPos(m_window, &m_lastMouseX, &m_lastMouseY);
+            m_firstMouse = true;
         }
     }
 }
