@@ -413,17 +413,6 @@ void ApplicationCore::handleFramebufferResize(int width, int height)
 
 void ApplicationCore::handleKey(int key, int scancode, int action, int mods)
 {
-    // Movement only when camera is active (RMB) or RMB not required
-    if (m_rightMousePressed || !m_requireRMBToMove) {
-        const float step = m_camera->getSpeed();
-        if (key == GLFW_KEY_W && (action == GLFW_PRESS || action == GLFW_REPEAT)) m_camera->moveForward(step);
-        if (key == GLFW_KEY_S && (action == GLFW_PRESS || action == GLFW_REPEAT)) m_camera->moveBackward(step);
-        if (key == GLFW_KEY_A && (action == GLFW_PRESS || action == GLFW_REPEAT)) m_camera->moveLeft(step);
-        if (key == GLFW_KEY_D && (action == GLFW_PRESS || action == GLFW_REPEAT)) m_camera->moveRight(step);
-        if (key == GLFW_KEY_SPACE && (action == GLFW_PRESS || action == GLFW_REPEAT)) m_camera->moveUp(step);
-        if (key == GLFW_KEY_LEFT_CONTROL && (action == GLFW_PRESS || action == GLFW_REPEAT)) m_camera->moveDown(step);
-    }
-
     // Quick gizmo mode switching while holding Shift
     if ((mods & GLFW_MOD_SHIFT) && action == GLFW_PRESS) {
         if (key == GLFW_KEY_Q) { m_gizmoMode = GizmoMode::Translate; m_renderer->setGizmoMode(m_gizmoMode); }
