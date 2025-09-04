@@ -204,22 +204,37 @@ else()
         endif()
     else()
         message(WARNING "glfw3 not found via CMake packages. Trying manual locate (vcpkg and vendored lib).")
-        # Best-effort manual lookup: vcpkg + vendored lib under Project1/Libraries/lib
-        find_library(GLFW3_LIB NAMES glfw3 glfw
-            HINTS
-                "$ENV{VCPKG_ROOT}/installed/x64-windows/lib"
-                "$ENV{VCPKG_ROOT}/installed/x64-windows-static/lib"
-                "${CMAKE_SOURCE_DIR}/engine/Libraries/lib"
+        # Best-effort manual lookup: vcpkg + vendored lib under engine/Libraries/lib
+        # Cover common Windows library name variants and locations.
+        set(_GLFW_HINT_DIRS
+            "$ENV{VCPKG_ROOT}/installed/x64-windows/lib"
+            "$ENV{VCPKG_ROOT}/installed/x64-windows-static/lib"
+            "$ENV{GLFW_ROOT}/lib"
+            "$ENV{GLFW_HOME}/lib"
+            "${CMAKE_SOURCE_DIR}/engine/Libraries/lib"
+            "${CMAKE_SOURCE_DIR}/engine/Libraries/lib/Release"
+            "${CMAKE_SOURCE_DIR}/engine/Libraries/lib/Debug"
         )
+        find_library(GLFW3_LIB
+            NAMES glfw3 glfw glfw3dll glfw3_mt glfw3_static
+            HINTS ${_GLFW_HINT_DIRS}
+            PATH_SUFFIXES "" lib lib64
+        )
+        # Try to find headers as well (for vendored headers or vcpkg)
+        find_path(GLFW3_INCLUDE_DIR GLFW/glfw3.h
+            HINTS
+                "$ENV{VCPKG_ROOT}/installed/x64-windows/include"
+                "$ENV{VCPKG_ROOT}/installed/x64-windows-static/include"
+                "$ENV{GLFW_ROOT}/include"
+                "$ENV{GLFW_HOME}/include"
+                "${CMAKE_SOURCE_DIR}/engine/Libraries/include"
+        )
+
         if (GLFW3_LIB)
             target_link_libraries(glint PRIVATE OpenGL::GL ${GLFW3_LIB})
-            # Include dirs for either vcpkg or vendored headers
-            if (DEFINED ENV{VCPKG_ROOT})
-            target_include_directories(glint PRIVATE "$ENV{VCPKG_ROOT}/installed/x64-windows/include")
-        endif()
-        if (EXISTS "${CMAKE_SOURCE_DIR}/engine/Libraries/include")
-            target_include_directories(glint PRIVATE "${CMAKE_SOURCE_DIR}/engine/Libraries/include")
-        endif()
+            if (GLFW3_INCLUDE_DIR)
+                target_include_directories(glint PRIVATE ${GLFW3_INCLUDE_DIR})
+            endif()
         else()
             message(FATAL_ERROR "glfw3 not found. Install via vcpkg and pass -DCMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake or provide GLFW3 to CMake.")
         endif()
