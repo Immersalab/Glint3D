@@ -9,6 +9,10 @@
 #include "gl_platform.h"
 #include <iostream>
 
+#ifdef OIDN_ENABLED
+#include <OpenImageDenoise/oidn.hpp>
+#endif
+
 RenderSystem::RenderSystem()
 {
     // Initialize renderer components (GL resources are created in init)
@@ -205,13 +209,71 @@ void RenderSystem::render(const SceneManager& scene, const Light& lights)
 bool RenderSystem::renderToTexture(const SceneManager& scene, const Light& lights,
                                   GLuint textureId, int width, int height)
 {
-    // TODO: Implement offscreen render to provided texture ID.
-    // Steps:
-    // 1) Create FBO, attach color=textureId and a depth renderbuffer.
-    // 2) Set viewport, render scene via renderRasterized/renderRaytraced.
-    // 3) Restore default framebuffer and viewport; delete temporary depth RB.
-    // 4) Return true on success.
-    return false;
+    if (textureId == 0 || width <= 0 || height <= 0) return false;
+
+    // Preserve current framebuffer and viewport
+    GLint prevFBO = 0;
+    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &prevFBO);
+    GLint prevViewport[4] = {0, 0, 0, 0};
+    glGetIntegerv(GL_VIEWPORT, prevViewport);
+
+    // Create FBO
+    GLuint fbo = 0;
+    glGenFramebuffers(1, &fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+    // Attach provided color texture
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureId, 0);
+#ifndef __EMSCRIPTEN__
+    const GLenum drawBufs[1] = { GL_COLOR_ATTACHMENT0 };
+    glDrawBuffers(1, drawBufs);
+#endif
+
+    // Create and attach depth (and stencil if available) renderbuffer
+    GLuint rboDepth = 0;
+    glGenRenderbuffers(1, &rboDepth);
+    glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
+#ifndef __EMSCRIPTEN__
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
+#else
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, width, height);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
+#endif
+
+    // Validate
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        glBindFramebuffer(GL_FRAMEBUFFER, prevFBO);
+        if (rboDepth) glDeleteRenderbuffers(1, &rboDepth);
+        if (fbo) glDeleteFramebuffers(1, &fbo);
+        return false;
+    }
+
+    // Set viewport and clear
+    glViewport(0, 0, width, height);
+    glClearColor(0.10f, 0.11f, 0.12f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // Use offscreen aspect ratio; restore later
+    glm::mat4 prevProj = m_projectionMatrix;
+    updateProjectionMatrix(width, height);
+
+    // Render scene using current mode
+    if (m_renderMode == RenderMode::Raytrace) {
+        renderRaytraced(scene, lights);
+    } else {
+        renderRasterized(scene, lights);
+    }
+
+    // Restore projection, framebuffer and viewport
+    m_projectionMatrix = prevProj;
+    glBindFramebuffer(GL_FRAMEBUFFER, prevFBO);
+    glViewport(prevViewport[0], prevViewport[1], prevViewport[2], prevViewport[3]);
+
+    // Cleanup
+    glDeleteRenderbuffers(1, &rboDepth);
+    glDeleteFramebuffers(1, &fbo);
+    return true;
 }
 
 bool RenderSystem::renderToPNG(const SceneManager& scene, const Light& lights,
@@ -244,9 +306,177 @@ bool RenderSystem::denoise(std::vector<glm::vec3>& color,
                           const std::vector<glm::vec3>* normal,
                           const std::vector<glm::vec3>* albedo)
 {
-    // TODO: Integrate Intel Open Image Denoise (desktop) behind OIDN_ENABLED.
-    // Provide a no-op fallback on other platforms.
+#ifdef OIDN_ENABLED
+    try {
+        if (color.empty()) {
+            std::cerr << "[RenderSystem::denoise] Empty color buffer\n";
+            return false;
+        }
+
+        // Create OIDN device
+        oidn::DeviceRef device = oidn::newDevice();
+        device.commit();
+        
+        // Check for errors
+        const char* errorMessage;
+        if (device.getError(errorMessage) != oidn::Error::None) {
+            std::cerr << "[RenderSystem::denoise] OIDN device error: " << errorMessage << "\n";
+            return false;
+        }
+
+        // Try to guess square dimensions (common for raytracer)
+        int width = static_cast<int>(std::sqrt(color.size()));
+        int height = width;
+        
+        // Verify we have a proper square image
+        if (width * height != static_cast<int>(color.size())) {
+            std::cerr << "[RenderSystem::denoise] Cannot determine image dimensions from buffer size " 
+                      << color.size() << ". Use the overload with explicit width/height.\n";
+            return false;
+        }
+
+        // Create the filter for ray tracing denoising
+        oidn::FilterRef filter = device.newFilter("RT"); // Ray tracing filter
+        
+        // Set input images
+        filter.setImage("color", color.data(), oidn::Format::Float3, width, height);
+        
+        // Optional: Set auxiliary buffers if available
+        if (normal && normal->size() == color.size()) {
+            filter.setImage("normal", normal->data(), oidn::Format::Float3, width, height);
+        }
+        
+        if (albedo && albedo->size() == color.size()) {
+            filter.setImage("albedo", albedo->data(), oidn::Format::Float3, width, height);
+        }
+        
+        // Set output image (in-place denoising)
+        filter.setImage("output", color.data(), oidn::Format::Float3, width, height);
+        
+        // Set filter quality (optional - can be "fast", "balanced", "high")
+        filter.set("hdr", true); // Enable HDR processing for better quality
+        filter.set("srgb", false); // We're working in linear space
+        
+        // Commit the filter
+        filter.commit();
+        
+        // Check for errors
+        if (device.getError(errorMessage) != oidn::Error::None) {
+            std::cerr << "[RenderSystem::denoise] OIDN filter setup error: " << errorMessage << "\n";
+            return false;
+        }
+
+        // Execute the filter
+        filter.execute();
+        
+        // Check for errors after execution
+        if (device.getError(errorMessage) != oidn::Error::None) {
+            std::cerr << "[RenderSystem::denoise] OIDN execution error: " << errorMessage << "\n";
+            return false;
+        }
+
+        std::cout << "[RenderSystem::denoise] Successfully denoised " 
+                  << width << "x" << height << " image\n";
+        return true;
+    }
+    catch (const std::exception& e) {
+        std::cerr << "[RenderSystem::denoise] Exception: " << e.what() << "\n";
+        return false;
+    }
+#else
+    // Fallback for builds without OIDN - just return false to indicate no denoising was done
+    std::cout << "[RenderSystem::denoise] Intel Open Image Denoise not available in this build\n";
     return false;
+#endif
+}
+
+bool RenderSystem::denoise(std::vector<glm::vec3>& color, int width, int height,
+                          const std::vector<glm::vec3>* normal,
+                          const std::vector<glm::vec3>* albedo)
+{
+#ifdef OIDN_ENABLED
+    try {
+        if (color.empty()) {
+            std::cerr << "[RenderSystem::denoise] Empty color buffer\n";
+            return false;
+        }
+        
+        if (width <= 0 || height <= 0) {
+            std::cerr << "[RenderSystem::denoise] Invalid dimensions: " << width << "x" << height << "\n";
+            return false;
+        }
+
+        // Verify buffer size matches dimensions
+        if (static_cast<int>(color.size()) != width * height) {
+            std::cerr << "[RenderSystem::denoise] Buffer size " << color.size() 
+                      << " doesn't match dimensions " << width << "x" << height << "\n";
+            return false;
+        }
+
+        // Create OIDN device
+        oidn::DeviceRef device = oidn::newDevice();
+        device.commit();
+        
+        // Check for errors
+        const char* errorMessage;
+        if (device.getError(errorMessage) != oidn::Error::None) {
+            std::cerr << "[RenderSystem::denoise] OIDN device error: " << errorMessage << "\n";
+            return false;
+        }
+
+        // Create the filter for ray tracing denoising
+        oidn::FilterRef filter = device.newFilter("RT"); // Ray tracing filter
+        
+        // Set input images
+        filter.setImage("color", color.data(), oidn::Format::Float3, width, height);
+        
+        // Optional: Set auxiliary buffers if available
+        if (normal && static_cast<int>(normal->size()) == width * height) {
+            filter.setImage("normal", normal->data(), oidn::Format::Float3, width, height);
+        }
+        
+        if (albedo && static_cast<int>(albedo->size()) == width * height) {
+            filter.setImage("albedo", albedo->data(), oidn::Format::Float3, width, height);
+        }
+        
+        // Set output image (in-place denoising)
+        filter.setImage("output", color.data(), oidn::Format::Float3, width, height);
+        
+        // Set filter quality
+        filter.set("hdr", true); // Enable HDR processing for better quality
+        filter.set("srgb", false); // We're working in linear space
+        
+        // Commit the filter
+        filter.commit();
+        
+        // Check for errors
+        if (device.getError(errorMessage) != oidn::Error::None) {
+            std::cerr << "[RenderSystem::denoise] OIDN filter setup error: " << errorMessage << "\n";
+            return false;
+        }
+
+        // Execute the filter
+        filter.execute();
+        
+        // Check for errors after execution
+        if (device.getError(errorMessage) != oidn::Error::None) {
+            std::cerr << "[RenderSystem::denoise] OIDN execution error: " << errorMessage << "\n";
+            return false;
+        }
+
+        std::cout << "[RenderSystem::denoise] Successfully denoised " 
+                  << width << "x" << height << " image with explicit dimensions\n";
+        return true;
+    }
+    catch (const std::exception& e) {
+        std::cerr << "[RenderSystem::denoise] Exception: " << e.what() << "\n";
+        return false;
+    }
+#else
+    // Fallback for builds without OIDN
+    std::cout << "[RenderSystem::denoise] Intel Open Image Denoise not available in this build (explicit dimensions version)\n";
+    return false;
+#endif
 }
 
 void RenderSystem::renderRasterized(const SceneManager& scene, const Light& lights)

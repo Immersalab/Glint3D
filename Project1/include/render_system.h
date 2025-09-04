@@ -107,6 +107,9 @@ public:
     bool denoise(std::vector<glm::vec3>& color,
                 const std::vector<glm::vec3>* normal = nullptr,
                 const std::vector<glm::vec3>* albedo = nullptr);
+    bool denoise(std::vector<glm::vec3>& color, int width, int height,
+                const std::vector<glm::vec3>* normal = nullptr,
+                const std::vector<glm::vec3>* albedo = nullptr);
 
     // Gizmo support - forward declared, implemented in cpp
     class Gizmo* getGizmo() { return m_gizmo.get(); }
