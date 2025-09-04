@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(OpenGLOBJViewer C CXX)
+project(glint3d C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -62,12 +62,12 @@ if (EMSCRIPTEN)
     
     set(CMAKE_EXECUTABLE_SUFFIX ".html")
 
-    add_executable(objviewer
+    add_executable(glint3d
         ${APP_SOURCES}
         ${IMGUI_SOURCES}
     )
 
-    target_include_directories(objviewer PRIVATE
+    target_include_directories(glint3d PRIVATE
         Project1/include
         Project1
         Project1/Libraries/include
@@ -79,20 +79,20 @@ if (EMSCRIPTEN)
     if (ENABLE_KTX2)
         # Expect libktx to be available as a port or prebuilt library
         # Define macro; linking depends on environment configuration
-        target_compile_definitions(objviewer PRIVATE KTX2_ENABLED=1)
+        target_compile_definitions(glint3d PRIVATE KTX2_ENABLED=1)
         # If a CMake package exists, try it (may be skipped on web)
         find_package(ktx CONFIG QUIET)
         if (ktx_FOUND)
             if (TARGET KTX::ktx)
-                target_link_libraries(objviewer PRIVATE KTX::ktx)
+                target_link_libraries(glint3d PRIVATE KTX::ktx)
             elseif (TARGET ktx)
-                target_link_libraries(objviewer PRIVATE ktx)
+                target_link_libraries(glint3d PRIVATE ktx)
             endif()
         endif()
     endif()
 
     # Emscripten ports and flags
-    target_link_options(objviewer PRIVATE
+    target_link_options(glint3d PRIVATE
         -sUSE_GLFW=3
         -sFULL_ES3=1
         -sWASM=1
@@ -108,23 +108,23 @@ if (EMSCRIPTEN)
 
     # Optionally preload cow texture if it exists (path may vary)
     if (EXISTS "${CMAKE_SOURCE_DIR}/Project1/assets/cow-tex-fin.jpg")
-        target_link_options(objviewer PRIVATE "SHELL:--preload-file ${CMAKE_SOURCE_DIR}/Project1/assets/cow-tex-fin.jpg@/assets/cow-tex-fin.jpg")
+        target_link_options(glint3d PRIVATE "SHELL:--preload-file ${CMAKE_SOURCE_DIR}/Project1/assets/cow-tex-fin.jpg@/assets/cow-tex-fin.jpg")
     elseif (EXISTS "${CMAKE_SOURCE_DIR}/Project1/cow-tex-fin.jpg")
-        target_link_options(objviewer PRIVATE "SHELL:--preload-file ${CMAKE_SOURCE_DIR}/Project1/cow-tex-fin.jpg@/assets/cow-tex-fin.jpg")
+        target_link_options(glint3d PRIVATE "SHELL:--preload-file ${CMAKE_SOURCE_DIR}/Project1/cow-tex-fin.jpg@/assets/cow-tex-fin.jpg")
     endif()
 
     # ImGui ES3 path (compiled but HTML UI disables usage at runtime)
-    target_compile_definitions(objviewer PRIVATE IMGUI_IMPL_OPENGL_ES3 WEB_USE_HTML_UI=1)
+    target_compile_definitions(glint3d PRIVATE IMGUI_IMPL_OPENGL_ES3 WEB_USE_HTML_UI=1)
 
 # Desktop build
 else()
-    add_executable(objviewer
+    add_executable(glint3d
         ${APP_SOURCES}
         ${IMGUI_SOURCES}
         ${SRC_DIR}/glad.c
     )
 
-    target_include_directories(objviewer PRIVATE
+    target_include_directories(glint3d PRIVATE
         Project1/include
         Project1
         Project1/Libraries/include
@@ -144,9 +144,9 @@ else()
 
     if (TARGET glfw OR TARGET glfw3)
         if (TARGET glfw)
-            target_link_libraries(objviewer PRIVATE glfw OpenGL::GL)
+            target_link_libraries(glint3d PRIVATE glfw OpenGL::GL)
         else()
-            target_link_libraries(objviewer PRIVATE glfw3 OpenGL::GL)
+            target_link_libraries(glint3d PRIVATE glfw3 OpenGL::GL)
         endif()
     else()
         message(WARNING "glfw3 not found via CMake packages. Trying manual locate (vcpkg and vendored lib).")
@@ -158,13 +158,13 @@ else()
                 "${CMAKE_SOURCE_DIR}/Project1/Libraries/lib"
         )
         if (GLFW3_LIB)
-            target_link_libraries(objviewer PRIVATE OpenGL::GL ${GLFW3_LIB})
+            target_link_libraries(glint3d PRIVATE OpenGL::GL ${GLFW3_LIB})
             # Include dirs for either vcpkg or vendored headers
             if (DEFINED ENV{VCPKG_ROOT})
-                target_include_directories(objviewer PRIVATE "$ENV{VCPKG_ROOT}/installed/x64-windows/include")
+                target_include_directories(glint3d PRIVATE "$ENV{VCPKG_ROOT}/installed/x64-windows/include")
             endif()
             if (EXISTS "${CMAKE_SOURCE_DIR}/Project1/Libraries/include")
-                target_include_directories(objviewer PRIVATE "${CMAKE_SOURCE_DIR}/Project1/Libraries/include")
+                target_include_directories(glint3d PRIVATE "${CMAKE_SOURCE_DIR}/Project1/Libraries/include")
             endif()
         else()
             message(FATAL_ERROR "glfw3 not found. Install via vcpkg and pass -DCMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake or provide GLFW3 to CMake.")
@@ -172,14 +172,14 @@ else()
     endif()
 
     if (WIN32)
-        target_link_libraries(objviewer PRIVATE gdi32 user32 shell32)
+        target_link_libraries(glint3d PRIVATE gdi32 user32 shell32)
     endif()
 
     # ---- Assimp on desktop only ----
     find_package(assimp CONFIG QUIET)
     if (assimp_FOUND)
-        target_link_libraries(objviewer PRIVATE assimp::assimp)
-        target_compile_definitions(objviewer PRIVATE HAVE_ASSIMP=1 USE_ASSIMP=1)
+        target_link_libraries(glint3d PRIVATE assimp::assimp)
+        target_compile_definitions(glint3d PRIVATE HAVE_ASSIMP=1 USE_ASSIMP=1)
     else()
         message(WARNING "Assimp not found. glTF/FBX/DAE will be disabled in this build.")
     endif()
@@ -187,8 +187,8 @@ else()
     # Optional: Intel Open Image Denoise (desktop-only)
     find_package(OpenImageDenoise CONFIG QUIET)
     if (OpenImageDenoise_FOUND)
-        target_link_libraries(objviewer PRIVATE OpenImageDenoise)
-        target_compile_definitions(objviewer PRIVATE OIDN_ENABLED=1)
+        target_link_libraries(glint3d PRIVATE OpenImageDenoise)
+        target_compile_definitions(glint3d PRIVATE OIDN_ENABLED=1)
     else()
         message(STATUS "OpenImageDenoise not found; denoiser disabled.")
     endif()
@@ -197,13 +197,13 @@ else()
         find_package(ktx CONFIG QUIET)
         if (ktx_FOUND)
             if (TARGET KTX::ktx)
-                target_link_libraries(objviewer PRIVATE KTX::ktx)
+                target_link_libraries(glint3d PRIVATE KTX::ktx)
             elseif (TARGET ktx)
-                target_link_libraries(objviewer PRIVATE ktx)
+                target_link_libraries(glint3d PRIVATE ktx)
             else()
                 message(WARNING "libktx found but target not recognized; link it manually.")
             endif()
-            target_compile_definitions(objviewer PRIVATE KTX2_ENABLED=1)
+            target_compile_definitions(glint3d PRIVATE KTX2_ENABLED=1)
         else()
             message(WARNING "ENABLE_KTX2=ON but libktx not found. KTX2 at runtime will be disabled.")
         endif()

@@ -150,6 +150,14 @@ private:
     std::unique_ptr<Raytracer> m_raytracer;
     bool m_denoiseEnabled = false;
     
+    // Raytracing screen quad resources
+    GLuint m_screenQuadVAO = 0;
+    GLuint m_screenQuadVBO = 0;
+    GLuint m_raytraceTexture = 0;
+    std::unique_ptr<Shader> m_screenQuadShader;
+    int m_raytraceWidth = 512;
+    int m_raytraceHeight = 512;
+    
     // Shaders
     std::unique_ptr<Shader> m_basicShader;
     std::unique_ptr<Shader> m_pbrShader;
@@ -166,6 +174,11 @@ private:
     void renderRaytraced(const SceneManager& scene, const Light& lights);
     void renderObject(const SceneObject& obj, const Light& lights);
     void updateRenderStats(const SceneManager& scene);
+    
+    // Raytracing support methods
+    void initScreenQuad();
+    void initRaytraceTexture();
+    void cleanupRaytracing();
 
     // Gizmo state
     GizmoMode m_gizmoMode = GizmoMode::Translate;

@@ -26,7 +26,7 @@ Exec 'cmake --build build-web -j'
 Write-Host "[3/5] Copy engine outputs to ui/public/engine..."
 $eng = 'ui/public/engine'
 if (!(Test-Path $eng)) { New-Item -ItemType Directory -Force -Path $eng | Out-Null }
-foreach ($f in 'objviewer.js','objviewer.wasm','objviewer.data') {
+foreach ($f in 'glint3d.js','glint3d.wasm','glint3d.data') {
   if (Test-Path ("build-web/" + $f)) {
     Copy-Item -Force ("build-web/" + $f) (Join-Path $eng $f)
     Write-Host "  copied $f"

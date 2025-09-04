@@ -8,6 +8,17 @@
 #include "shader.h"
 #include "gl_platform.h"
 #include <iostream>
+#include <vector>
+#include <cstdint>
+#include <cstring>
+
+// PNG writer
+#ifndef __EMSCRIPTEN__
+#ifndef STB_IMAGE_WRITE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#endif
+#include "stb_image_write.h"
+#endif
 
 #ifdef OIDN_ENABLED
 #include <OpenImageDenoise/oidn.hpp>
@@ -51,9 +62,18 @@ bool RenderSystem::init(int windowWidth, int windowHeight)
     if (!m_gridShader->load("shaders/grid.vert", "shaders/grid.frag"))
         std::cerr << "[RenderSystem] Failed to load grid shader.\n";
 
+    // Load raytracing screen quad shader
+    m_screenQuadShader = std::make_unique<Shader>();
+    if (!m_screenQuadShader->load("shaders/rayscreen.vert", "shaders/rayscreen.frag"))
+        std::cerr << "[RenderSystem] Failed to load rayscreen shader.\n";
+
     // Init helpers
     if (m_grid) m_grid->init(m_gridShader.get(), 200, 1.0f);
     if (m_axisRenderer) m_axisRenderer->init();
+    
+    // Initialize screen quad for raytracing
+    initScreenQuad();
+    initRaytraceTexture();
     if (m_gizmo) m_gizmo->init();
 
     // Create a 1x1 depth texture as a dummy shadow map to satisfy shaders
@@ -279,14 +299,79 @@ bool RenderSystem::renderToTexture(const SceneManager& scene, const Light& light
 bool RenderSystem::renderToPNG(const SceneManager& scene, const Light& lights,
                                const std::string& path, int width, int height)
 {
-    // TODO: Implement offscreen render to PNG.
-    // Steps:
-    // 1) Create MSAA FBO (optional) and color/depth attachments.
-    // 2) Render, then resolve MSAA to a single-sampled RGBA8 texture.
-    // 3) Read back pixels, flip vertically, write via stb_image_write.
-    // 4) Return true on success.
-    std::cout << "PNG rendering not implemented yet: " << path << "\n";
+#ifdef __EMSCRIPTEN__
+    (void)scene; (void)lights; (void)path; (void)width; (void)height;
+    std::cerr << "renderToPNG is not supported on Web builds.\n";
     return false;
+#else
+    if (width <= 0 || height <= 0) return false;
+
+    // Preserve current framebuffer and viewport
+    GLint prevFBO = 0;
+    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &prevFBO);
+    GLint prevViewport[4] = {0, 0, 0, 0};
+    glGetIntegerv(GL_VIEWPORT, prevViewport);
+
+    // Create color texture (RGBA8)
+    GLuint colorTex = 0;
+    glGenTextures(1, &colorTex);
+    glBindTexture(GL_TEXTURE_2D, colorTex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    // Render scene into the texture
+    bool ok = renderToTexture(scene, lights, colorTex, width, height);
+    if (!ok) {
+        glDeleteTextures(1, &colorTex);
+        return false;
+    }
+
+    // Read back pixels from the texture via a temporary FBO
+    GLuint fbo = 0;
+    glGenFramebuffers(1, &fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTex, 0);
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        glBindFramebuffer(GL_FRAMEBUFFER, prevFBO);
+        glDeleteFramebuffers(1, &fbo);
+        glDeleteTextures(1, &colorTex);
+        return false;
+    }
+
+    glViewport(0, 0, width, height);
+    glReadBuffer(GL_COLOR_ATTACHMENT0);
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+
+    const int comp = 4;
+    const int rowStride = width * comp;
+    std::vector<std::uint8_t> pixels(height * rowStride);
+    glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+
+    // Flip vertically for conventional image orientation
+    std::vector<std::uint8_t> flipped(height * rowStride);
+    for (int y = 0; y < height; ++y) {
+        std::memcpy(flipped.data() + (height - 1 - y) * rowStride,
+                    pixels.data() + y * rowStride,
+                    rowStride);
+    }
+
+    // Write PNG
+    int writeOK = stbi_write_png(path.c_str(), width, height, comp, flipped.data(), rowStride);
+
+    // Restore previous framebuffer and viewport
+    glBindFramebuffer(GL_FRAMEBUFFER, prevFBO);
+    glViewport(prevViewport[0], prevViewport[1], prevViewport[2], prevViewport[3]);
+
+    // Cleanup
+    glDeleteFramebuffers(1, &fbo);
+    glDeleteTextures(1, &colorTex);
+
+    return writeOK != 0;
+#endif
 }
 
 void RenderSystem::updateViewMatrix()
@@ -491,9 +576,78 @@ void RenderSystem::renderRasterized(const SceneManager& scene, const Light& ligh
 
 void RenderSystem::renderRaytraced(const SceneManager& scene, const Light& lights)
 {
-    // TODO: Implement CPU raytracer path or remove this mode.
-    // A minimal version could trace to a CPU buffer and upload to a screen quad.
-    if (m_raytracer) { std::cout << "Raytracing not fully implemented\n"; }
+    if (!m_raytracer) {
+        std::cerr << "[RenderSystem] Raytracer not initialized\n";
+        return;
+    }
+
+    if (!m_screenQuadShader) {
+        std::cerr << "[RenderSystem] Screen quad shader not loaded\n";
+        return;
+    }
+
+    // Clear existing raytracer data and load all scene objects
+    m_raytracer = std::make_unique<Raytracer>();
+    
+    const auto& objects = scene.getObjects();
+    std::cout << "[RenderSystem] Loading " << objects.size() << " objects into raytracer\n";
+    
+    for (const auto& obj : objects) {
+        if (obj.objLoader.getVertCount() == 0) continue; // Skip objects with no geometry
+        
+        // Load object into raytracer with its transform and material
+        float reflectivity = 0.1f; // Default reflectivity
+        if (obj.material.specular.r > 0.8f || obj.material.specular.g > 0.8f || obj.material.specular.b > 0.8f) {
+            reflectivity = 0.5f; // Higher reflectivity for shiny materials
+        }
+        
+        m_raytracer->loadModel(obj.objLoader, obj.modelMatrix, reflectivity, obj.material);
+    }
+
+    // Create output buffer for raytraced image
+    std::vector<glm::vec3> raytraceBuffer(m_raytraceWidth * m_raytraceHeight);
+    
+    std::cout << "[RenderSystem] Raytracing " << m_raytraceWidth << "x" << m_raytraceHeight << " image...\n";
+    
+    // Render the image using the raytracer
+    m_raytracer->renderImage(raytraceBuffer, m_raytraceWidth, m_raytraceHeight,
+                            m_camera.position, m_camera.front, m_camera.up, 
+                            m_camera.fov, lights);
+    
+    // Apply OIDN denoising if enabled
+    if (m_denoiseEnabled) {
+        std::cout << "[RenderSystem] Applying OIDN denoising...\n";
+        if (!denoise(raytraceBuffer, m_raytraceWidth, m_raytraceHeight)) {
+            std::cerr << "[RenderSystem] Denoising failed, using raw raytraced image\n";
+        }
+    }
+    
+    // Upload raytraced image to texture
+    glBindTexture(GL_TEXTURE_2D, m_raytraceTexture);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_raytraceWidth, m_raytraceHeight, 
+                    GL_RGB, GL_FLOAT, raytraceBuffer.data());
+    glBindTexture(GL_TEXTURE_2D, 0);
+    
+    // Clear the screen
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glDisable(GL_DEPTH_TEST); // Disable depth testing for screen quad
+    
+    // Render the raytraced result using screen quad
+    m_screenQuadShader->use();
+    
+    // Bind the raytraced texture
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, m_raytraceTexture);
+    m_screenQuadShader->setInt("rayTex", 0);
+    
+    // Draw the screen quad
+    glBindVertexArray(m_screenQuadVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+    
+    glEnable(GL_DEPTH_TEST); // Re-enable depth testing
+    
+    std::cout << "[RenderSystem] Raytracing complete\n";
 }
 
 void RenderSystem::renderObject(const SceneObject& obj, const Light& lights)
@@ -598,5 +752,73 @@ void RenderSystem::updateRenderStats(const SceneManager& scene)
     
     for (const auto& obj : objects) {
         m_stats.totalTriangles += obj.objLoader.getIndexCount() / 3;
+    }
+}
+
+void RenderSystem::initScreenQuad()
+{
+    // Full-screen quad vertices with UV coordinates
+    float quadVertices[] = {
+        // positions   // texCoords
+        -1.0f,  1.0f,  0.0f, 1.0f,  // top left
+        -1.0f, -1.0f,  0.0f, 0.0f,  // bottom left
+         1.0f, -1.0f,  1.0f, 0.0f,  // bottom right
+        
+        -1.0f,  1.0f,  0.0f, 1.0f,  // top left
+         1.0f, -1.0f,  1.0f, 0.0f,  // bottom right
+         1.0f,  1.0f,  1.0f, 1.0f   // top right
+    };
+    
+    glGenVertexArrays(1, &m_screenQuadVAO);
+    glGenBuffers(1, &m_screenQuadVBO);
+    
+    glBindVertexArray(m_screenQuadVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, m_screenQuadVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
+    
+    // Position attribute
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    
+    // Texture coordinate attribute
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    
+    glBindVertexArray(0);
+    
+    std::cout << "[RenderSystem] Screen quad initialized for raytracing\n";
+}
+
+void RenderSystem::initRaytraceTexture()
+{
+    glGenTextures(1, &m_raytraceTexture);
+    glBindTexture(GL_TEXTURE_2D, m_raytraceTexture);
+    
+    // Create texture with RGB floating point format for HDR
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, m_raytraceWidth, m_raytraceHeight, 0, GL_RGB, GL_FLOAT, nullptr);
+    
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    
+    glBindTexture(GL_TEXTURE_2D, 0);
+    
+    std::cout << "[RenderSystem] Raytracing texture initialized (" << m_raytraceWidth << "x" << m_raytraceHeight << ")\n";
+}
+
+void RenderSystem::cleanupRaytracing()
+{
+    if (m_screenQuadVAO) {
+        glDeleteVertexArrays(1, &m_screenQuadVAO);
+        m_screenQuadVAO = 0;
+    }
+    if (m_screenQuadVBO) {
+        glDeleteBuffers(1, &m_screenQuadVBO);
+        m_screenQuadVBO = 0;
+    }
+    if (m_raytraceTexture) {
+        glDeleteTextures(1, &m_raytraceTexture);
+        m_raytraceTexture = 0;
     }
 }

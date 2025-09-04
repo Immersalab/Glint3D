@@ -4,7 +4,7 @@ declare global { interface Window { Module: any } }
 
 let engineScriptLoading: Promise<void> | null = null
 
-export function loadEngine(scriptPath = '/engine/objviewer.js'): Promise<void> {
+export function loadEngine(scriptPath = '/engine/glint3d.js'): Promise<void> {
   if (engineScriptLoading) return engineScriptLoading
   engineScriptLoading = new Promise<void>((resolve, reject) => {
     const s = document.createElement('script')

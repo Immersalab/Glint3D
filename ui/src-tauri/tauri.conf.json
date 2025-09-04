@@ -7,13 +7,13 @@
     "distDir": "../dist"
   },
   "package": {
-    "productName": "OpenGLOBJViewer",
+    "productName": "Glint3D",
     "version": "0.1.0"
   },
   "tauri": {
     "windows": [
       {
-        "title": "OpenGLOBJViewer",
+        "title": "Glint3D",
         "width": 1280,
         "height": 800,
         "resizable": true
@@ -21,7 +21,7 @@
     ],
     "bundle": {
       "active": false,
-      "identifier": "com.openglobjviewer.app"
+      "identifier": "com.glint3d.app"
     }
   }
 }

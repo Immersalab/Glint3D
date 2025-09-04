@@ -25,7 +25,7 @@ emcmake cmake -S . -B build-web -DCMAKE_BUILD_TYPE=Release
 cmake --build build-web -j
 
 # Serve web build
-emrun --no_browser --port 8080 build-web/objviewer.html
+emrun --no_browser --port 8080 build-web/glint3d.html
 ```
 
 ### Web UI (React/Tailwind)

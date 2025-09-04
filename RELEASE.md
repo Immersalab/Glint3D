@@ -18,7 +18,7 @@ Version v0.3.0 highlights
   - Build target: Project1
   - Ensure DLLs are copied to OutDir (vcxproj has post-build copy for Assimp and deps)
 - Package
-  - Create `OpenGLOBJViewer-v0.3.0-win64.zip` containing:
+  - Create `Glint3D-v0.3.0-win64.zip` containing:
     - `Project1.exe`
     - `Project1/shaders/` folder
     - `Project1/assets/` folder (or a subset if large)
@@ -30,13 +30,13 @@ Version v0.3.0 highlights
   - emcmake cmake -DCMAKE_BUILD_TYPE=Release ..
   - cmake --build . -j
 - Package
-  - Create `OpenGLOBJViewer-v0.3.0-web.zip` containing:
-    - `objviewer.html` (+ `.wasm`, `.data`)
+  - Create `Glint3D-v0.3.0-web.zip` containing:
+    - `glint3d.html` (+ `.wasm`, `.data`)
     - `Project1/assets/` and `Project1/shaders/` (or ensure preloaded via CMake flags)
 
 4) GitHub Release
 - Create a GitHub Release for tag `v0.3.0`
-- Attach `OpenGLOBJViewer-v0.3.0-win64.zip` and `OpenGLOBJViewer-v0.3.0-web.zip`
+- Attach `Glint3D-v0.3.0-win64.zip` and `Glint3D-v0.3.0-web.zip`
 - Notes
   - Include brief changelog and links to README sections
 
@@ -47,7 +47,7 @@ Version v0.3.0 highlights
     - Set Pages to serve from `gh-pages` branch
   - Option B (docs folder):
     - Move/copy web output to `docs/` and set Pages to `main/docs`
-- Update README “Try Web Demo” link to the Pages URL (https://<org>.github.io/<repo>/objviewer.html)
+- Update README “Try Web Demo” link to the Pages URL (https://<org>.github.io/<repo>/glint3d.html)
 
 6) Verify
 - Desktop: run the EXE from repo root, load `examples/` JSON and `assets/` models

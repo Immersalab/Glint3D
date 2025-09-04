@@ -5,7 +5,7 @@ export function TopBar({ onShare, onLog, theme, setTheme }: { onShare: ()=>void,
   return (
     <div className="h-12 flex items-center justify-between px-4 border-b border-neutral-800/70 bg-neutral-900/70 backdrop-blur">
       <div className="flex items-center gap-3">
-        <div className="font-semibold tracking-wide">OpenGLOBJViewer</div>
+        <div className="font-semibold tracking-wide">Glint3D</div>
         {isTauri && (
           <button className="bg-neutral-700 hover:bg-neutral-600 rounded px-2 py-1 text-sm" onClick={()=>openModelViaTauri(onLog)}>Open Model… ⌘O</button>
         )}
