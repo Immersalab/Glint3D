@@ -296,6 +296,9 @@ void UIBridge::handleConsoleCommand(const UICommandData& cmd)
         addConsoleMessage("  clear            - Clear the console");
         addConsoleMessage("  load <path>      - Load a model (e.g., assets/models/cube.obj)");
         addConsoleMessage("  render <out.png> [W H] - Render PNG to path, optional size");
+        addConsoleMessage("  save_png <out.png> [W H] - Alias for render");
+        addConsoleMessage("  list             - List scene objects with indices");
+        addConsoleMessage("  select <name|index> - Select an object by name or index");
         addConsoleMessage("Tips: Use Up/Down arrows to navigate command history.");
     }
     else if (command == "clear") {
@@ -326,6 +329,52 @@ void UIBridge::handleConsoleCommand(const UICommandData& cmd)
         loadCmd.stringParam = path;
         loadCmd.vec3Param = glm::vec3(0.0f, 0.0f, -2.0f);
         handleLoadObject(loadCmd);
+    }
+    else if (command.rfind("save_png ", 0) == 0) {
+        // Alias to render
+        std::istringstream ss(command.substr(9));
+        std::string out; int w = 1024; int h = 1024;
+        ss >> out;
+        if (!out.empty()) {
+            if (!(ss >> w)) w = 1024;
+            if (!(ss >> h)) h = 1024;
+            UICommandData r;
+            r.command = UICommand::RenderToPNG;
+            r.stringParam = out;
+            r.intParam = w;
+            r.floatParam = (float)h;
+            handleUICommand(r);
+        } else {
+            addConsoleMessage("Usage: save_png <out.png> [W H]");
+        }
+    }
+    else if (command == "list") {
+        const auto& objs = m_scene.getObjects();
+        addConsoleMessage("Objects:");
+        for (size_t i = 0; i < objs.size(); ++i) {
+            addConsoleMessage(std::to_string(i) + ": " + objs[i].name);
+        }
+    }
+    else if (command.rfind("select ", 0) == 0) {
+        std::string arg = command.substr(7);
+        if (arg.empty()) { addConsoleMessage("Usage: select <name|index>"); return; }
+        // Try index first
+        try {
+            int idx = std::stoi(arg);
+            if (idx >= 0 && idx < (int)m_scene.getObjects().size()) {
+                m_scene.setSelectedObjectIndex(idx);
+                addConsoleMessage("Selected object at index: " + std::to_string(idx));
+                return;
+            }
+        } catch(...) {}
+        // Fallback to name
+        int index = m_scene.findObjectIndex(arg);
+        if (index >= 0) {
+            m_scene.setSelectedObjectIndex(index);
+            addConsoleMessage("Selected object: " + arg);
+        } else {
+            addConsoleMessage("select: object not found: " + arg);
+        }
     }
     else {
         addConsoleMessage("Unknown command: " + command + " (type 'help' for commands)");

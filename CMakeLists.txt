@@ -43,6 +43,38 @@ set(APP_SOURCES
     ${SRC_DIR}/triangle.cpp
 )
 
+# Core library: expose engine without the app entry
+set(CORE_SOURCES
+    ${SRC_DIR}/application_core.cpp
+    ${SRC_DIR}/scene_manager.cpp
+    ${SRC_DIR}/render_system.cpp
+    ${SRC_DIR}/camera_controller.cpp
+    ${SRC_DIR}/ui_bridge.cpp
+    ${SRC_DIR}/imgui_ui_layer.cpp
+    ${SRC_DIR}/ai_instructions.cpp
+    ${SRC_DIR}/shader.cpp
+    ${SRC_DIR}/texture.cpp
+    ${SRC_DIR}/texture_cache.cpp
+    ${SRC_DIR}/grid.cpp
+    ${SRC_DIR}/axisrenderer.cpp
+    ${SRC_DIR}/gizmo.cpp
+    ${SRC_DIR}/objloader.cpp
+    ${SRC_DIR}/mesh_loader.cpp
+    ${SRC_DIR}/importer_registry.cpp
+    ${SRC_DIR}/importers/obj_importer.cpp
+    ${SRC_DIR}/importers/assimp_importer.cpp
+    ${SRC_DIR}/material.cpp
+    ${SRC_DIR}/light.cpp
+    ${SRC_DIR}/RayUtils.cpp
+    ${SRC_DIR}/BVHNode.cpp
+    ${SRC_DIR}/raytracer.cpp
+    ${SRC_DIR}/ai_bridge.cpp
+    ${SRC_DIR}/assimp_loader.cpp
+    ${SRC_DIR}/triangle.cpp
+    ${SRC_DIR}/json_ops.cpp
+    ${SRC_DIR}/glad.c
+)
+
 set(IMGUI_SOURCES
     engine/Libraries/include/imgui/imgui.cpp
     engine/Libraries/include/imgui/imgui_draw.cpp
@@ -63,11 +95,21 @@ if (EMSCRIPTEN)
     
     set(CMAKE_EXECUTABLE_SUFFIX ".html")
 
+    add_library(glint_core STATIC ${CORE_SOURCES} ${IMGUI_SOURCES})
+    target_include_directories(glint_core PUBLIC
+        engine/include
+        engine
+        engine/Libraries/include
+        engine/Libraries/include/stb
+        engine/Libraries/include/imgui
+        engine/Libraries/include/imgui/backends)
+    target_compile_definitions(glint_core PRIVATE IMGUI_IMPL_OPENGL_ES3 WEB_USE_HTML_UI=1)
+
     add_executable(glint
         ${APP_SOURCES}
         ${IMGUI_SOURCES}
     )
-
+    
     target_include_directories(glint PRIVATE
         engine/include
         engine
@@ -76,6 +118,7 @@ if (EMSCRIPTEN)
         engine/Libraries/include/imgui
         engine/Libraries/include/imgui/backends
     )
+    target_link_libraries(glint PRIVATE glint_core)
 
     if (ENABLE_KTX2)
         # Expect libktx to be available as a port or prebuilt library
@@ -119,6 +162,15 @@ if (EMSCRIPTEN)
 
 # Desktop build
 else()
+    add_library(glint_core STATIC ${CORE_SOURCES} ${IMGUI_SOURCES})
+    target_include_directories(glint_core PUBLIC
+        engine/include
+        engine
+        engine/Libraries/include
+        engine/Libraries/include/stb
+        engine/Libraries/include/imgui
+        engine/Libraries/include/imgui/backends)
+
     add_executable(glint
         ${APP_SOURCES}
         ${IMGUI_SOURCES}
@@ -133,6 +185,7 @@ else()
         engine/Libraries/include/imgui
         engine/Libraries/include/imgui/backends
     )
+    target_link_libraries(glint PRIVATE glint_core)
 
     # OpenGL
     find_package(OpenGL REQUIRED)
@@ -210,3 +263,9 @@ else()
         endif()
     endif()
 endif()
+
+# Install rules
+install(TARGETS glint RUNTIME DESTINATION bin)
+install(TARGETS glint_core ARCHIVE DESTINATION lib LIBRARY DESTINATION lib)
+install(DIRECTORY engine/include/ DESTINATION include/glint)
+install(FILES schemas/json_ops_v1.json DESTINATION share/glint/schemas)

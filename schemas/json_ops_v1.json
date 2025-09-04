@@ -1,0 +1,136 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Glint JSON Ops v1",
+  "type": ["object", "array"],
+  "definitions": {
+    "vec3": {
+      "type": "array",
+      "items": { "type": "number" },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "opLoad": {
+      "type": "object",
+      "required": ["op", "path"],
+      "properties": {
+        "op": { "const": "load" },
+        "path": { "type": "string" },
+        "name": { "type": "string" },
+        "position": { "$ref": "#/definitions/vec3" },
+        "scale": { "$ref": "#/definitions/vec3" },
+        "transform": {
+          "type": "object",
+          "properties": {
+            "position": { "$ref": "#/definitions/vec3" },
+            "scale": { "$ref": "#/definitions/vec3" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "opSetCamera": {
+      "type": "object",
+      "required": ["op", "position"],
+      "properties": {
+        "op": { "const": "set_camera" },
+        "position": { "$ref": "#/definitions/vec3" },
+        "target": { "$ref": "#/definitions/vec3" },
+        "front": { "$ref": "#/definitions/vec3" },
+        "up": { "$ref": "#/definitions/vec3" },
+        "fov": { "type": "number" },
+        "fov_deg": { "type": "number" },
+        "near": { "type": "number" },
+        "far": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "opAddLight": {
+      "type": "object",
+      "required": ["op"],
+      "properties": {
+        "op": { "const": "add_light" },
+        "position": { "$ref": "#/definitions/vec3" },
+        "color": { "$ref": "#/definitions/vec3" },
+        "intensity": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "opSetMaterial": {
+      "type": "object",
+      "required": ["op", "target", "material"],
+      "properties": {
+        "op": { "const": "set_material" },
+        "target": { "type": "string" },
+        "material": {
+          "type": "object",
+          "properties": {
+            "color": { "$ref": "#/definitions/vec3" },
+            "roughness": { "type": "number" },
+            "metallic": { "type": "number" },
+            "specular": { "$ref": "#/definitions/vec3" },
+            "ambient": { "$ref": "#/definitions/vec3" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "opTransform": {
+      "type": "object",
+      "required": ["op", "name"],
+      "properties": {
+        "op": { "const": "transform" },
+        "name": { "type": "string" },
+        "translate": { "$ref": "#/definitions/vec3" },
+        "rotate": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "scale": { "$ref": "#/definitions/vec3" },
+        "setPosition": { "$ref": "#/definitions/vec3" }
+      },
+      "additionalProperties": false
+    },
+    "opDelete": {
+      "type": "object",
+      "required": ["op", "name"],
+      "properties": {
+        "op": { "const": "delete" },
+        "name": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "op": {
+      "oneOf": [
+        { "$ref": "#/definitions/opLoad" },
+        { "$ref": "#/definitions/opSetCamera" },
+        { "$ref": "#/definitions/opAddLight" },
+        { "$ref": "#/definitions/opSetMaterial" },
+        { "$ref": "#/definitions/opTransform" },
+        { "$ref": "#/definitions/opDelete" }
+      ]
+    }
+  },
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "version": { "type": "integer", "enum": [1] },
+        "ops": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/op" }
+        }
+      },
+      "required": ["ops"],
+      "additionalProperties": false
+    },
+    {
+      "type": "array",
+      "items": { "$ref": "#/definitions/op" }
+    }
+  ]
+}
+

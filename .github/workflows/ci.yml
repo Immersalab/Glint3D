@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure (CMake)
+        run: cmake -S . -B builds/desktop/cmake -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build builds/desktop/cmake --config Release -j
+      - name: Smoke test headless render
+        run: |
+          $exe = "builds/desktop/cmake/Release/glint.exe"
+          if (!(Test-Path $exe)) { $exe = "builds/desktop/cmake/glint.exe" }
+          if (!(Test-Path $exe)) { throw "glint.exe not found" }
+          & $exe --ops examples/json-ops/cube_basic.json --render out.png --w 128 --h 128
+          if (!(Test-Path out.png)) { throw "out.png not created" }
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: headless-out
+          path: out.png
+

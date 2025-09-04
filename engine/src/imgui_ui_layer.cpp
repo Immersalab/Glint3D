@@ -5,12 +5,41 @@
 #include <vector>
 #include <string>
 #include <cstring>
+#include <fstream>
 
 #ifndef WEB_USE_HTML_UI
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #endif
+
+namespace {
+    static std::vector<std::string> s_history;
+    static int s_histPos = -1; // -1 means new line
+    static const char* kHistFile = ".glint_history";
+
+    static void load_history()
+    {
+        std::ifstream in(kHistFile, std::ios::in);
+        if (!in) return;
+        std::string line;
+        while (std::getline(in, line)) {
+            if (!line.empty()) s_history.emplace_back(line);
+        }
+        s_histPos = -1;
+    }
+
+    static void save_history()
+    {
+        std::ofstream out(kHistFile, std::ios::out | std::ios::trunc);
+        if (!out) return;
+        const size_t maxKeep = 200;
+        size_t start = s_history.size() > maxKeep ? s_history.size() - maxKeep : 0;
+        for (size_t i = start; i < s_history.size(); ++i) {
+            out << s_history[i] << "\n";
+        }
+    }
+}
 
 ImGuiUILayer::ImGuiUILayer()
 {
@@ -51,6 +80,9 @@ bool ImGuiUILayer::init(int windowWidth, int windowHeight)
     ImGui_ImplOpenGL3_Init("#version 330");
 #endif
 
+    // Load persistent console history
+    load_history();
+
     // Set dark theme
     setupDarkTheme();
     
@@ -62,6 +94,8 @@ void ImGuiUILayer::shutdown()
 {
 #ifndef WEB_USE_HTML_UI
     if (ImGui::GetCurrentContext()) {
+        // Save console history
+        save_history();
         ImGui_ImplOpenGL3_Shutdown();
         ImGui_ImplGlfw_Shutdown();
         ImGui::DestroyContext();
@@ -642,9 +676,6 @@ void ImGuiUILayer::renderConsole(const UIState& state)
         ImGui::SameLine();
         
         static char inputBuf[512] = "";
-        // Simple in-session command history
-        static std::vector<std::string> s_history;
-        static int s_histPos = -1; // -1 means new line
         ImGui::SetNextItemWidth(-1);
         ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.10f, 0.11f, 0.12f, 1.00f));  // Dark input
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.95f, 0.95f, 0.95f, 1.00f));     // Bright text

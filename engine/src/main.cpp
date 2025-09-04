@@ -64,9 +64,30 @@ namespace {
     static std::string loadTextFile(const std::string& path){ std::ifstream f(path, std::ios::binary); if(!f) return {}; std::ostringstream ss; ss<<f.rdbuf(); return ss.str(); }
 }
 
+static const char* GLINT_VERSION = "0.3.0";
+
+static void print_help()
+{
+    printf("glint %s\n", GLINT_VERSION);
+    printf("Usage:\n");
+    printf("  glint                          # Launch UI\n");
+    printf("  glint --ops <file>             # Apply JSON ops headlessly\n");
+    printf("  glint --ops <file> --render <out.png> [--w W --h H] [--denoise]\n");
+    printf("\nOptions:\n");
+    printf("  --help            Show this help\n");
+    printf("  --version         Print version\n");
+    printf("  --ops <file>      JSON ops file to apply (v1)\n");
+    printf("  --render <png>    Output PNG path for headless render\n");
+    printf("  --w <int>         Output image width (default 1024)\n");
+    printf("  --h <int>         Output image height (default 1024)\n");
+    printf("  --denoise         Enable denoiser if available\n");
+}
+
 int main(int argc, char** argv)
 {
     Args args(argc, argv);
+    if (args.has("--help")) { print_help(); return 0; }
+    if (args.has("--version")) { printf("%s\n", GLINT_VERSION); return 0; }
     bool wantHeadless = args.has("--ops") || args.has("--render");
     int W = args.intOr("--w", 1024);
     int H = args.intOr("--h", 1024);
