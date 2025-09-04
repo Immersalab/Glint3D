@@ -1,7 +1,7 @@
 # OpenGLOBJViewer — Product Roadmap, Use Cases, and Engineering Plan
 
-> **High‑level pitch (for non‑graphics teams):**  
-> **OpenGLOBJViewer** is a fast, lightweight 3D viewer and renderer built for **automation and reproducibility**.  
+> **High‑level pitch:**  
+> **Glint3D** is a fast, lightweight 3D viewer and renderer built for **automation and reproducibility**.  
 > It runs the same on **desktop and in the browser**, so teams can **view, test, embed, and share** 3D scenes anywhere.  
 > Unlike heavy 3D tools, it focuses on **deterministic JSON Ops** and **headless rendering** for CI/CD and bulk rendering.  
 > **Optional AI** adds friendly diagnostics and natural‑language scene setup without sacrificing determinism.
