@@ -2,6 +2,9 @@
 #include "ui_bridge.h"
 #include "gl_platform.h"
 #include <GLFW/glfw3.h>
+#include <vector>
+#include <string>
+#include <cstring>
 
 #ifndef WEB_USE_HTML_UI
 #include "imgui.h"
@@ -291,7 +294,7 @@ void ImGuiUILayer::renderSettingsPanel(const UIState& state)
 #ifndef WEB_USE_HTML_UI
     ImGuiIO& io = ImGui::GetIO();
     float rightW = 380.0f;
-    float consoleH = 120.0f;
+    float consoleH = 180.0f; // Slightly taller console at bottom
     
     ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x - rightW - 16.0f, 16.0f), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(rightW, io.DisplaySize.y - consoleH - 32.0f), ImGuiCond_FirstUseEver);
@@ -529,19 +532,30 @@ void ImGuiUILayer::renderConsole(const UIState& state)
 {
 #ifndef WEB_USE_HTML_UI
     ImGuiIO& io = ImGui::GetIO();
-    float H = 140.0f;  // Slightly taller for better usability
+    static float s_consoleHeight = 180.0f;  // User-resizable height
+    float minH = 120.0f;
+    float maxH = io.DisplaySize.y * 0.8f;
     
-    ImGui::SetNextWindowPos(ImVec2(0, io.DisplaySize.y - H), ImGuiCond_Always);
-    ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x, H), ImGuiCond_Always);
+    // Anchor bottom-left and allow resizing height from top edge
+    ImGui::SetNextWindowPos(ImVec2(0, io.DisplaySize.y), ImGuiCond_Always, ImVec2(0, 1));
+    ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x, s_consoleHeight), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSizeConstraints(ImVec2(io.DisplaySize.x, minH), ImVec2(io.DisplaySize.x, maxH));
     
     ImGuiWindowFlags window_flags = 
         ImGuiWindowFlags_NoTitleBar | 
-        ImGuiWindowFlags_NoResize | 
+        /* resizable height */ 
         ImGuiWindowFlags_NoMove |
         ImGuiWindowFlags_NoScrollbar |
         ImGuiWindowFlags_NoScrollWithMouse;
     
     if (ImGui::Begin("Console", nullptr, window_flags)) {
+        // Capture new size if user resized; keep width full, persist height
+        ImVec2 cur = ImGui::GetWindowSize();
+        if (fabsf(cur.y - s_consoleHeight) > 0.5f) {
+            s_consoleHeight = cur.y;
+            if (s_consoleHeight < minH) s_consoleHeight = minH;
+            if (s_consoleHeight > maxH) s_consoleHeight = maxH;
+        }
         
         // Header with title and AI controls
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.43f, 0.69f, 0.89f, 1.00f));
@@ -628,15 +642,44 @@ void ImGuiUILayer::renderConsole(const UIState& state)
         ImGui::SameLine();
         
         static char inputBuf[512] = "";
+        // Simple in-session command history
+        static std::vector<std::string> s_history;
+        static int s_histPos = -1; // -1 means new line
         ImGui::SetNextItemWidth(-1);
         ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.10f, 0.11f, 0.12f, 1.00f));  // Dark input
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.95f, 0.95f, 0.95f, 1.00f));     // Bright text
         
+        // InputText with basic history navigation
         bool enter_pressed = ImGui::InputText("##console_input", inputBuf, sizeof(inputBuf), 
                                              ImGuiInputTextFlags_EnterReturnsTrue);
+        bool input_active = ImGui::IsItemActive();
+        if (input_active) {
+            if (ImGui::IsKeyPressed(ImGuiKey_UpArrow)) {
+                if (!s_history.empty()) {
+                    if (s_histPos == -1) s_histPos = (int)s_history.size() - 1;
+                    else if (s_histPos > 0) s_histPos--;
+                    std::snprintf(inputBuf, sizeof(inputBuf), "%s", s_history[s_histPos].c_str());
+                }
+            } else if (ImGui::IsKeyPressed(ImGuiKey_DownArrow)) {
+                if (!s_history.empty() && s_histPos != -1) {
+                    if (s_histPos < (int)s_history.size() - 1) {
+                        s_histPos++;
+                        std::snprintf(inputBuf, sizeof(inputBuf), "%s", s_history[s_histPos].c_str());
+                    } else {
+                        s_histPos = -1;
+                        inputBuf[0] = '\0';
+                    }
+                }
+            }
+        }
         ImGui::PopStyleColor(2);
         
         if (enter_pressed && strlen(inputBuf) > 0) {
+            // Push to history (avoid immediate duplicates)
+            if (s_history.empty() || s_history.back() != std::string(inputBuf)) {
+                s_history.emplace_back(inputBuf);
+            }
+            s_histPos = -1; // reset browsing position
             UICommandData cmd;
             cmd.command = UICommand::ExecuteConsoleCommand;
             cmd.stringParam = std::string(inputBuf);

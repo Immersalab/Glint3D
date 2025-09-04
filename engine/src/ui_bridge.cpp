@@ -5,6 +5,7 @@
 #include "light.h"
 #include "json_ops.h"
 #include <iostream>
+#include <sstream>
 #include <rapidjson/document.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
@@ -34,7 +35,12 @@ bool UIBridge::initUI(int windowWidth, int windowHeight)
         handleUICommand(cmd);
     };
     
-    return m_ui->init(windowWidth, windowHeight);
+    bool ok = m_ui->init(windowWidth, windowHeight);
+    if (ok) {
+        addConsoleMessage("Welcome to Glint3D!");
+        addConsoleMessage("Type 'help' for a list of console commands.");
+    }
+    return ok;
 }
 
 void UIBridge::shutdownUI()
@@ -285,10 +291,33 @@ void UIBridge::handleConsoleCommand(const UICommandData& cmd)
     std::string command = cmd.stringParam;
     
     if (command == "help") {
-        addConsoleMessage("Available commands: help, clear, render, load");
+        addConsoleMessage("Available commands:");
+        addConsoleMessage("  help             - Show this help");
+        addConsoleMessage("  clear            - Clear the console");
+        addConsoleMessage("  load <path>      - Load a model (e.g., assets/models/cube.obj)");
+        addConsoleMessage("  render <out.png> [W H] - Render PNG to path, optional size");
+        addConsoleMessage("Tips: Use Up/Down arrows to navigate command history.");
     }
     else if (command == "clear") {
         clearConsoleLog();
+    }
+    else if (command.rfind("render ", 0) == 0) {
+        // Syntax: render <out.png> [W H]
+        std::istringstream ss(command.substr(7));
+        std::string out; int w = 1024; int h = 1024;
+        ss >> out;
+        if (!out.empty()) {
+            if (!(ss >> w)) w = 1024;
+            if (!(ss >> h)) h = 1024;
+            UICommandData r;
+            r.command = UICommand::RenderToPNG;
+            r.stringParam = out;
+            r.intParam = w;
+            r.floatParam = (float)h;
+            handleUICommand(r);
+        } else {
+            addConsoleMessage("Usage: render <out.png> [W H]");
+        }
     }
     else if (command.substr(0, 5) == "load ") {
         std::string path = command.substr(5);
