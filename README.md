@@ -42,7 +42,7 @@ Runs on desktop (GLFW/GLAD/ImGui) and web (WebGL2 via Emscripten) with a new Rea
 ## Quick Start
 
 ### Desktop (Windows)
-- Open `Project1/Project1.vcxproj` in Visual Studio 2022 (x64).  
+- Open `engine/Project1.vcxproj` in Visual Studio 2022 (x64).  
 - Build and run from the repo root so `shaders/` and `assets/` resolve.  
 - Use the top menu to load sample models or recipes. Hold RMB to fly the camera.  
 

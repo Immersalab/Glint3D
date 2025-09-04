@@ -9,11 +9,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Building (Desktop)
 ```bash
 # CMake build with Release configuration
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j
+cmake -S . -B builds/desktop/cmake -DCMAKE_BUILD_TYPE=Release
+cmake --build builds/desktop/cmake -j
 
 # Visual Studio (Windows)
-# Open Project1/Project1.vcxproj in Visual Studio 2022
+# Open engine/Project1.vcxproj in Visual Studio 2022
 # Build Configuration: Release|x64
 # Run from repo root so shaders/ and assets/ paths resolve
 ```
@@ -21,11 +21,11 @@ cmake --build build -j
 ### Building (Web/Emscripten)  
 ```bash
 # Requires Emscripten SDK active (emsdk activate latest && emsdk_env.bat)
-emcmake cmake -S . -B build-web -DCMAKE_BUILD_TYPE=Release
-cmake --build build-web -j
+emcmake cmake -S . -B builds/web/emscripten -DCMAKE_BUILD_TYPE=Release
+cmake --build builds/web/emscripten -j
 
 # Serve web build
-emrun --no_browser --port 8080 build-web/glint3d.html
+emrun --no_browser --port 8080 builds/web/emscripten/glint3d.html
 ```
 
 ### Web UI (React/Tailwind)
@@ -39,10 +39,10 @@ npm run dev
 ### Running Examples
 ```bash
 # Headless rendering with JSON Ops
-./x64/Release/Project1.exe --ops examples/three-point-lighting.json --render output.png --w 1280 --h 720
+./builds/vs/x64/Release/glint3d.exe --ops examples/json-ops/three-point-lighting.json --render output.png --w 1280 --h 720
 
 # CLI with denoise (if OIDN available)  
-./x64/Release/Project1.exe --ops examples/scene.json --render output.png --denoise
+./builds/vs/x64/Release/glint3d.exe --ops examples/json-ops/studio-turntable.json --render output.png --denoise
 ```
 
 ---
@@ -87,7 +87,7 @@ npm run dev
 
 ### Directory Structure
 ```
-Project1/
+engine/
 ├── src/                    # Core C++ implementation
 │   ├── importers/         # Asset import plugins
 │   └── ui/                # UI layer implementations  
@@ -100,10 +100,12 @@ ui/                        # React/Tailwind web interface
 ├── src/sdk/viewer.ts      # Emscripten bridge wrapper
 └── public/engine/         # WASM build outputs
 
-build/                     # CMake desktop build
-build-web/                 # Emscripten web build
-docs/                      # JSON Ops specification
-examples/                  # Sample JSON Ops files
+builds/
+├── desktop/cmake/         # CMake desktop build
+├── web/emscripten/        # Emscripten web build  
+└── vs/x64/                # Visual Studio build outputs
+docs/                      # JSON Ops specification & schema
+examples/json-ops/         # Sample JSON Ops files
 ```
 
 ### Platform Differences

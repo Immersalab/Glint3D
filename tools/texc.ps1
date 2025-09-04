@@ -6,7 +6,7 @@
 # - Mode `uastc` produces higher quality (larger); good for normal maps/UI
 
 param(
-  [string]$Root = "Project1/assets",
+  [string]$Root = "engine/assets",
   [ValidateSet("etc1s","uastc")] [string]$Mode = "etc1s",
   [int]$Workers = 4
 )

@@ -8,8 +8,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 option(ENABLE_KTX2 "Enable KTX2/Basis texture support via libktx" OFF)
 
 # Source lists
-set(SRC_DIR Project1/src)
-set(IMGUI_DIR Project1)
+set(SRC_DIR engine/src)
+set(IMGUI_DIR engine)
 
 set(APP_SOURCES
     ${SRC_DIR}/main.cpp
@@ -43,10 +43,10 @@ set(APP_SOURCES
 )
 
 set(IMGUI_SOURCES
-    Project1/Libraries/include/imgui/imgui.cpp
-    Project1/Libraries/include/imgui/imgui_draw.cpp
-    Project1/Libraries/include/imgui/imgui_tables.cpp
-    Project1/Libraries/include/imgui/imgui_widgets.cpp
+    engine/Libraries/include/imgui/imgui.cpp
+    engine/Libraries/include/imgui/imgui_draw.cpp
+    engine/Libraries/include/imgui/imgui_tables.cpp
+    engine/Libraries/include/imgui/imgui_widgets.cpp
     ${IMGUI_DIR}/imgui_impl_glfw.cpp
     ${IMGUI_DIR}/imgui_impl_opengl3.cpp
 )
@@ -68,12 +68,12 @@ if (EMSCRIPTEN)
     )
 
     target_include_directories(glint3d PRIVATE
-        Project1/include
-        Project1
-        Project1/Libraries/include
-        Project1/Libraries/include/stb
-        Project1/Libraries/include/imgui
-        Project1/Libraries/include/imgui/backends
+        engine/include
+        engine
+        engine/Libraries/include
+        engine/Libraries/include/stb
+        engine/Libraries/include/imgui
+        engine/Libraries/include/imgui/backends
     )
 
     if (ENABLE_KTX2)
@@ -102,15 +102,15 @@ if (EMSCRIPTEN)
         -sFORCE_FILESYSTEM=1
         "-sEXPORTED_FUNCTIONS=['_main','_app_apply_ops_json','_app_share_link','_app_scene_to_json','_app_is_ready']"
         "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap']"
-        "SHELL:--preload-file ${CMAKE_SOURCE_DIR}/Project1/assets@/assets"
-        "SHELL:--preload-file ${CMAKE_SOURCE_DIR}/Project1/shaders@/shaders"
+        "SHELL:--preload-file ${CMAKE_SOURCE_DIR}/engine/assets@/assets"
+        "SHELL:--preload-file ${CMAKE_SOURCE_DIR}/engine/shaders@/shaders"
     )
 
     # Optionally preload cow texture if it exists (path may vary)
-    if (EXISTS "${CMAKE_SOURCE_DIR}/Project1/assets/cow-tex-fin.jpg")
-        target_link_options(glint3d PRIVATE "SHELL:--preload-file ${CMAKE_SOURCE_DIR}/Project1/assets/cow-tex-fin.jpg@/assets/cow-tex-fin.jpg")
-    elseif (EXISTS "${CMAKE_SOURCE_DIR}/Project1/cow-tex-fin.jpg")
-        target_link_options(glint3d PRIVATE "SHELL:--preload-file ${CMAKE_SOURCE_DIR}/Project1/cow-tex-fin.jpg@/assets/cow-tex-fin.jpg")
+    if (EXISTS "${CMAKE_SOURCE_DIR}/engine/assets/cow-tex-fin.jpg")
+        target_link_options(glint3d PRIVATE "SHELL:--preload-file ${CMAKE_SOURCE_DIR}/engine/assets/cow-tex-fin.jpg@/assets/cow-tex-fin.jpg")
+    elseif (EXISTS "${CMAKE_SOURCE_DIR}/engine/cow-tex-fin.jpg")
+        target_link_options(glint3d PRIVATE "SHELL:--preload-file ${CMAKE_SOURCE_DIR}/engine/cow-tex-fin.jpg@/assets/cow-tex-fin.jpg")
     endif()
 
     # ImGui ES3 path (compiled but HTML UI disables usage at runtime)
@@ -125,12 +125,12 @@ else()
     )
 
     target_include_directories(glint3d PRIVATE
-        Project1/include
-        Project1
-        Project1/Libraries/include
-        Project1/Libraries/include/stb
-        Project1/Libraries/include/imgui
-        Project1/Libraries/include/imgui/backends
+        engine/include
+        engine
+        engine/Libraries/include
+        engine/Libraries/include/stb
+        engine/Libraries/include/imgui
+        engine/Libraries/include/imgui/backends
     )
 
     # OpenGL
@@ -155,7 +155,7 @@ else()
             HINTS
                 "$ENV{VCPKG_ROOT}/installed/x64-windows/lib"
                 "$ENV{VCPKG_ROOT}/installed/x64-windows-static/lib"
-                "${CMAKE_SOURCE_DIR}/Project1/Libraries/lib"
+                "${CMAKE_SOURCE_DIR}/engine/Libraries/lib"
         )
         if (GLFW3_LIB)
             target_link_libraries(glint3d PRIVATE OpenGL::GL ${GLFW3_LIB})
@@ -163,8 +163,8 @@ else()
             if (DEFINED ENV{VCPKG_ROOT})
                 target_include_directories(glint3d PRIVATE "$ENV{VCPKG_ROOT}/installed/x64-windows/include")
             endif()
-            if (EXISTS "${CMAKE_SOURCE_DIR}/Project1/Libraries/include")
-                target_include_directories(glint3d PRIVATE "${CMAKE_SOURCE_DIR}/Project1/Libraries/include")
+            if (EXISTS "${CMAKE_SOURCE_DIR}/engine/Libraries/include")
+                target_include_directories(glint3d PRIVATE "${CMAKE_SOURCE_DIR}/engine/Libraries/include")
             endif()
         else()
             message(FATAL_ERROR "glfw3 not found. Install via vcpkg and pass -DCMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake or provide GLFW3 to CMake.")

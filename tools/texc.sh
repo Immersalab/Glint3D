@@ -2,10 +2,10 @@
 set -euo pipefail
 
 # Usage:
-#   bash tools/texc.sh [-r Project1/assets] [-m etc1s|uastc] [-j 4]
+#   bash tools/texc.sh [-r engine/assets] [-m etc1s|uastc] [-j 4]
 # Requires `toktx` in PATH
 
-ROOT="Project1/assets"
+ROOT="engine/assets"
 MODE="etc1s"
 JOBS=4
 

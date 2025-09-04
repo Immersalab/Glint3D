@@ -1,7 +1,5 @@
 # Ignore build folders
-x64/Debug/
-x64/Release/
-x64/Intermediate/
+builds/
 
 # Visual Studio cache files
 .vs/
@@ -34,8 +32,11 @@ Desktop.ini
 # macOS generated files
 .DS_Store
 
-# Optional: If you’re using other build systems (e.g., build subfolder)
+# Legacy build directories (removed in favor of builds/ structure)
 build/
+build-web/
+build-temp/
+x64/
 out/
 
 # Shader compilation artifacts (if any)
@@ -92,8 +93,7 @@ ui/pnpm-lock.yaml
 *.so
 *.a
 
-# CMake temp build directories
-build-temp/
-build-web/
+# Large and frequently changing cache directories
+.claude/
 
 # ... any other build or large files you don't want ...
