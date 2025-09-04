@@ -1,4 +1,4 @@
-﻿#include "ObjLoader.h"
+﻿#include "objloader.h"
 
 #include <iostream>
 #include <fstream>
