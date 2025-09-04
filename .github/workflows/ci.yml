@@ -31,15 +31,36 @@ jobs:
           -DVCPKG_TARGET_TRIPLET=x64-windows
       - name: Build
         run: cmake --build builds/desktop/cmake --config Release -j
-      - name: Smoke test headless render
+
+  smoke-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+          submodules: recursive
+
+      - name: Install dependencies (GLFW, Mesa, Xvfb)
         run: |
-          $exe = "builds/desktop/cmake/Release/glint.exe"
-          if (!(Test-Path $exe)) { $exe = "builds/desktop/cmake/glint.exe" }
-          if (!(Test-Path $exe)) { throw "glint.exe not found" }
-          & $exe --ops examples/json-ops/cube_basic.json --render out.png --w 128 --h 128
-          if (!(Test-Path out.png)) { throw "out.png not created" }
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build libgl1-mesa-dev libglfw3-dev xvfb
+
+      - name: Configure (CMake)
+        run: cmake -S . -B builds/desktop/cmake -DCMAKE_BUILD_TYPE=Release -G "Unix Makefiles"
+
+      - name: Build
+        run: cmake --build builds/desktop/cmake --config Release -j
+
+      - name: Smoke test headless render (xvfb)
+        run: |
+          set -e
+          EXE="builds/desktop/cmake/glint"
+          test -f "$EXE" || { echo "glint not found"; ls -R builds/desktop/cmake; exit 1; }
+          xvfb-run -a "$EXE" --ops examples/json-ops/cube_basic.json --render out.png --w 128 --h 128
+          test -f out.png
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: headless-out
+          name: headless-out-linux
           path: out.png
