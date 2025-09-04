@@ -1,4 +1,4 @@
-# OpenGLOBJViewer — Product Roadmap, Use Cases, and Engineering Plan
+# Glint3D — Product Roadmap, Use Cases, and Engineering Plan
 
 > **High‑level pitch:**  
 > **Glint3D** is a fast, lightweight 3D viewer and renderer built for **automation and reproducibility**.  
