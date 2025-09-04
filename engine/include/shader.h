@@ -13,6 +13,7 @@ public:
     ~Shader();
 
     bool load(const std::string& vertexPath, const std::string& fragmentPath);
+    bool loadFromStrings(const std::string& vertexSource, const std::string& fragmentSource);
     void use() const;
 
     void setMat4(const std::string& name, const glm::mat4& value) const;

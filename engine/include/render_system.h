@@ -13,6 +13,7 @@ class Raytracer;
 class AxisRenderer;
 class Grid;
 class Gizmo;
+class Skybox;
 struct SceneObject;
 
 class Shader;
@@ -95,8 +96,10 @@ public:
     // Debug/utility rendering
     void setShowGrid(bool show) { m_showGrid = show; }
     void setShowAxes(bool show) { m_showAxes = show; }
+    void setShowSkybox(bool show) { m_showSkybox = show; }
     bool isShowGrid() const { return m_showGrid; }
     bool isShowAxes() const { return m_showAxes; }
+    bool isShowSkybox() const { return m_showSkybox; }
 
     // Statistics
     const RenderStats& getLastFrameStats() const { return m_stats; }
@@ -114,6 +117,10 @@ public:
     // Gizmo support - forward declared, implemented in cpp
     class Gizmo* getGizmo() { return m_gizmo.get(); }
     const class Gizmo* getGizmo() const { return m_gizmo.get(); }
+    
+    // Skybox access
+    class Skybox* getSkybox() { return m_skybox.get(); }
+    const class Skybox* getSkybox() const { return m_skybox.get(); }
     
     // Gizmo/selection configuration
     void setGizmoMode(GizmoMode mode) { m_gizmoMode = mode; }
@@ -140,11 +147,13 @@ private:
     // Debug rendering
     bool m_showGrid = true;
     bool m_showAxes = true;
+    bool m_showSkybox = true;
     
     // Utility renderers
     std::unique_ptr<AxisRenderer> m_axisRenderer;
     std::unique_ptr<Grid> m_grid;
     std::unique_ptr<Gizmo> m_gizmo;
+    std::unique_ptr<Skybox> m_skybox;
     
     // Raytracer
     std::unique_ptr<Raytracer> m_raytracer;

@@ -28,6 +28,7 @@ set(APP_SOURCES
     ${SRC_DIR}/grid.cpp
     ${SRC_DIR}/axisrenderer.cpp
     ${SRC_DIR}/gizmo.cpp
+    ${SRC_DIR}/skybox.cpp
     ${SRC_DIR}/objloader.cpp
     ${SRC_DIR}/mesh_loader.cpp
     ${SRC_DIR}/importer_registry.cpp
@@ -58,6 +59,7 @@ set(CORE_SOURCES
     ${SRC_DIR}/grid.cpp
     ${SRC_DIR}/axisrenderer.cpp
     ${SRC_DIR}/gizmo.cpp
+    ${SRC_DIR}/skybox.cpp
     ${SRC_DIR}/objloader.cpp
     ${SRC_DIR}/mesh_loader.cpp
     ${SRC_DIR}/importer_registry.cpp

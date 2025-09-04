@@ -83,6 +83,7 @@ UIState UIBridge::buildUIState() const
     state.denoiseEnabled = m_renderer.isDenoiseEnabled();
     state.showGrid = m_renderer.isShowGrid();
     state.showAxes = m_renderer.isShowAxes();
+    state.showSkybox = m_renderer.isShowSkybox();
     state.requireRMBToMove = m_requireRMBToMove;
     
     // Scene state
@@ -185,12 +186,16 @@ void UIBridge::handleUICommand(const UICommandData& command)
             addConsoleMessage("Performance HUD toggled");
             break;
         case UICommand::ToggleGrid:
-            // TODO: Implement grid toggle in renderer
-            addConsoleMessage("Grid toggle requested (not yet implemented)");
+            m_renderer.setShowGrid(!m_renderer.isShowGrid());
+            addConsoleMessage(m_renderer.isShowGrid() ? "Grid enabled" : "Grid disabled");
             break;
         case UICommand::ToggleAxes:
-            // TODO: Implement axes toggle in renderer
-            addConsoleMessage("Axes toggle requested (not yet implemented)");
+            m_renderer.setShowAxes(!m_renderer.isShowAxes());
+            addConsoleMessage(m_renderer.isShowAxes() ? "Axes enabled" : "Axes disabled");
+            break;
+        case UICommand::ToggleSkybox:
+            m_renderer.setShowSkybox(!m_renderer.isShowSkybox());
+            addConsoleMessage(m_renderer.isShowSkybox() ? "Skybox enabled" : "Skybox disabled");
             break;
             
         // Scene operations

@@ -42,6 +42,31 @@ bool Shader::load(const std::string& vertexPath, const std::string& fragmentPath
     return true;
 }
 
+bool Shader::loadFromStrings(const std::string& vertexSource, const std::string& fragmentSource)
+{
+    GLuint vert = compileShader(vertexSource, GL_VERTEX_SHADER);
+    GLuint frag = compileShader(fragmentSource, GL_FRAGMENT_SHADER);
+    if (!vert || !frag) return false;
+
+    m_programID = glCreateProgram();
+    glAttachShader(m_programID, vert);
+    glAttachShader(m_programID, frag);
+    glLinkProgram(m_programID);
+
+    GLint success;
+    glGetProgramiv(m_programID, GL_LINK_STATUS, &success);
+    if (!success) {
+        char infoLog[512];
+        glGetProgramInfoLog(m_programID, 512, nullptr, infoLog);
+        std::cerr << "Shader Link Error:\n" << infoLog << std::endl;
+        return false;
+    }
+
+    glDeleteShader(vert);
+    glDeleteShader(frag);
+    return true;
+}
+
 void Shader::use() const
 {
     glUseProgram(m_programID);
@@ -83,39 +108,55 @@ std::string Shader::loadShaderFromFile(const std::string& path)
 GLuint Shader::compileShader(const std::string& source, GLenum type)
 {
     GLuint shader = glCreateShader(type);
+    
+    // Check if we're running in an OpenGL ES context
+    bool isOpenGLES = false;
 #if defined(__EMSCRIPTEN__)
-    auto patchGLSLForWeb = [&](const std::string& in)->std::string {
-        std::string out = in;
-        // Normalize line endings
-        // Ensure correct version directive for WebGL2
-        size_t pos = out.find("#version");
-        if (pos != std::string::npos) {
-            // Replace common desktop versions with 300 es
-            size_t line_end = out.find('\n', pos);
-            if (line_end == std::string::npos) line_end = out.size();
-            std::string ver = out.substr(pos, line_end - pos);
-            if (ver.find("330") != std::string::npos || ver.find("410") != std::string::npos || ver.find("420") != std::string::npos || ver.find("430") != std::string::npos)
-            {
-                out.replace(pos, line_end - pos, "#version 300 es");
-            }
-        } else {
-            out = std::string("#version 300 es\n") + out;
-        }
-        // Add precision qualifiers (fragment shader requires default float precision in ES)
-        if (type == GL_FRAGMENT_SHADER) {
-            // Insert after the version line
-            size_t vpos = out.find("#version");
-            size_t insert_at = (vpos == std::string::npos) ? 0 : out.find('\n', vpos) + 1;
-            std::string precisions = "precision highp float;\nprecision highp int;\n";
-            out.insert(insert_at, precisions);
-        }
-        return out;
-    };
-    std::string ems_src = patchGLSLForWeb(source);
-    const char* src = ems_src.c_str();
+    isOpenGLES = true;
 #else
-    const char* src = source.c_str();
+    // Check OpenGL version string for ES
+    const char* versionStr = (const char*)glGetString(GL_VERSION);
+    if (versionStr && strstr(versionStr, "OpenGL ES")) {
+        isOpenGLES = true;
+    }
 #endif
+
+    const char* src = nullptr;
+    std::string patched_src;
+    
+    if (isOpenGLES) {
+        auto patchGLSLForES = [&](const std::string& in)->std::string {
+            std::string out = in;
+            // Normalize line endings
+            // Ensure correct version directive for OpenGL ES
+            size_t pos = out.find("#version");
+            if (pos != std::string::npos) {
+                // Replace common desktop versions with 300 es
+                size_t line_end = out.find('\n', pos);
+                if (line_end == std::string::npos) line_end = out.size();
+                std::string ver = out.substr(pos, line_end - pos);
+                if (ver.find("330") != std::string::npos || ver.find("410") != std::string::npos || ver.find("420") != std::string::npos || ver.find("430") != std::string::npos)
+                {
+                    out.replace(pos, line_end - pos, "#version 300 es");
+                }
+            } else {
+                out = std::string("#version 300 es\n") + out;
+            }
+            // Add precision qualifiers (fragment shader requires default float precision in ES)
+            if (type == GL_FRAGMENT_SHADER) {
+                // Insert after the version line
+                size_t vpos = out.find("#version");
+                size_t insert_at = (vpos == std::string::npos) ? 0 : out.find('\n', vpos) + 1;
+                std::string precisions = "precision highp float;\nprecision highp int;\n";
+                out.insert(insert_at, precisions);
+            }
+            return out;
+        };
+        patched_src = patchGLSLForES(source);
+        src = patched_src.c_str();
+    } else {
+        src = source.c_str();
+    }
 
     glShaderSource(shader, 1, &src, nullptr);
     glCompileShader(shader);

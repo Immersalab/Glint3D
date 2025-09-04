@@ -4,6 +4,7 @@
 #include "axisrenderer.h"
 #include "grid.h" 
 #include "gizmo.h"
+#include "skybox.h"
 #include "raytracer.h"
 #include "shader.h"
 #include "gl_platform.h"
@@ -31,6 +32,7 @@ RenderSystem::RenderSystem()
     m_grid = std::make_unique<Grid>();
     m_raytracer = std::make_unique<Raytracer>();
     m_gizmo = std::make_unique<Gizmo>();
+    m_skybox = std::make_unique<Skybox>();
 }
 
 RenderSystem::~RenderSystem()
@@ -70,6 +72,7 @@ bool RenderSystem::init(int windowWidth, int windowHeight)
     // Init helpers
     if (m_grid) m_grid->init(m_gridShader.get(), 200, 1.0f);
     if (m_axisRenderer) m_axisRenderer->init();
+    if (m_skybox) m_skybox->init();
     
     // Initialize screen quad for raytracing
     initScreenQuad();
@@ -566,6 +569,11 @@ bool RenderSystem::denoise(std::vector<glm::vec3>& color, int width, int height,
 
 void RenderSystem::renderRasterized(const SceneManager& scene, const Light& lights)
 {
+    // Render skybox first as background
+    if (m_showSkybox && m_skybox) {
+        m_skybox->render(m_viewMatrix, m_projectionMatrix);
+    }
+    
     // Render all scene objects using OpenGL
     const auto& objects = scene.getObjects();
     

@@ -246,6 +246,12 @@ void ImGuiUILayer::renderMainMenuBar(const UIState& state)
                 if (onCommand) onCommand(cmd);
             }
             
+            if (ImGui::MenuItem("Skybox", "S", state.showSkybox)) {
+                UICommandData cmd;
+                cmd.command = UICommand::ToggleSkybox;
+                if (onCommand) onCommand(cmd);
+            }
+            
             ImGui::EndMenu();
         }
         
@@ -464,23 +470,9 @@ void ImGuiUILayer::renderSettingsPanel(const UIState& state)
             ImGui::Spacing();
         }
         
-        // View Options Section
-        if (ImGui::CollapsingHeader("View Options")) {
+        // Diagnostic Options Section
+        if (ImGui::CollapsingHeader("Diagnostics")) {
             ImGui::Spacing();
-            
-            bool showGrid = state.showGrid;
-            if (ImGui::Checkbox("Show Grid", &showGrid)) {
-                UICommandData cmd;
-                cmd.command = UICommand::ToggleGrid;
-                if (onCommand) onCommand(cmd);
-            }
-            
-            bool showAxes = state.showAxes;
-            if (ImGui::Checkbox("Show Axes", &showAxes)) {
-                UICommandData cmd;
-                cmd.command = UICommand::ToggleAxes;
-                if (onCommand) onCommand(cmd);
-            }
             
             bool showPerfHUD = m_showPerfHUD;
             if (ImGui::Checkbox("Show Performance HUD", &showPerfHUD)) {
@@ -733,22 +725,22 @@ void ImGuiUILayer::setupDarkTheme()
     ImGuiStyle& style = ImGui::GetStyle();
     ImVec4* colors = style.Colors;
     
-    // Modern dark theme inspired by VS Code Dark+ and Discord
+    // Ultra-modern dark theme inspired by GitHub Dark, Discord, and modern IDEs
     
-    // Background colors
-    colors[ImGuiCol_WindowBg] = ImVec4(0.13f, 0.14f, 0.15f, 1.00f);           // Main background
-    colors[ImGuiCol_ChildBg] = ImVec4(0.13f, 0.14f, 0.15f, 0.00f);            // Child windows
-    colors[ImGuiCol_PopupBg] = ImVec4(0.16f, 0.17f, 0.18f, 0.92f);            // Popups
-    colors[ImGuiCol_MenuBarBg] = ImVec4(0.16f, 0.17f, 0.18f, 1.00f);          // Menu bar
-    colors[ImGuiCol_ScrollbarBg] = ImVec4(0.16f, 0.17f, 0.18f, 1.00f);        // Scrollbar background
+    // Background colors - deeper and more sophisticated
+    colors[ImGuiCol_WindowBg] = ImVec4(0.08f, 0.09f, 0.10f, 1.00f);           // Main background (darker)
+    colors[ImGuiCol_ChildBg] = ImVec4(0.08f, 0.09f, 0.10f, 0.00f);            // Child windows
+    colors[ImGuiCol_PopupBg] = ImVec4(0.12f, 0.13f, 0.14f, 0.95f);            // Popups (more opaque)
+    colors[ImGuiCol_MenuBarBg] = ImVec4(0.10f, 0.11f, 0.12f, 1.00f);          // Menu bar
+    colors[ImGuiCol_ScrollbarBg] = ImVec4(0.08f, 0.09f, 0.10f, 1.00f);        // Scrollbar background
     
-    // Border colors
-    colors[ImGuiCol_Border] = ImVec4(0.25f, 0.27f, 0.29f, 0.80f);             // Borders
-    colors[ImGuiCol_BorderShadow] = ImVec4(0.00f, 0.00f, 0.00f, 0.24f);       // Border shadows
+    // Border colors - subtle accents
+    colors[ImGuiCol_Border] = ImVec4(0.20f, 0.22f, 0.24f, 0.90f);             // Borders (more visible)
+    colors[ImGuiCol_BorderShadow] = ImVec4(0.00f, 0.00f, 0.00f, 0.30f);       // Border shadows
     
-    // Text colors
-    colors[ImGuiCol_Text] = ImVec4(0.95f, 0.96f, 0.98f, 1.00f);               // Primary text
-    colors[ImGuiCol_TextDisabled] = ImVec4(0.64f, 0.66f, 0.68f, 1.00f);       // Disabled text
+    // Text colors - crisp whites
+    colors[ImGuiCol_Text] = ImVec4(0.98f, 0.98f, 0.98f, 1.00f);               // Primary text (brighter)
+    colors[ImGuiCol_TextDisabled] = ImVec4(0.58f, 0.60f, 0.62f, 1.00f);       // Disabled text
     
     // Header colors (tabs, collapsing headers)
     colors[ImGuiCol_Header] = ImVec4(0.22f, 0.24f, 0.26f, 0.80f);             // Header default
@@ -770,13 +762,13 @@ void ImGuiUILayer::setupDarkTheme()
     colors[ImGuiCol_TitleBgActive] = ImVec4(0.18f, 0.20f, 0.22f, 1.00f);      // Title bar active
     colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.16f, 0.17f, 0.18f, 0.75f);   // Title bar collapsed
     
-    // Checkmark and selection
-    colors[ImGuiCol_CheckMark] = ImVec4(0.43f, 0.69f, 0.89f, 1.00f);          // Checkmarks (blue accent)
-    colors[ImGuiCol_SliderGrab] = ImVec4(0.43f, 0.69f, 0.89f, 1.00f);         // Slider grab
-    colors[ImGuiCol_SliderGrabActive] = ImVec4(0.51f, 0.77f, 0.97f, 1.00f);   // Slider grab active
+    // Checkmark and selection - modern deep blue/purple accent (logo-inspired)
+    colors[ImGuiCol_CheckMark] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);          // Checkmarks (modern blue)
+    colors[ImGuiCol_SliderGrab] = ImVec4(0.40f, 0.40f, 0.90f, 1.00f);         // Slider grab (deep blue-purple)
+    colors[ImGuiCol_SliderGrabActive] = ImVec4(0.50f, 0.50f, 1.00f, 1.00f);   // Slider grab active (brighter blue)
     
     // Selection colors
-    colors[ImGuiCol_TextSelectedBg] = ImVec4(0.43f, 0.69f, 0.89f, 0.35f);     // Text selection
+    colors[ImGuiCol_TextSelectedBg] = ImVec4(0.26f, 0.59f, 0.98f, 0.35f);     // Text selection (modern blue)
     
     // Scrollbar colors
     colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.25f, 0.27f, 0.29f, 1.00f);      // Scrollbar grab
@@ -792,7 +784,7 @@ void ImGuiUILayer::setupDarkTheme()
     
     // Docking colors (only if available)
 #ifdef ImGuiCol_DockingPreview
-    colors[ImGuiCol_DockingPreview] = ImVec4(0.43f, 0.69f, 0.89f, 0.40f);     // Docking preview
+    colors[ImGuiCol_DockingPreview] = ImVec4(0.26f, 0.59f, 0.98f, 0.40f);     // Docking preview (modern blue)
     colors[ImGuiCol_DockingEmptyBg] = ImVec4(0.13f, 0.14f, 0.15f, 1.00f);     // Docking empty background
 #endif
     

@@ -21,6 +21,7 @@ struct UIState {
     bool showPerfHUD = false;
     bool showGrid = true;
     bool showAxes = true;
+    bool showSkybox = true;
     
     // Rendering state
     RenderMode renderMode = RenderMode::Solid;
@@ -88,6 +89,7 @@ enum class UICommand {
     TogglePerfHUD,
     ToggleGrid,
     ToggleAxes,
+    ToggleSkybox,
     
     // Scene operations
     CenterCamera,
