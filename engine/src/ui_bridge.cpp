@@ -224,6 +224,22 @@ void UIBridge::handleUICommand(const UICommandData& command)
             // TODO: Signal application to exit
             addConsoleMessage("Exit requested");
             break;
+            
+        // File operations
+        case UICommand::ImportModel:
+            addConsoleMessage("Import Model: File dialog not yet implemented on desktop. Use console command: load <path>");
+            break;
+        case UICommand::ImportSceneJSON:
+            addConsoleMessage("Import Scene JSON: File dialog not yet implemented on desktop. Use console JSON ops.");
+            break;
+        case UICommand::ExportScene:
+            {
+                std::string sceneJson = sceneToJson();
+                // TODO: Save to file with dialog - for now just show in console
+                addConsoleMessage("Scene export (copy from console):");
+                addConsoleMessage(sceneJson);
+            }
+            break;
 
         default:
             addConsoleMessage("Unknown UI command");

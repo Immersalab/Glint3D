@@ -254,7 +254,10 @@
       "Read(/D:\\class\\Glint3D\\engine\\src/**)",
       "Read(/D:\\class\\Glint3D\\engine\\include/**)",
       "Read(/D:\\class\\Glint3D\\engine\\src/**)",
-      "Read(/D:\\class\\Glint3D\\engine/**)"
+      "Read(/D:\\class\\Glint3D\\engine/**)",
+      "Bash(builds/desktop/cmake/Release/glint.exe:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run dev:*)"
     ],
     "deny": [],
     "ask": []

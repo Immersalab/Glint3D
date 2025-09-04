@@ -217,6 +217,16 @@ bool ApplicationCore::isDenoiseEnabled() const
     return m_renderer->isDenoiseEnabled();
 }
 
+void ApplicationCore::setRaytraceMode(bool enabled) 
+{
+    m_renderer->setRenderMode(enabled ? RenderMode::Raytrace : RenderMode::Solid);
+}
+
+bool ApplicationCore::isRaytraceMode() const 
+{
+    return m_renderer->getRenderMode() == RenderMode::Raytrace;
+}
+
 void ApplicationCore::handleMouseMove(double xpos, double ypos)
 {
     if (m_firstMouse) {

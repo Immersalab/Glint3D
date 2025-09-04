@@ -219,6 +219,17 @@ bool JsonOpsExecutor::apply(const std::string& json, std::string& error)
             const_cast<SceneObject*>(targetObj)->modelMatrix = transform;
             return true;
         }
+        else if (op == "render_image") {
+            if (!obj.HasMember("path") || !obj["path"].IsString()) { error = "render_image: missing 'path'"; return false; }
+            std::string path = obj["path"].GetString();
+            int width = 800, height = 600;
+            if (obj.HasMember("width") && obj["width"].IsInt()) width = obj["width"].GetInt();
+            if (obj.HasMember("height") && obj["height"].IsInt()) height = obj["height"].GetInt();
+            
+            bool ok = m_renderer.renderToPNG(m_scene, m_lights, path, width, height);
+            if (!ok) { error = std::string("render_image: failed to render to '") + path + "'"; return false; }
+            return true;
+        }
 
         error = std::string("unknown op '") + op + "' at index " + std::to_string(index);
         return false;

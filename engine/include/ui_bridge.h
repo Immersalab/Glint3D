@@ -95,7 +95,12 @@ enum class UICommand {
     
     // Application control
     CopyShareLink,
-    ExitApplication
+    ExitApplication,
+    
+    // File operations
+    ImportModel,
+    ImportSceneJSON,
+    ExportScene
 };
 
 struct UICommandData {

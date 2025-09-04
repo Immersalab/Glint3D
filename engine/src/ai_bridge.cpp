@@ -1,7 +1,7 @@
 #include "ai_bridge.h"
 #include "ai_instructions.h"
 
-#if !defined(__EMSCRIPTEN__)
+#if !defined(__EMSCRIPTEN__) && defined(_WIN32)
 
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -205,13 +205,17 @@ bool AIPlanner::plan(const std::string& natural,
     return true;
 }
 
-#else // __EMSCRIPTEN__
+#else // Non-Windows platforms (Linux, macOS, Web, etc.)
 
 #include <string>
 
 bool NLToJSONBridge::translate(const std::string& natural, std::string& outJson, std::string& error) {
     (void)natural; (void)outJson;
+#ifdef __EMSCRIPTEN__
     error = "AI bridge networking is disabled on Web builds.";
+#else
+    error = "AI bridge networking is only supported on Windows (requires WinHTTP).";
+#endif
     return false;
 }
 
@@ -220,8 +224,12 @@ bool AIPlanner::plan(const std::string& natural,
                      std::string& outPlan,
                      std::string& error) {
     (void)natural; (void)sceneJson; (void)outPlan;
+#ifdef __EMSCRIPTEN__
     error = "AI planner is not available on Web builds.";
+#else
+    error = "AI planner is only supported on Windows (requires WinHTTP).";
+#endif
     return false;
 }
 
-#endif // __EMSCRIPTEN__
+#endif // Non-Windows platforms

@@ -176,19 +176,21 @@ void ImGuiUILayer::renderMainMenuBar(const UIState& state)
     if (ImGui::BeginMainMenuBar()) {
         // File menu
         if (ImGui::BeginMenu("File")) {
-            if (ImGui::MenuItem("Load Cube", "Ctrl+L")) {
+            if (ImGui::MenuItem("Import Model...", "Ctrl+O")) {
                 UICommandData cmd;
-                cmd.command = UICommand::LoadObject;
-                cmd.stringParam = "assets/models/cube.obj";
-                cmd.vec3Param = glm::vec3(0.0f, 0.0f, -2.0f);
+                cmd.command = UICommand::ImportModel;
                 if (onCommand) onCommand(cmd);
             }
             
-            if (ImGui::MenuItem("Load Cow", "Ctrl+Alt+C")) {
+            if (ImGui::MenuItem("Load Scene JSON...", "Ctrl+L")) {
                 UICommandData cmd;
-                cmd.command = UICommand::LoadObject;
-                cmd.stringParam = "engine/assets/models/cow.obj";
-                cmd.vec3Param = glm::vec3(0.0f, 0.0f, -2.0f);
+                cmd.command = UICommand::ImportSceneJSON;
+                if (onCommand) onCommand(cmd);
+            }
+            
+            if (ImGui::MenuItem("Export Scene...", "Ctrl+E")) {
+                UICommandData cmd;
+                cmd.command = UICommand::ExportScene;
                 if (onCommand) onCommand(cmd);
             }
             
@@ -213,23 +215,6 @@ void ImGuiUILayer::renderMainMenuBar(const UIState& state)
         
         // View menu
         if (ImGui::BeginMenu("View")) {
-            ImGui::TextDisabled("Render Mode");
-            ImGui::Separator();
-            
-            const char* renderModes[] = {"Points", "Wireframe", "Solid", "Raytrace"};
-            const char* shortcuts[] = {"1", "2", "3", "4"};
-            
-            for (int i = 0; i < 4; ++i) {
-                bool selected = ((int)state.renderMode == i);
-                if (ImGui::MenuItem(renderModes[i], shortcuts[i], selected)) {
-                    UICommandData cmd;
-                    cmd.command = UICommand::SetRenderMode;
-                    cmd.intParam = i;
-                    if (onCommand) onCommand(cmd);
-                }
-            }
-            
-            ImGui::Separator();
             ImGui::TextDisabled("Panels");
             ImGui::Separator();
             
@@ -372,35 +357,50 @@ void ImGuiUILayer::renderSettingsPanel(const UIState& state)
             ImGui::Spacing();
         }
         
-        // Render Settings Section
-        if (ImGui::CollapsingHeader("Render Settings", ImGuiTreeNodeFlags_DefaultOpen)) {
+        // File & Render Settings Section  
+        if (ImGui::CollapsingHeader("File & Render Settings", ImGuiTreeNodeFlags_DefaultOpen)) {
             ImGui::Spacing();
             
-            ImGui::Text("Render Mode");
+            // Import/Export buttons
+            ImGui::Text("Import/Export");
+            if (ImGui::Button("Import Model", ImVec2((ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) / 2, 0))) {
+                UICommandData cmd;
+                cmd.command = UICommand::ImportModel;
+                if (onCommand) onCommand(cmd);
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Load Scene JSON", ImVec2(-1, 0))) {
+                UICommandData cmd;
+                cmd.command = UICommand::ImportSceneJSON;
+                if (onCommand) onCommand(cmd);
+            }
             
-            // Modern button layout with better spacing
-            const char* renderModes[] = {"Points", "Wireframe", "Solid"};
-            int currentMode = (int)state.renderMode;
+            if (ImGui::Button("Export Scene", ImVec2(-1, 0))) {
+                UICommandData cmd;
+                cmd.command = UICommand::ExportScene;
+                if (onCommand) onCommand(cmd);
+            }
             
-            for (int i = 0; i < 3; ++i) {
-                if (i > 0) ImGui::SameLine();
-                
-                bool isSelected = (currentMode == i);
-                if (isSelected) {
-                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.43f, 0.69f, 0.89f, 1.00f));
-                    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.51f, 0.77f, 0.97f, 1.00f));
-                }
-                
-                if (ImGui::Button(renderModes[i], ImVec2((ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x * 2) / 3, 0))) {
-                    UICommandData cmd;
-                    cmd.command = UICommand::SetRenderMode;
-                    cmd.intParam = i;
-                    if (onCommand) onCommand(cmd);
-                }
-                
-                if (isSelected) {
-                    ImGui::PopStyleColor(2);
-                }
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
+            
+            // Output path setting
+            ImGui::Text("Output Path for Renders");
+            static char outputPathBuffer[256] = "output.png";
+            ImGui::SetNextItemWidth(-1);
+            if (ImGui::InputText("##output_path", outputPathBuffer, sizeof(outputPathBuffer))) {
+                // Store the path for later use
+            }
+            
+            // Render button
+            if (ImGui::Button("Render Image", ImVec2(-1, 0))) {
+                UICommandData cmd;
+                cmd.command = UICommand::RenderToPNG;
+                cmd.stringParam = std::string(outputPathBuffer);
+                cmd.intParam = 800;  // width
+                cmd.floatParam = 600.0f;  // height
+                if (onCommand) onCommand(cmd);
             }
             
             ImGui::Spacing();

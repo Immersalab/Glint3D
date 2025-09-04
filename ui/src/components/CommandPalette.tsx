@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { applyOps, shareLink, mountBytesAndLoad } from '../sdk/viewer'
+import { applyOps, shareLink, mountBytesAndLoad, mountFileAndLoad } from '../sdk/viewer'
 
 type Command = { id: string, title: string, run: ()=>void }
 
@@ -17,31 +17,65 @@ export function CommandPalette({ onLog }: { onLog: (s: string)=>void }) {
   }, [])
 
   const cmds: Command[] = useMemo(() => ([
-    { id: 'open', title: 'Open Model…', run: async ()=>{
-      try {
-        // Only available in Tauri
-        const anyWin = window as any
-        if (!anyWin.__TAURI__) return
-        const { open } = await import(/* @vite-ignore */ '@tauri-apps/api/dialog')
-        const { readBinaryFile } = await import(/* @vite-ignore */ '@tauri-apps/api/fs')
-        const selected = await open({ multiple: false, filters: [
-          { name: 'Models', extensions: ['obj','ply','glb','gltf','fbx','dae'] }
-        ]})
-        if (!selected || Array.isArray(selected)) return
-        const path = selected as string
-        const parts = path.replace(/\\/g,'/').split('/')
-        const name = parts[parts.length-1]
-        const bytes = await readBinaryFile(path)
-        const ok = mountBytesAndLoad(name, new Uint8Array(bytes))
-        onLog(ok ? `Loaded ${name}` : `Load failed: ${name}`)
-      } catch (e: any) {
-        onLog('Open failed: ' + (e?.message || e))
+    { id: 'open', title: 'Import Model…', run: async ()=>{
+      // Try Tauri dialog first, fallback to HTML file input
+      const anyWin = window as any
+      if (anyWin.__TAURI__) {
+        try {
+          const { open } = await import(/* @vite-ignore */ '@tauri-apps/api/dialog')
+          const { readBinaryFile } = await import(/* @vite-ignore */ '@tauri-apps/api/fs')
+          const selected = await open({ multiple: false, filters: [
+            { name: 'Models', extensions: ['obj','ply','glb','gltf','fbx','dae'] }
+          ]})
+          if (!selected || Array.isArray(selected)) return
+          const path = selected as string
+          const parts = path.replace(/\\/g,'/').split('/')
+          const name = parts[parts.length-1]
+          const bytes = await readBinaryFile(path)
+          const ok = mountBytesAndLoad(name, new Uint8Array(bytes))
+          onLog(ok ? `Loaded ${name}` : `Load failed: ${name}`)
+          return
+        } catch (e: any) {
+          onLog('Open failed: ' + (e?.message || e))
+          return
+        }
       }
+      // Fallback to HTML file input for web
+      const input = document.createElement('input')
+      input.type = 'file'
+      input.accept = '.obj,.ply,.glb,.gltf,.fbx,.dae'
+      input.onchange = (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0]
+        if (file) {
+          mountFileAndLoad(file, onLog)
+        }
+      }
+      input.click()
+    }},
+    { id: 'open_json', title: 'Load Scene JSON…', run: ()=>{
+      const input = document.createElement('input')
+      input.type = 'file'
+      input.accept = '.json'
+      input.onchange = (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0]
+        if (file) {
+          const reader = new FileReader()
+          reader.onload = () => {
+            try {
+              const json = reader.result as string
+              const ops = JSON.parse(json)
+              const ok = applyOps(ops)
+              onLog(ok ? `Loaded scene from ${file.name}` : `Failed to load scene from ${file.name}`)
+            } catch (e: any) {
+              onLog(`JSON parse error: ${e?.message || e}`)
+            }
+          }
+          reader.readAsText(file)
+        }
+      }
+      input.click()
     }},
     { id: 'add_light', title: 'Add Light', run: ()=>{ onLog(applyOps({op:'add_light', type:'point', intensity:1.0})? 'Added light' : 'Add light failed') } },
-    { id: 'solid', title: 'Render: Solid', run: ()=>{ onLog(applyOps({op:'set_render_mode', mode:'solid'})? 'Solid' : 'Failed') } },
-    { id: 'wire', title: 'Render: Wire', run: ()=>{ onLog(applyOps({op:'set_render_mode', mode:'wire'})? 'Wire' : 'Failed') } },
-    { id: 'ray', title: 'Render: Raytrace', run: ()=>{ onLog(applyOps({op:'set_render_mode', mode:'raytrace'})? 'Raytrace' : 'Failed') } },
     { id: 'share', title: 'Copy Share Link', run: ()=>{ const link=shareLink(); navigator.clipboard.writeText(link); onLog('Share link copied') } },
   ]), [])
 

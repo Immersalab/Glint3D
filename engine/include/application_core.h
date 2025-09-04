@@ -38,6 +38,10 @@ public:
     void setDenoiseEnabled(bool enabled);
     bool isDenoiseEnabled() const;
     
+    // Raytracing mode support
+    void setRaytraceMode(bool enabled);
+    bool isRaytraceMode() const;
+    
     // Input callbacks (called by GLFW)
     void handleMouseMove(double xpos, double ypos);
     void handleMouseButton(int button, int action, int mods);

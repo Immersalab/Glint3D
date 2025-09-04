@@ -72,27 +72,28 @@ bool BVHNode::intersectAny(const Ray& ray, const Triangle*& outTri, float& tOut)
     if (!rayIntersectsAABB(ray, boundsMin, boundsMax, t))
         return false;
 
-    bool hit = false;
-
-    if (left)
-        hit |= left->intersectAny(ray, outTri, tOut);
-    if (right)
-        hit |= right->intersectAny(ray, outTri, tOut);
-
+    // If this is a leaf node, check triangles
     if (!left && !right)
     {
         for (const auto* tri : triangles)
         {
-            float t;
+            float localT;
             glm::vec3 normal;
-            if (tri->intersect(ray, t, normal))
+            if (tri->intersect(ray, localT, normal))
             {
                 outTri = tri;
-                tOut = t;
+                tOut = localT;
                 return true;
             }
         }
+        return false;
     }
 
-    return hit;
+    // Check children - return immediately if any child finds an intersection
+    if (left && left->intersectAny(ray, outTri, tOut))
+        return true;
+    if (right && right->intersectAny(ray, outTri, tOut))
+        return true;
+
+    return false;
 }

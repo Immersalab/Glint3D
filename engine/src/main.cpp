@@ -72,7 +72,7 @@ static void print_help()
     printf("Usage:\n");
     printf("  glint                          # Launch UI\n");
     printf("  glint --ops <file>             # Apply JSON ops headlessly\n");
-    printf("  glint --ops <file> --render <out.png> [--w W --h H] [--denoise]\n");
+    printf("  glint --ops <file> --render <out.png> [--w W --h H] [--denoise] [--raytrace]\n");
     printf("\nOptions:\n");
     printf("  --help            Show this help\n");
     printf("  --version         Print version\n");
@@ -81,6 +81,7 @@ static void print_help()
     printf("  --w <int>         Output image width (default 1024)\n");
     printf("  --h <int>         Output image height (default 1024)\n");
     printf("  --denoise         Enable denoiser if available\n");
+    printf("  --raytrace        Force raytracing mode for rendering\n");
 }
 
 int main(int argc, char** argv)
@@ -92,11 +93,13 @@ int main(int argc, char** argv)
     int W = args.intOr("--w", 1024);
     int H = args.intOr("--h", 1024);
     bool denoiseFlag = args.has("--denoise");
+    bool raytraceFlag = args.has("--raytrace");
 
     auto* app = new ApplicationCore();
     if (!app->init("Glint 3D", wantHeadless ? W : 800, wantHeadless ? H : 600, wantHeadless))
         return -1;
     if (denoiseFlag) app->setDenoiseEnabled(true);
+    if (raytraceFlag) app->setRaytraceMode(true);
 
 #ifdef __EMSCRIPTEN__
     // Assign global for JS bridge

@@ -179,23 +179,29 @@ void Raytracer::renderImage(std::vector<glm::vec3>& out,
     glm::vec3 imageRight = right * aspect * scale;
     glm::vec3 imageUp = up * scale;
 
-
-#pragma omp parallel for schedule(dynamic,8)
+    // Use proper OpenMP parallelization with atomic progress reporting
+#pragma omp parallel for schedule(dynamic, 8)
     for (int y = 0; y < H; ++y)
     {
-        if (y % 50 == 0)
-            std::cout << "[DEBUG] Tracing row " << y << " of " << H << "\n";
+        // Thread-safe progress reporting
+        if (y % 50 == 0) {
+            #pragma omp critical
+            {
+                std::cout << "[DEBUG] Tracing row " << y << " of " << H << "\n";
+            }
+        }
 
         for (int x = 0; x < W; ++x)
         {
             float u = (x + 0.5f) / W * 2.0f - 1.0f;
-            float v = 1.0f - (y + 0.5f) / H * 2.0f;   // <<== FIX THIS LINE
+            float v = 1.0f - (y + 0.5f) / H * 2.0f;
 
             glm::vec3 dir = glm::normalize(imageCenter + u * imageRight + v * imageUp);
             Ray r(camPos, dir);
-            out[(H - 1 - y) * W + x] = traceRay(r, lights, 1);
-
-
+            
+            // Calculate output index correctly for flipped image
+            int outputIndex = (H - 1 - y) * W + x;
+            out[outputIndex] = traceRay(r, lights, 0);
         }
     }
 
