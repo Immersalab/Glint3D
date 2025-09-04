@@ -50,7 +50,7 @@ Runs on desktop (GLFW/GLAD/ImGui) and web (WebGL2 via Emscripten) with a new Rea
 ```bash
 cmake -S . -B builds/desktop/cmake -DCMAKE_BUILD_TYPE=Release
 cmake --build builds/desktop/cmake -j
-./builds/desktop/cmake/glint3d
+./builds/desktop/cmake/glint
 ```
 
 ### Web (Emscripten)
@@ -58,7 +58,7 @@ cmake --build builds/desktop/cmake -j
 emcmake cmake -S . -B builds/web/emscripten -DCMAKE_BUILD_TYPE=Release
 cmake --build builds/web/emscripten -j
 ```
-Open `builds/web/emscripten/glint3d.html` with a local web server. Assets under `engine/assets` and `engine/shaders` are preloaded.  
+Open `builds/web/emscripten/glint.html` with a local web server. Assets under `engine/assets` and `engine/shaders` are preloaded.  
 
 ---
 
@@ -67,9 +67,9 @@ Open `builds/web/emscripten/glint3d.html` with a local web server. Assets under 
 Located in `ui/`. This is a modern, product-ready interface that hosts the engine (WASM) in the same page.  
 
 1. Build the web engine (see above). Copy outputs to:
-   - `ui/public/engine/glint3d.js`  
-   - `ui/public/engine/glint3d.wasm`  
-   - `ui/public/engine/glint3d.data` (if generated)  
+   - `ui/public/engine/glint.js`  
+   - `ui/public/engine/glint.wasm`  
+   - `ui/public/engine/glint.data` (if generated)  
 
 2. Start the UI:
 ```bash
@@ -148,7 +148,7 @@ Suggestions:
 - File → Load Cube/Plane, Copy Share Link, Settings  
 - View → Point/Wire/Solid/Raytrace, Fullscreen, Perf HUD  
 - Gizmo → Mode, Axis, Local/Snap  
-- Samples → Prebuilt recipes (`assets/samples/recipes/`)  
+- Samples → Prebuilt recipes (`examples/json-ops/`)  
 - Toolbar → Mode, Gizmo, Add Light, Denoise, Why is it black?  
 
 ---
@@ -157,7 +157,7 @@ Suggestions:
 
 Apply JSON Ops v1 and render to PNG without a window:
 ```bash
-./builds/vs/x64/Release/glint3d.exe --ops examples/json-ops/three-point-lighting.json --render out.png --w 1024 --h 768
+./builds/vs/x64/Release/glint.exe --ops examples/json-ops/three-point-lighting.json --render out.png --w 1024 --h 768
 ```
 
 Options:
@@ -189,10 +189,10 @@ Options:
 - `engine/src/` — rendering, UI, loaders, raytracer  
 - `engine/include/` — headers  
 - `engine/shaders/` — GLSL  
-- `engine/assets/` — sample models, textures, recipes  
+- `engine/assets/�sample models and textures   
 - `builds/` — organized build outputs (desktop/web/vs)
 - `examples/json-ops/` — sample JSON Operations files
-- `docs/` — JSON Ops documentation and schema  
+- `docs/` — JSON Ops documentation  
 
 ---
 
@@ -330,3 +330,4 @@ Use the Samples menu or load recipes manually:
   {"op":"render","out":"out/hero.png","width":1280,"height":720}
 ]
 ```
+-  `schemas/` � JSON schemas (e.g., json_ops_v1.json)   

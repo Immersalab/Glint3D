@@ -30,8 +30,8 @@ Version v0.3.0 highlights
   - emcmake cmake -DCMAKE_BUILD_TYPE=Release ..
   - cmake --build . -j
 - Package
-  - Create `Glint3D-v0.3.0-web.zip` containing:
-    - `glint3d.html` (+ `.wasm`, `.data`)
+  - Create `Glint-v0.3.0-web.zip` containing:
+    - `glint.html` (+ `.wasm`, `.data`)
     - `Project1/assets/` and `Project1/shaders/` (or ensure preloaded via CMake flags)
 
 4) GitHub Release
@@ -47,7 +47,7 @@ Version v0.3.0 highlights
     - Set Pages to serve from `gh-pages` branch
   - Option B (docs folder):
     - Move/copy web output to `docs/` and set Pages to `main/docs`
-- Update README “Try Web Demo” link to the Pages URL (https://<org>.github.io/<repo>/glint3d.html)
+- Update README "Try Web Demo" link to the Pages URL (https://<org>.github.io/<repo>/glint.html)
 
 6) Verify
 - Desktop: run the EXE from repo root, load `examples/` JSON and `assets/` models
@@ -58,4 +58,3 @@ Changelog template
 - Added: PBR material struct and unified raster/ray usage
 - Added: Optional KTX2/Basis textures with offline converters
 - Docs: Product-style README, examples, release guide
-

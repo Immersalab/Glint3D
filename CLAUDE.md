@@ -25,7 +25,7 @@ emcmake cmake -S . -B builds/web/emscripten -DCMAKE_BUILD_TYPE=Release
 cmake --build builds/web/emscripten -j
 
 # Serve web build
-emrun --no_browser --port 8080 builds/web/emscripten/glint3d.html
+emrun --no_browser --port 8080 builds/web/emscripten/glint.html
 ```
 
 ### Web UI (React/Tailwind)
@@ -39,10 +39,10 @@ npm run dev
 ### Running Examples
 ```bash
 # Headless rendering with JSON Ops
-./builds/vs/x64/Release/glint3d.exe --ops examples/json-ops/three-point-lighting.json --render output.png --w 1280 --h 720
+./builds/vs/x64/Release/glint.exe --ops examples/json-ops/three-point-lighting.json --render output.png --w 1280 --h 720
 
 # CLI with denoise (if OIDN available)  
-./builds/vs/x64/Release/glint3d.exe --ops examples/json-ops/studio-turntable.json --render output.png --denoise
+./builds/vs/x64/Release/glint.exe --ops examples/json-ops/studio-turntable.json --render output.png --denoise
 ```
 
 ---

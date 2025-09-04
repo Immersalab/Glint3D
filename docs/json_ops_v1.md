@@ -1,3 +1,5 @@
+Schema: see  `schemas/json_ops_v1.json` 
+
 JSON Ops v1
 
 Overview
@@ -6,7 +8,7 @@ Overview
 - Top-level payload: Either a single op object or an array of op objects. Execute in order.
 - Naming: Use stable `name` values for objects to ensure reproducible references across platforms.
 
-Versioning
+Schema: see  `schemas/json_ops_v1.json` \\n\\nVersioning
 - This document specifies version 1.0 of the JSON Ops (“JSON Ops v1”).
 - Payloads MAY include an optional top-level `version: "1.0"` field if sent as an object with an `ops` array, but the primary format is directly a single op object or array of op objects.
 

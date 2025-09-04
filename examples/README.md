@@ -1,6 +1,6 @@
 # Examples
 
-This directory contains example files and configurations for Glint3D.
+This directory contains example files and configurations for Glint.
 
 ## JSON Ops Examples
 
@@ -17,13 +17,13 @@ You can use these examples with the headless CLI:
 
 ```bash
 # Desktop (Visual Studio build)
-./builds/vs/x64/Release/glint3d.exe --ops examples/json-ops/three-point-lighting.json --render output.png --w 1280 --h 720
+./builds/vs/x64/Release/glint.exe --ops examples/json-ops/three-point-lighting.json --render output.png --w 1280 --h 720
 
 # Desktop (CMake build)
-./builds/desktop/cmake/glint3d --ops examples/json-ops/studio-turntable.json --render output.png
+./builds/desktop/cmake/glint --ops examples/json-ops/studio-turntable.json --render output.png
 
 # With denoising (if OIDN available)
-./builds/vs/x64/Release/glint3d.exe --ops examples/json-ops/studio-turntable.json --render output.png --denoise
+./builds/vs/x64/Release/glint.exe --ops examples/json-ops/studio-turntable.json --render output.png --denoise
 ```
 
 ## JSON Ops Documentation

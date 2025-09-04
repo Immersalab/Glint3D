@@ -13,7 +13,7 @@ Build (Web)
 - `cmake --build . -j`
 
 Run (Web)
-- `emrun --no_browser --port 8080 glint3d.html`
+- `emrun --no_browser --port 8080 glint.html`
 - Or serve the directory with any static server (ensure `.data` is served next to the `.html`)
 
 Flags and Preloaded Assets

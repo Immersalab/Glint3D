@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(glint3d C CXX)
+project(glint C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -123,7 +123,7 @@ if (EMSCRIPTEN)
     if (ENABLE_KTX2)
         # Expect libktx to be available as a port or prebuilt library
         # Define macro; linking depends on environment configuration
-        target_compile_definitions(glint3d PRIVATE KTX2_ENABLED=1)
+        target_compile_definitions(glint_core PRIVATE KTX2_ENABLED=1)
         # If a CMake package exists, try it (may be skipped on web)
         find_package(ktx CONFIG QUIET)
         if (ktx_FOUND)
