@@ -8,6 +8,7 @@
 #include "ui_bridge.h"
 #include "imgui_ui_layer.h"
 #include "RayUtils.h"
+#include "json_ops.h"
 #ifndef WEB_USE_HTML_UI
 #include "imgui.h"
 #endif
@@ -29,6 +30,8 @@ ApplicationCore::ApplicationCore()
     m_renderer = std::make_unique<RenderSystem>();
     m_camera = std::make_unique<CameraController>();
     m_lights = std::make_unique<Light>();
+    // Create JSON ops executor (headless + programmatic ops)
+    m_ops = std::make_unique<JsonOpsExecutor>(*m_scene, *m_renderer, *m_camera, *m_lights);
     
     // Create UI bridge
     m_uiBridge = std::make_unique<UIBridge>(*m_scene, *m_renderer, *m_camera, *m_lights);
@@ -189,7 +192,9 @@ bool ApplicationCore::renderToPNG(const std::string& path, int width, int height
 
 bool ApplicationCore::applyJsonOpsV1(const std::string& json, std::string& error)
 {
-    return m_uiBridge->applyJsonOps(json, error);
+    if (m_ops) return m_ops->apply(json, error);
+    error = "JSON ops executor not initialized";
+    return false;
 }
 
 std::string ApplicationCore::buildShareLink() const
@@ -586,4 +591,3 @@ void ApplicationCore::keyCallback(GLFWwindow* window, int key, int scancode, int
         app->handleKey(key, scancode, action, mods);
     }
 }
-

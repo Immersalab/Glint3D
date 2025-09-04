@@ -11,6 +11,9 @@ class RenderSystem;
 class CameraController;
 class Light;
 
+// Include needed for unique_ptr
+#include "json_ops.h"
+
 // UI-independent state snapshot for any UI implementation
 struct UIState {
     // Visibility toggles
@@ -78,7 +81,21 @@ enum class UICommand {
     RenderToPNG,
     SetUseAI,
     SetAIEndpoint,
-    SetRequireRMBToMove
+    SetRequireRMBToMove,
+    
+    // UI visibility toggles
+    ToggleSettingsPanel,
+    TogglePerfHUD,
+    ToggleGrid,
+    ToggleAxes,
+    
+    // Scene operations
+    CenterCamera,
+    ResetScene,
+    
+    // Application control
+    CopyShareLink,
+    ExitApplication
 };
 
 struct UICommandData {
@@ -99,6 +116,7 @@ public:
     virtual void shutdown() = 0;
     virtual void render(const UIState& state) = 0;
     virtual void handleResize(int width, int height) = 0;
+    virtual void handleCommand(const UICommandData& cmd) = 0;
     
     // Command callback - UI implementations call this to execute actions
     std::function<void(const UICommandData&)> onCommand;
@@ -155,6 +173,9 @@ private:
     std::string m_aiEndpoint;
     bool m_requireRMBToMove = true;
     int  m_selectedLightIndex = -1;
+
+    // JSON ops executor (modularized from UI)
+    std::unique_ptr<JsonOpsExecutor> m_ops;
     
     // Command handlers
     void handleLoadObject(const UICommandData& cmd);

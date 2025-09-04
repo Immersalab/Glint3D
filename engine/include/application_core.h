@@ -12,6 +12,7 @@ class CameraController;
 class Light;
 class UIBridge;
 class UserInput;
+class JsonOpsExecutor;
 
 // Streamlined Application class focused on coordination
 class ApplicationCore 
@@ -61,6 +62,7 @@ private:
     std::unique_ptr<CameraController> m_camera; 
     std::unique_ptr<Light> m_lights;
     std::unique_ptr<UIBridge> m_uiBridge;
+    std::unique_ptr<JsonOpsExecutor> m_ops;
     
     // Platform/window management
     GLFWwindow* m_window = nullptr;

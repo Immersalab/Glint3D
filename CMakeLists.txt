@@ -18,6 +18,7 @@ set(APP_SOURCES
     ${SRC_DIR}/render_system.cpp
     ${SRC_DIR}/camera_controller.cpp
     ${SRC_DIR}/ui_bridge.cpp
+    ${SRC_DIR}/json_ops.cpp
     ${SRC_DIR}/imgui_ui_layer.cpp
     # ${SRC_DIR}/render_offscreen.cpp  # legacy (Application-based); excluded from build
     ${SRC_DIR}/ai_instructions.cpp

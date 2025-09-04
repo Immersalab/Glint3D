@@ -52,3 +52,4537 @@
 ? Failed to open shader: shaders/grid.frag
 ? Failed to open shader: shaders/rayscreen.vert
 ? Failed to open shader: shaders/rayscreen.frag
+? Failed to open shader: shaders/standard.vert
+? Failed to open shader: shaders/standard.frag
+? Failed to open shader: shaders/pbr.vert
+? Failed to open shader: shaders/pbr.frag
+? Failed to open shader: shaders/grid.vert
+? Failed to open shader: shaders/grid.frag
+? Failed to open shader: shaders/rayscreen.vert
+? Failed to open shader: shaders/rayscreen.frag
+? Failed to open shader: shaders/standard.vert
+? Failed to open shader: shaders/standard.frag
+? Failed to open shader: shaders/pbr.vert
+? Failed to open shader: shaders/pbr.frag
+? Failed to open shader: shaders/grid.vert
+? Failed to open shader: shaders/grid.frag
+? Failed to open shader: shaders/rayscreen.vert
+? Failed to open shader: shaders/rayscreen.frag
+? Failed to open shader: shaders/standard.vert
+? Failed to open shader: shaders/standard.frag
+? Failed to open shader: shaders/pbr.vert
+? Failed to open shader: shaders/pbr.frag
+? Failed to open shader: shaders/grid.vert
+? Failed to open shader: shaders/grid.frag
+? Failed to open shader: shaders/rayscreen.vert
+? Failed to open shader: shaders/rayscreen.frag
+? Opened shader file: shaders/standard.vert
+----- Shader Code Start -----
+#version 330 core
+
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 aNormal;
+
+// Matrices
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+// Shading mode: 0=Flat, 1=Gouraud
+uniform int shadingMode;
+
+// Outputs to the fragment shader
+out vec3 FragPos;
+out vec3 Normal;
+out vec3 GouraudLight;
+out vec2 UV;
+
+// Lights
+struct Light {
+    vec3 position;
+    vec3 color;
+    float intensity;
+};
+
+#define MAX_LIGHTS 10
+uniform int numLights;
+uniform Light lights[MAX_LIGHTS];
+
+// Material for Gouraud specular
+struct Material {
+    vec3 diffuse;
+    vec3 specular;
+    vec3 ambient;
+    float shininess;
+    float roughness;
+    float metallic;
+};
+
+uniform Material material;
+uniform vec3 viewPos; // Camera position in world space
+
+void main()
+{
+    // Compute position in world space
+    vec4 worldPos = model * vec4(aPos, 1.0);
+    FragPos = worldPos.xyz;
+
+    // Normal transformation via normal matrix
+    Normal = mat3(transpose(inverse(model))) * aNormal;
+
+    // Simple placeholder UV mapping
+    UV = aPos.xy * 0.5 + 0.5;
+
+    // Default to black unless we're in Gouraud shading mode
+    GouraudLight = vec3(0.0);
+
+    // Only compute Gouraud if shadingMode == 1
+    if (shadingMode == 1) {
+        vec3 normal = normalize(Normal);
+        vec3 viewDir = normalize(viewPos - FragPos);
+
+        for (int i = 0; i < numLights; i++) {
+            vec3 lightDir = normalize(lights[i].position - FragPos);
+
+            // Diffuse
+            float diff = max(dot(normal, lightDir), 0.0);
+            vec3 diffuse = material.diffuse * diff * lights[i].color * lights[i].intensity;
+
+            // Specular (Phong reflection model but computed at vertex)
+            vec3 reflectDir = reflect(-lightDir, normal);
+            float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+            vec3 specular = material.specular * spec * lights[i].color * lights[i].intensity;
+
+            GouraudLight += diffuse + specular;
+        }
+    }
+
+    // Final position for rasterization
+    gl_Position = projection * view * worldPos;
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/standard.frag
+----- Shader Code Start -----
+﻿#version 330 core
+
+out vec4 FragColor;
+
+in vec3 FragPos;
+in vec3 Normal;
+in vec3 GouraudLight;  // We only use this if shadingMode == 1
+in vec2 UV;
+
+uniform sampler2D shadowMap;
+uniform mat4 lightSpaceMatrix;
+
+// For texturing & shading controls
+uniform sampler2D cowTexture;
+uniform bool useTexture;
+uniform int shadingMode;
+uniform vec3 objectColor; // fallback if no texture
+
+// ------------------------------------------------------------------------
+// Global ambient
+uniform vec4 globalAmbient; // .a is often unused, so we just use .rgb
+
+// Light struct
+struct Light {
+    vec3 position;
+    vec3 color;
+    float intensity; // If 0, treat as disabled
+};
+
+#define MAX_LIGHTS 10
+uniform int numLights;
+uniform Light lights[MAX_LIGHTS];
+
+// ------------------------------------------------------------------------
+// Material struct
+struct Material {
+    vec3 diffuse;
+    vec3 specular;
+    vec3 ambient;
+    float shininess;
+    float roughness;
+    float metallic;
+};
+uniform Material material;
+
+// Camera position (for specular reflection in Gouraud)
+uniform vec3 viewPos;
+
+// ------------------------------------------------------------------------
+// Calculate Shadow
+float calculateShadow(vec4 fragPosLightSpace)
+{
+    // Perspective divide
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = projCoords * 0.5 + 0.5; // transform to [0,1] range
+
+    // Check if outside light projection
+    if (projCoords.z > 1.0)
+        return 1.0;
+
+    // Read depth from shadow map
+    float closestDepth = texture(shadowMap, projCoords.xy).r;
+    float currentDepth = projCoords.z;
+
+    // Bias to prevent shadow acne
+    float bias = 0.005;
+
+    // 1.0 = lit, 0.5 = shadowed
+    float shadow = (currentDepth - bias) > closestDepth ? 0.5 : 1.0;
+    return shadow;
+}
+
+// ------------------------------------------------------------------------
+// Main
+void main()
+{
+    // Base color from either texture or fallback color
+    vec3 baseColor = useTexture ? texture(cowTexture, UV).rgb : objectColor;
+
+    // Shadow factor
+    float shadow = calculateShadow(lightSpaceMatrix * vec4(FragPos, 1.0));
+
+    // Start with ambient term
+    vec3 totalLight = globalAmbient.rgb * material.ambient;
+
+    if (shadingMode == 0) {
+        // ----- FLAT Shading -----
+        vec3 faceNormal = normalize(cross(dFdx(FragPos), dFdy(FragPos)));
+
+        for (int i = 0; i < numLights; i++) {
+            if (lights[i].intensity <= 0.0) continue;
+            vec3 L = normalize(lights[i].position - FragPos);
+            float diff = max(dot(faceNormal, L), 0.0);
+            totalLight += shadow * material.diffuse * diff * lights[i].color * lights[i].intensity;
+        }
+    }
+    else if (shadingMode == 1) {
+        // ----- GOURAUD Shading -----
+        totalLight += shadow * GouraudLight;
+    }
+
+    // Final color
+    vec3 finalColor = baseColor * totalLight;
+    FragColor = vec4(finalColor, 1.0);
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/pbr.vert
+----- Shader Code Start -----
+#version 330 core
+
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 aNormal;
+layout(location = 2) in vec2 aUV;
+layout(location = 3) in vec3 aTangent;
+uniform bool hasTangents = false;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+out vec3 vWorldPos;
+out vec2 vUV;
+out mat3 vTBN;
+
+void main() {
+    vec3 N = normalize(mat3(transpose(inverse(model))) * aNormal);
+    vec3 T;
+    if (hasTangents) {
+        T = normalize(mat3(model) * aTangent);
+        // Orthonormalize T against N
+        T = normalize(T - N * dot(N, T));
+    } else {
+        // Fallback: build arbitrary T perpendicular to N
+        vec3 up = abs(N.y) < 0.999 ? vec3(0,1,0) : vec3(1,0,0);
+        T = normalize(cross(up, N));
+    }
+    vec3 B = normalize(cross(N, T));
+
+    vTBN = mat3(T, B, N);
+    vUV = aUV;
+    vWorldPos = vec3(model * vec4(aPos, 1.0));
+    gl_Position = projection * view * vec4(vWorldPos, 1.0);
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/pbr.frag
+----- Shader Code Start -----
+#version 330 core
+
+out vec4 FragColor;
+
+in vec3 vWorldPos;
+in vec2 vUV;
+in mat3 vTBN;
+
+// Lights
+struct Light { vec3 position; vec3 color; float intensity; };
+#define MAX_LIGHTS 10
+uniform int numLights;
+uniform Light lights[MAX_LIGHTS];
+uniform vec3 viewPos;
+
+// PBR inputs
+uniform vec4 baseColorFactor; // rgba
+uniform float metallicFactor;
+uniform float roughnessFactor;
+uniform bool  hasBaseColorMap;
+uniform bool  hasNormalMap;
+uniform bool  hasMRMap;
+uniform sampler2D baseColorTex;
+uniform sampler2D normalTex;
+uniform sampler2D mrTex; // glTF convention: G=roughness, B=metallic
+
+uniform sampler2D shadowMap;
+uniform mat4 lightSpaceMatrix;
+
+// Shadow
+float calculateShadow(vec4 fragPosLightSpace) {
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = projCoords * 0.5 + 0.5;
+    if (projCoords.z > 1.0) return 1.0;
+    float closestDepth = texture(shadowMap, projCoords.xy).r;
+    float currentDepth = projCoords.z;
+    float bias = 0.005;
+    return (currentDepth - bias) > closestDepth ? 0.5 : 1.0;
+}
+
+// Helpers
+const float PI = 3.14159265359;
+vec3 fresnelSchlick(float cosTheta, vec3 F0) {
+    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
+float DistributionGGX(vec3 N, vec3 H, float rough) {
+    float a = rough*rough; float a2 = a*a;
+    float NdotH = max(dot(N,H), 0.0);
+    float NdotH2 = NdotH*NdotH;
+    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+    return a2 / max(PI * denom * denom, 1e-4);
+}
+float GeometrySchlickGGX(float NdotV, float rough) {
+    float r = rough + 1.0;
+    float k = (r*r) / 8.0;
+    return NdotV / (NdotV * (1.0 - k) + k);
+}
+float GeometrySmith(vec3 N, vec3 V, vec3 L, float rough) {
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotL = max(dot(N, L), 0.0);
+    float ggx1 = GeometrySchlickGGX(NdotV, rough);
+    float ggx2 = GeometrySchlickGGX(NdotL, rough);
+    return ggx1 * ggx2;
+}
+
+void main() {
+    // Sample inputs
+    vec3 albedo = baseColorFactor.rgb;
+    if (hasBaseColorMap) albedo = pow(texture(baseColorTex, vUV).rgb, vec3(2.2)); // assume sRGB
+    float metallic = metallicFactor;
+    float roughness = clamp(roughnessFactor, 0.04, 1.0);
+    if (hasMRMap) {
+        vec3 mrs = texture(mrTex, vUV).rgb; // R=occlusion (optional), G=roughness, B=metallic (glTF)
+        roughness = clamp(mrs.g, 0.04, 1.0);
+        metallic = mrs.b;
+    }
+
+    // Normal mapping
+    vec3 N = normalize(vTBN[2]);
+    if (hasNormalMap) {
+        vec3 n = texture(normalTex, vUV).xyz * 2.0 - 1.0;
+        N = normalize(vTBN * n);
+    }
+
+    vec3 V = normalize(viewPos - vWorldPos);
+    vec3 F0 = mix(vec3(0.04), albedo, metallic);
+
+    vec3 Lo = vec3(0.0);
+    float shadow = calculateShadow(lightSpaceMatrix * vec4(vWorldPos, 1.0));
+    for (int i=0;i<numLights;i++) {
+        if (lights[i].intensity <= 0.0) continue;
+        vec3 L = normalize(lights[i].position - vWorldPos);
+        vec3 H = normalize(V + L);
+        float dist = length(lights[i].position - vWorldPos);
+        float atten = 1.0 / (dist*dist);
+        vec3 radiance = lights[i].color * lights[i].intensity * atten;
+
+        float NDF = DistributionGGX(N, H, roughness);
+        float G   = GeometrySmith(N, V, L, roughness);
+        vec3  F   = fresnelSchlick(max(dot(H, V), 0.0), F0);
+
+        vec3 nominator = NDF * G * F;
+        float denom = 4.0 * max(dot(N,V),0.0) * max(dot(N,L),0.0) + 1e-4;
+        vec3 specular = nominator / denom;
+
+        vec3 kS = F;
+        vec3 kD = (vec3(1.0) - kS) * (1.0 - metallic);
+
+        float NdotL = max(dot(N,L), 0.0);
+        Lo += (kD * albedo / PI + specular) * radiance * NdotL * shadow;
+    }
+
+    // No IBL; simple ambient term
+    vec3 ambient = vec3(0.03) * albedo;
+    vec3 color = ambient + Lo;
+    // gamma correction
+    color = pow(color, vec3(1.0/2.2));
+    FragColor = vec4(color, baseColorFactor.a);
+}
+
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/grid.vert
+----- Shader Code Start -----
+#version 330 core
+layout (location = 0) in vec3 aPos;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+void main()
+{
+    gl_Position = projection * view * model * vec4(aPos, 1.0);
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/grid.frag
+----- Shader Code Start -----
+#version 330 core
+out vec4 FragColor;
+
+void main()
+{
+    FragColor = vec4(0.4, 0.4, 0.4, 1.0); // Gray grid lines
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/rayscreen.vert
+----- Shader Code Start -----
+#version 330 core
+layout(location=0) in vec2 aPos;
+layout(location=1) in vec2 aUV;
+out vec2 vUV;
+void main() { vUV = aUV; gl_Position = vec4(aPos,0.0,1.0); }
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/rayscreen.frag
+----- Shader Code Start -----
+#version 330 core
+in  vec2 vUV;
+out vec4 FragColor;
+uniform sampler2D rayTex;
+void main() { FragColor = vec4(texture(rayTex,vUV).rgb, 1.0); }
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/standard.vert
+----- Shader Code Start -----
+#version 330 core
+
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 aNormal;
+
+// Matrices
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+// Shading mode: 0=Flat, 1=Gouraud
+uniform int shadingMode;
+
+// Outputs to the fragment shader
+out vec3 FragPos;
+out vec3 Normal;
+out vec3 GouraudLight;
+out vec2 UV;
+
+// Lights
+struct Light {
+    vec3 position;
+    vec3 color;
+    float intensity;
+};
+
+#define MAX_LIGHTS 10
+uniform int numLights;
+uniform Light lights[MAX_LIGHTS];
+
+// Material for Gouraud specular
+struct Material {
+    vec3 diffuse;
+    vec3 specular;
+    vec3 ambient;
+    float shininess;
+    float roughness;
+    float metallic;
+};
+
+uniform Material material;
+uniform vec3 viewPos; // Camera position in world space
+
+void main()
+{
+    // Compute position in world space
+    vec4 worldPos = model * vec4(aPos, 1.0);
+    FragPos = worldPos.xyz;
+
+    // Normal transformation via normal matrix
+    Normal = mat3(transpose(inverse(model))) * aNormal;
+
+    // Simple placeholder UV mapping
+    UV = aPos.xy * 0.5 + 0.5;
+
+    // Default to black unless we're in Gouraud shading mode
+    GouraudLight = vec3(0.0);
+
+    // Only compute Gouraud if shadingMode == 1
+    if (shadingMode == 1) {
+        vec3 normal = normalize(Normal);
+        vec3 viewDir = normalize(viewPos - FragPos);
+
+        for (int i = 0; i < numLights; i++) {
+            vec3 lightDir = normalize(lights[i].position - FragPos);
+
+            // Diffuse
+            float diff = max(dot(normal, lightDir), 0.0);
+            vec3 diffuse = material.diffuse * diff * lights[i].color * lights[i].intensity;
+
+            // Specular (Phong reflection model but computed at vertex)
+            vec3 reflectDir = reflect(-lightDir, normal);
+            float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+            vec3 specular = material.specular * spec * lights[i].color * lights[i].intensity;
+
+            GouraudLight += diffuse + specular;
+        }
+    }
+
+    // Final position for rasterization
+    gl_Position = projection * view * worldPos;
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/standard.frag
+----- Shader Code Start -----
+﻿#version 330 core
+
+out vec4 FragColor;
+
+in vec3 FragPos;
+in vec3 Normal;
+in vec3 GouraudLight;  // We only use this if shadingMode == 1
+in vec2 UV;
+
+uniform sampler2D shadowMap;
+uniform mat4 lightSpaceMatrix;
+
+// For texturing & shading controls
+uniform sampler2D cowTexture;
+uniform bool useTexture;
+uniform int shadingMode;
+uniform vec3 objectColor; // fallback if no texture
+
+// ------------------------------------------------------------------------
+// Global ambient
+uniform vec4 globalAmbient; // .a is often unused, so we just use .rgb
+
+// Light struct
+struct Light {
+    vec3 position;
+    vec3 color;
+    float intensity; // If 0, treat as disabled
+};
+
+#define MAX_LIGHTS 10
+uniform int numLights;
+uniform Light lights[MAX_LIGHTS];
+
+// ------------------------------------------------------------------------
+// Material struct
+struct Material {
+    vec3 diffuse;
+    vec3 specular;
+    vec3 ambient;
+    float shininess;
+    float roughness;
+    float metallic;
+};
+uniform Material material;
+
+// Camera position (for specular reflection in Gouraud)
+uniform vec3 viewPos;
+
+// ------------------------------------------------------------------------
+// Calculate Shadow
+float calculateShadow(vec4 fragPosLightSpace)
+{
+    // Perspective divide
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = projCoords * 0.5 + 0.5; // transform to [0,1] range
+
+    // Check if outside light projection
+    if (projCoords.z > 1.0)
+        return 1.0;
+
+    // Read depth from shadow map
+    float closestDepth = texture(shadowMap, projCoords.xy).r;
+    float currentDepth = projCoords.z;
+
+    // Bias to prevent shadow acne
+    float bias = 0.005;
+
+    // 1.0 = lit, 0.5 = shadowed
+    float shadow = (currentDepth - bias) > closestDepth ? 0.5 : 1.0;
+    return shadow;
+}
+
+// ------------------------------------------------------------------------
+// Main
+void main()
+{
+    // Base color from either texture or fallback color
+    vec3 baseColor = useTexture ? texture(cowTexture, UV).rgb : objectColor;
+
+    // Shadow factor
+    float shadow = calculateShadow(lightSpaceMatrix * vec4(FragPos, 1.0));
+
+    // Start with ambient term
+    vec3 totalLight = globalAmbient.rgb * material.ambient;
+
+    if (shadingMode == 0) {
+        // ----- FLAT Shading -----
+        vec3 faceNormal = normalize(cross(dFdx(FragPos), dFdy(FragPos)));
+
+        for (int i = 0; i < numLights; i++) {
+            if (lights[i].intensity <= 0.0) continue;
+            vec3 L = normalize(lights[i].position - FragPos);
+            float diff = max(dot(faceNormal, L), 0.0);
+            totalLight += shadow * material.diffuse * diff * lights[i].color * lights[i].intensity;
+        }
+    }
+    else if (shadingMode == 1) {
+        // ----- GOURAUD Shading -----
+        totalLight += shadow * GouraudLight;
+    }
+
+    // Final color
+    vec3 finalColor = baseColor * totalLight;
+    FragColor = vec4(finalColor, 1.0);
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/pbr.vert
+----- Shader Code Start -----
+#version 330 core
+
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 aNormal;
+layout(location = 2) in vec2 aUV;
+layout(location = 3) in vec3 aTangent;
+uniform bool hasTangents = false;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+out vec3 vWorldPos;
+out vec2 vUV;
+out mat3 vTBN;
+
+void main() {
+    vec3 N = normalize(mat3(transpose(inverse(model))) * aNormal);
+    vec3 T;
+    if (hasTangents) {
+        T = normalize(mat3(model) * aTangent);
+        // Orthonormalize T against N
+        T = normalize(T - N * dot(N, T));
+    } else {
+        // Fallback: build arbitrary T perpendicular to N
+        vec3 up = abs(N.y) < 0.999 ? vec3(0,1,0) : vec3(1,0,0);
+        T = normalize(cross(up, N));
+    }
+    vec3 B = normalize(cross(N, T));
+
+    vTBN = mat3(T, B, N);
+    vUV = aUV;
+    vWorldPos = vec3(model * vec4(aPos, 1.0));
+    gl_Position = projection * view * vec4(vWorldPos, 1.0);
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/pbr.frag
+----- Shader Code Start -----
+#version 330 core
+
+out vec4 FragColor;
+
+in vec3 vWorldPos;
+in vec2 vUV;
+in mat3 vTBN;
+
+// Lights
+struct Light { vec3 position; vec3 color; float intensity; };
+#define MAX_LIGHTS 10
+uniform int numLights;
+uniform Light lights[MAX_LIGHTS];
+uniform vec3 viewPos;
+
+// PBR inputs
+uniform vec4 baseColorFactor; // rgba
+uniform float metallicFactor;
+uniform float roughnessFactor;
+uniform bool  hasBaseColorMap;
+uniform bool  hasNormalMap;
+uniform bool  hasMRMap;
+uniform sampler2D baseColorTex;
+uniform sampler2D normalTex;
+uniform sampler2D mrTex; // glTF convention: G=roughness, B=metallic
+
+uniform sampler2D shadowMap;
+uniform mat4 lightSpaceMatrix;
+
+// Shadow
+float calculateShadow(vec4 fragPosLightSpace) {
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = projCoords * 0.5 + 0.5;
+    if (projCoords.z > 1.0) return 1.0;
+    float closestDepth = texture(shadowMap, projCoords.xy).r;
+    float currentDepth = projCoords.z;
+    float bias = 0.005;
+    return (currentDepth - bias) > closestDepth ? 0.5 : 1.0;
+}
+
+// Helpers
+const float PI = 3.14159265359;
+vec3 fresnelSchlick(float cosTheta, vec3 F0) {
+    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
+float DistributionGGX(vec3 N, vec3 H, float rough) {
+    float a = rough*rough; float a2 = a*a;
+    float NdotH = max(dot(N,H), 0.0);
+    float NdotH2 = NdotH*NdotH;
+    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+    return a2 / max(PI * denom * denom, 1e-4);
+}
+float GeometrySchlickGGX(float NdotV, float rough) {
+    float r = rough + 1.0;
+    float k = (r*r) / 8.0;
+    return NdotV / (NdotV * (1.0 - k) + k);
+}
+float GeometrySmith(vec3 N, vec3 V, vec3 L, float rough) {
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotL = max(dot(N, L), 0.0);
+    float ggx1 = GeometrySchlickGGX(NdotV, rough);
+    float ggx2 = GeometrySchlickGGX(NdotL, rough);
+    return ggx1 * ggx2;
+}
+
+void main() {
+    // Sample inputs
+    vec3 albedo = baseColorFactor.rgb;
+    if (hasBaseColorMap) albedo = pow(texture(baseColorTex, vUV).rgb, vec3(2.2)); // assume sRGB
+    float metallic = metallicFactor;
+    float roughness = clamp(roughnessFactor, 0.04, 1.0);
+    if (hasMRMap) {
+        vec3 mrs = texture(mrTex, vUV).rgb; // R=occlusion (optional), G=roughness, B=metallic (glTF)
+        roughness = clamp(mrs.g, 0.04, 1.0);
+        metallic = mrs.b;
+    }
+
+    // Normal mapping
+    vec3 N = normalize(vTBN[2]);
+    if (hasNormalMap) {
+        vec3 n = texture(normalTex, vUV).xyz * 2.0 - 1.0;
+        N = normalize(vTBN * n);
+    }
+
+    vec3 V = normalize(viewPos - vWorldPos);
+    vec3 F0 = mix(vec3(0.04), albedo, metallic);
+
+    vec3 Lo = vec3(0.0);
+    float shadow = calculateShadow(lightSpaceMatrix * vec4(vWorldPos, 1.0));
+    for (int i=0;i<numLights;i++) {
+        if (lights[i].intensity <= 0.0) continue;
+        vec3 L = normalize(lights[i].position - vWorldPos);
+        vec3 H = normalize(V + L);
+        float dist = length(lights[i].position - vWorldPos);
+        float atten = 1.0 / (dist*dist);
+        vec3 radiance = lights[i].color * lights[i].intensity * atten;
+
+        float NDF = DistributionGGX(N, H, roughness);
+        float G   = GeometrySmith(N, V, L, roughness);
+        vec3  F   = fresnelSchlick(max(dot(H, V), 0.0), F0);
+
+        vec3 nominator = NDF * G * F;
+        float denom = 4.0 * max(dot(N,V),0.0) * max(dot(N,L),0.0) + 1e-4;
+        vec3 specular = nominator / denom;
+
+        vec3 kS = F;
+        vec3 kD = (vec3(1.0) - kS) * (1.0 - metallic);
+
+        float NdotL = max(dot(N,L), 0.0);
+        Lo += (kD * albedo / PI + specular) * radiance * NdotL * shadow;
+    }
+
+    // No IBL; simple ambient term
+    vec3 ambient = vec3(0.03) * albedo;
+    vec3 color = ambient + Lo;
+    // gamma correction
+    color = pow(color, vec3(1.0/2.2));
+    FragColor = vec4(color, baseColorFactor.a);
+}
+
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/grid.vert
+----- Shader Code Start -----
+#version 330 core
+layout (location = 0) in vec3 aPos;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+void main()
+{
+    gl_Position = projection * view * model * vec4(aPos, 1.0);
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/grid.frag
+----- Shader Code Start -----
+#version 330 core
+out vec4 FragColor;
+
+void main()
+{
+    FragColor = vec4(0.4, 0.4, 0.4, 1.0); // Gray grid lines
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/rayscreen.vert
+----- Shader Code Start -----
+#version 330 core
+layout(location=0) in vec2 aPos;
+layout(location=1) in vec2 aUV;
+out vec2 vUV;
+void main() { vUV = aUV; gl_Position = vec4(aPos,0.0,1.0); }
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/rayscreen.frag
+----- Shader Code Start -----
+#version 330 core
+in  vec2 vUV;
+out vec4 FragColor;
+uniform sampler2D rayTex;
+void main() { FragColor = vec4(texture(rayTex,vUV).rgb, 1.0); }
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/standard.vert
+----- Shader Code Start -----
+#version 330 core
+
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 aNormal;
+
+// Matrices
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+// Shading mode: 0=Flat, 1=Gouraud
+uniform int shadingMode;
+
+// Outputs to the fragment shader
+out vec3 FragPos;
+out vec3 Normal;
+out vec3 GouraudLight;
+out vec2 UV;
+
+// Lights
+struct Light {
+    vec3 position;
+    vec3 color;
+    float intensity;
+};
+
+#define MAX_LIGHTS 10
+uniform int numLights;
+uniform Light lights[MAX_LIGHTS];
+
+// Material for Gouraud specular
+struct Material {
+    vec3 diffuse;
+    vec3 specular;
+    vec3 ambient;
+    float shininess;
+    float roughness;
+    float metallic;
+};
+
+uniform Material material;
+uniform vec3 viewPos; // Camera position in world space
+
+void main()
+{
+    // Compute position in world space
+    vec4 worldPos = model * vec4(aPos, 1.0);
+    FragPos = worldPos.xyz;
+
+    // Normal transformation via normal matrix
+    Normal = mat3(transpose(inverse(model))) * aNormal;
+
+    // Simple placeholder UV mapping
+    UV = aPos.xy * 0.5 + 0.5;
+
+    // Default to black unless we're in Gouraud shading mode
+    GouraudLight = vec3(0.0);
+
+    // Only compute Gouraud if shadingMode == 1
+    if (shadingMode == 1) {
+        vec3 normal = normalize(Normal);
+        vec3 viewDir = normalize(viewPos - FragPos);
+
+        for (int i = 0; i < numLights; i++) {
+            vec3 lightDir = normalize(lights[i].position - FragPos);
+
+            // Diffuse
+            float diff = max(dot(normal, lightDir), 0.0);
+            vec3 diffuse = material.diffuse * diff * lights[i].color * lights[i].intensity;
+
+            // Specular (Phong reflection model but computed at vertex)
+            vec3 reflectDir = reflect(-lightDir, normal);
+            float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+            vec3 specular = material.specular * spec * lights[i].color * lights[i].intensity;
+
+            GouraudLight += diffuse + specular;
+        }
+    }
+
+    // Final position for rasterization
+    gl_Position = projection * view * worldPos;
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/standard.frag
+----- Shader Code Start -----
+﻿#version 330 core
+
+out vec4 FragColor;
+
+in vec3 FragPos;
+in vec3 Normal;
+in vec3 GouraudLight;  // We only use this if shadingMode == 1
+in vec2 UV;
+
+uniform sampler2D shadowMap;
+uniform mat4 lightSpaceMatrix;
+
+// For texturing & shading controls
+uniform sampler2D cowTexture;
+uniform bool useTexture;
+uniform int shadingMode;
+uniform vec3 objectColor; // fallback if no texture
+
+// ------------------------------------------------------------------------
+// Global ambient
+uniform vec4 globalAmbient; // .a is often unused, so we just use .rgb
+
+// Light struct
+struct Light {
+    vec3 position;
+    vec3 color;
+    float intensity; // If 0, treat as disabled
+};
+
+#define MAX_LIGHTS 10
+uniform int numLights;
+uniform Light lights[MAX_LIGHTS];
+
+// ------------------------------------------------------------------------
+// Material struct
+struct Material {
+    vec3 diffuse;
+    vec3 specular;
+    vec3 ambient;
+    float shininess;
+    float roughness;
+    float metallic;
+};
+uniform Material material;
+
+// Camera position (for specular reflection in Gouraud)
+uniform vec3 viewPos;
+
+// ------------------------------------------------------------------------
+// Calculate Shadow
+float calculateShadow(vec4 fragPosLightSpace)
+{
+    // Perspective divide
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = projCoords * 0.5 + 0.5; // transform to [0,1] range
+
+    // Check if outside light projection
+    if (projCoords.z > 1.0)
+        return 1.0;
+
+    // Read depth from shadow map
+    float closestDepth = texture(shadowMap, projCoords.xy).r;
+    float currentDepth = projCoords.z;
+
+    // Bias to prevent shadow acne
+    float bias = 0.005;
+
+    // 1.0 = lit, 0.5 = shadowed
+    float shadow = (currentDepth - bias) > closestDepth ? 0.5 : 1.0;
+    return shadow;
+}
+
+// ------------------------------------------------------------------------
+// Main
+void main()
+{
+    // Base color from either texture or fallback color
+    vec3 baseColor = useTexture ? texture(cowTexture, UV).rgb : objectColor;
+
+    // Shadow factor
+    float shadow = calculateShadow(lightSpaceMatrix * vec4(FragPos, 1.0));
+
+    // Start with ambient term
+    vec3 totalLight = globalAmbient.rgb * material.ambient;
+
+    if (shadingMode == 0) {
+        // ----- FLAT Shading -----
+        vec3 faceNormal = normalize(cross(dFdx(FragPos), dFdy(FragPos)));
+
+        for (int i = 0; i < numLights; i++) {
+            if (lights[i].intensity <= 0.0) continue;
+            vec3 L = normalize(lights[i].position - FragPos);
+            float diff = max(dot(faceNormal, L), 0.0);
+            totalLight += shadow * material.diffuse * diff * lights[i].color * lights[i].intensity;
+        }
+    }
+    else if (shadingMode == 1) {
+        // ----- GOURAUD Shading -----
+        totalLight += shadow * GouraudLight;
+    }
+
+    // Final color
+    vec3 finalColor = baseColor * totalLight;
+    FragColor = vec4(finalColor, 1.0);
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/pbr.vert
+----- Shader Code Start -----
+#version 330 core
+
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 aNormal;
+layout(location = 2) in vec2 aUV;
+layout(location = 3) in vec3 aTangent;
+uniform bool hasTangents = false;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+out vec3 vWorldPos;
+out vec2 vUV;
+out mat3 vTBN;
+
+void main() {
+    vec3 N = normalize(mat3(transpose(inverse(model))) * aNormal);
+    vec3 T;
+    if (hasTangents) {
+        T = normalize(mat3(model) * aTangent);
+        // Orthonormalize T against N
+        T = normalize(T - N * dot(N, T));
+    } else {
+        // Fallback: build arbitrary T perpendicular to N
+        vec3 up = abs(N.y) < 0.999 ? vec3(0,1,0) : vec3(1,0,0);
+        T = normalize(cross(up, N));
+    }
+    vec3 B = normalize(cross(N, T));
+
+    vTBN = mat3(T, B, N);
+    vUV = aUV;
+    vWorldPos = vec3(model * vec4(aPos, 1.0));
+    gl_Position = projection * view * vec4(vWorldPos, 1.0);
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/pbr.frag
+----- Shader Code Start -----
+#version 330 core
+
+out vec4 FragColor;
+
+in vec3 vWorldPos;
+in vec2 vUV;
+in mat3 vTBN;
+
+// Lights
+struct Light { vec3 position; vec3 color; float intensity; };
+#define MAX_LIGHTS 10
+uniform int numLights;
+uniform Light lights[MAX_LIGHTS];
+uniform vec3 viewPos;
+
+// PBR inputs
+uniform vec4 baseColorFactor; // rgba
+uniform float metallicFactor;
+uniform float roughnessFactor;
+uniform bool  hasBaseColorMap;
+uniform bool  hasNormalMap;
+uniform bool  hasMRMap;
+uniform sampler2D baseColorTex;
+uniform sampler2D normalTex;
+uniform sampler2D mrTex; // glTF convention: G=roughness, B=metallic
+
+uniform sampler2D shadowMap;
+uniform mat4 lightSpaceMatrix;
+
+// Shadow
+float calculateShadow(vec4 fragPosLightSpace) {
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = projCoords * 0.5 + 0.5;
+    if (projCoords.z > 1.0) return 1.0;
+    float closestDepth = texture(shadowMap, projCoords.xy).r;
+    float currentDepth = projCoords.z;
+    float bias = 0.005;
+    return (currentDepth - bias) > closestDepth ? 0.5 : 1.0;
+}
+
+// Helpers
+const float PI = 3.14159265359;
+vec3 fresnelSchlick(float cosTheta, vec3 F0) {
+    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
+float DistributionGGX(vec3 N, vec3 H, float rough) {
+    float a = rough*rough; float a2 = a*a;
+    float NdotH = max(dot(N,H), 0.0);
+    float NdotH2 = NdotH*NdotH;
+    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+    return a2 / max(PI * denom * denom, 1e-4);
+}
+float GeometrySchlickGGX(float NdotV, float rough) {
+    float r = rough + 1.0;
+    float k = (r*r) / 8.0;
+    return NdotV / (NdotV * (1.0 - k) + k);
+}
+float GeometrySmith(vec3 N, vec3 V, vec3 L, float rough) {
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotL = max(dot(N, L), 0.0);
+    float ggx1 = GeometrySchlickGGX(NdotV, rough);
+    float ggx2 = GeometrySchlickGGX(NdotL, rough);
+    return ggx1 * ggx2;
+}
+
+void main() {
+    // Sample inputs
+    vec3 albedo = baseColorFactor.rgb;
+    if (hasBaseColorMap) albedo = pow(texture(baseColorTex, vUV).rgb, vec3(2.2)); // assume sRGB
+    float metallic = metallicFactor;
+    float roughness = clamp(roughnessFactor, 0.04, 1.0);
+    if (hasMRMap) {
+        vec3 mrs = texture(mrTex, vUV).rgb; // R=occlusion (optional), G=roughness, B=metallic (glTF)
+        roughness = clamp(mrs.g, 0.04, 1.0);
+        metallic = mrs.b;
+    }
+
+    // Normal mapping
+    vec3 N = normalize(vTBN[2]);
+    if (hasNormalMap) {
+        vec3 n = texture(normalTex, vUV).xyz * 2.0 - 1.0;
+        N = normalize(vTBN * n);
+    }
+
+    vec3 V = normalize(viewPos - vWorldPos);
+    vec3 F0 = mix(vec3(0.04), albedo, metallic);
+
+    vec3 Lo = vec3(0.0);
+    float shadow = calculateShadow(lightSpaceMatrix * vec4(vWorldPos, 1.0));
+    for (int i=0;i<numLights;i++) {
+        if (lights[i].intensity <= 0.0) continue;
+        vec3 L = normalize(lights[i].position - vWorldPos);
+        vec3 H = normalize(V + L);
+        float dist = length(lights[i].position - vWorldPos);
+        float atten = 1.0 / (dist*dist);
+        vec3 radiance = lights[i].color * lights[i].intensity * atten;
+
+        float NDF = DistributionGGX(N, H, roughness);
+        float G   = GeometrySmith(N, V, L, roughness);
+        vec3  F   = fresnelSchlick(max(dot(H, V), 0.0), F0);
+
+        vec3 nominator = NDF * G * F;
+        float denom = 4.0 * max(dot(N,V),0.0) * max(dot(N,L),0.0) + 1e-4;
+        vec3 specular = nominator / denom;
+
+        vec3 kS = F;
+        vec3 kD = (vec3(1.0) - kS) * (1.0 - metallic);
+
+        float NdotL = max(dot(N,L), 0.0);
+        Lo += (kD * albedo / PI + specular) * radiance * NdotL * shadow;
+    }
+
+    // No IBL; simple ambient term
+    vec3 ambient = vec3(0.03) * albedo;
+    vec3 color = ambient + Lo;
+    // gamma correction
+    color = pow(color, vec3(1.0/2.2));
+    FragColor = vec4(color, baseColorFactor.a);
+}
+
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/grid.vert
+----- Shader Code Start -----
+#version 330 core
+layout (location = 0) in vec3 aPos;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+void main()
+{
+    gl_Position = projection * view * model * vec4(aPos, 1.0);
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/grid.frag
+----- Shader Code Start -----
+#version 330 core
+out vec4 FragColor;
+
+void main()
+{
+    FragColor = vec4(0.4, 0.4, 0.4, 1.0); // Gray grid lines
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/rayscreen.vert
+----- Shader Code Start -----
+#version 330 core
+layout(location=0) in vec2 aPos;
+layout(location=1) in vec2 aUV;
+out vec2 vUV;
+void main() { vUV = aUV; gl_Position = vec4(aPos,0.0,1.0); }
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/rayscreen.frag
+----- Shader Code Start -----
+#version 330 core
+in  vec2 vUV;
+out vec4 FragColor;
+uniform sampler2D rayTex;
+void main() { FragColor = vec4(texture(rayTex,vUV).rgb, 1.0); }
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/standard.vert
+----- Shader Code Start -----
+#version 330 core
+
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 aNormal;
+
+// Matrices
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+// Shading mode: 0=Flat, 1=Gouraud
+uniform int shadingMode;
+
+// Outputs to the fragment shader
+out vec3 FragPos;
+out vec3 Normal;
+out vec3 GouraudLight;
+out vec2 UV;
+
+// Lights
+struct Light {
+    vec3 position;
+    vec3 color;
+    float intensity;
+};
+
+#define MAX_LIGHTS 10
+uniform int numLights;
+uniform Light lights[MAX_LIGHTS];
+
+// Material for Gouraud specular
+struct Material {
+    vec3 diffuse;
+    vec3 specular;
+    vec3 ambient;
+    float shininess;
+    float roughness;
+    float metallic;
+};
+
+uniform Material material;
+uniform vec3 viewPos; // Camera position in world space
+
+void main()
+{
+    // Compute position in world space
+    vec4 worldPos = model * vec4(aPos, 1.0);
+    FragPos = worldPos.xyz;
+
+    // Normal transformation via normal matrix
+    Normal = mat3(transpose(inverse(model))) * aNormal;
+
+    // Simple placeholder UV mapping
+    UV = aPos.xy * 0.5 + 0.5;
+
+    // Default to black unless we're in Gouraud shading mode
+    GouraudLight = vec3(0.0);
+
+    // Only compute Gouraud if shadingMode == 1
+    if (shadingMode == 1) {
+        vec3 normal = normalize(Normal);
+        vec3 viewDir = normalize(viewPos - FragPos);
+
+        for (int i = 0; i < numLights; i++) {
+            vec3 lightDir = normalize(lights[i].position - FragPos);
+
+            // Diffuse
+            float diff = max(dot(normal, lightDir), 0.0);
+            vec3 diffuse = material.diffuse * diff * lights[i].color * lights[i].intensity;
+
+            // Specular (Phong reflection model but computed at vertex)
+            vec3 reflectDir = reflect(-lightDir, normal);
+            float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+            vec3 specular = material.specular * spec * lights[i].color * lights[i].intensity;
+
+            GouraudLight += diffuse + specular;
+        }
+    }
+
+    // Final position for rasterization
+    gl_Position = projection * view * worldPos;
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/standard.frag
+----- Shader Code Start -----
+﻿#version 330 core
+
+out vec4 FragColor;
+
+in vec3 FragPos;
+in vec3 Normal;
+in vec3 GouraudLight;  // We only use this if shadingMode == 1
+in vec2 UV;
+
+uniform sampler2D shadowMap;
+uniform mat4 lightSpaceMatrix;
+
+// For texturing & shading controls
+uniform sampler2D cowTexture;
+uniform bool useTexture;
+uniform int shadingMode;
+uniform vec3 objectColor; // fallback if no texture
+
+// ------------------------------------------------------------------------
+// Global ambient
+uniform vec4 globalAmbient; // .a is often unused, so we just use .rgb
+
+// Light struct
+struct Light {
+    vec3 position;
+    vec3 color;
+    float intensity; // If 0, treat as disabled
+};
+
+#define MAX_LIGHTS 10
+uniform int numLights;
+uniform Light lights[MAX_LIGHTS];
+
+// ------------------------------------------------------------------------
+// Material struct
+struct Material {
+    vec3 diffuse;
+    vec3 specular;
+    vec3 ambient;
+    float shininess;
+    float roughness;
+    float metallic;
+};
+uniform Material material;
+
+// Camera position (for specular reflection in Gouraud)
+uniform vec3 viewPos;
+
+// ------------------------------------------------------------------------
+// Calculate Shadow
+float calculateShadow(vec4 fragPosLightSpace)
+{
+    // Perspective divide
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = projCoords * 0.5 + 0.5; // transform to [0,1] range
+
+    // Check if outside light projection
+    if (projCoords.z > 1.0)
+        return 1.0;
+
+    // Read depth from shadow map
+    float closestDepth = texture(shadowMap, projCoords.xy).r;
+    float currentDepth = projCoords.z;
+
+    // Bias to prevent shadow acne
+    float bias = 0.005;
+
+    // 1.0 = lit, 0.5 = shadowed
+    float shadow = (currentDepth - bias) > closestDepth ? 0.5 : 1.0;
+    return shadow;
+}
+
+// ------------------------------------------------------------------------
+// Main
+void main()
+{
+    // Base color from either texture or fallback color
+    vec3 baseColor = useTexture ? texture(cowTexture, UV).rgb : objectColor;
+
+    // Shadow factor
+    float shadow = calculateShadow(lightSpaceMatrix * vec4(FragPos, 1.0));
+
+    // Start with ambient term
+    vec3 totalLight = globalAmbient.rgb * material.ambient;
+
+    if (shadingMode == 0) {
+        // ----- FLAT Shading -----
+        vec3 faceNormal = normalize(cross(dFdx(FragPos), dFdy(FragPos)));
+
+        for (int i = 0; i < numLights; i++) {
+            if (lights[i].intensity <= 0.0) continue;
+            vec3 L = normalize(lights[i].position - FragPos);
+            float diff = max(dot(faceNormal, L), 0.0);
+            totalLight += shadow * material.diffuse * diff * lights[i].color * lights[i].intensity;
+        }
+    }
+    else if (shadingMode == 1) {
+        // ----- GOURAUD Shading -----
+        totalLight += shadow * GouraudLight;
+    }
+
+    // Final color
+    vec3 finalColor = baseColor * totalLight;
+    FragColor = vec4(finalColor, 1.0);
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/pbr.vert
+----- Shader Code Start -----
+#version 330 core
+
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 aNormal;
+layout(location = 2) in vec2 aUV;
+layout(location = 3) in vec3 aTangent;
+uniform bool hasTangents = false;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+out vec3 vWorldPos;
+out vec2 vUV;
+out mat3 vTBN;
+
+void main() {
+    vec3 N = normalize(mat3(transpose(inverse(model))) * aNormal);
+    vec3 T;
+    if (hasTangents) {
+        T = normalize(mat3(model) * aTangent);
+        // Orthonormalize T against N
+        T = normalize(T - N * dot(N, T));
+    } else {
+        // Fallback: build arbitrary T perpendicular to N
+        vec3 up = abs(N.y) < 0.999 ? vec3(0,1,0) : vec3(1,0,0);
+        T = normalize(cross(up, N));
+    }
+    vec3 B = normalize(cross(N, T));
+
+    vTBN = mat3(T, B, N);
+    vUV = aUV;
+    vWorldPos = vec3(model * vec4(aPos, 1.0));
+    gl_Position = projection * view * vec4(vWorldPos, 1.0);
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/pbr.frag
+----- Shader Code Start -----
+#version 330 core
+
+out vec4 FragColor;
+
+in vec3 vWorldPos;
+in vec2 vUV;
+in mat3 vTBN;
+
+// Lights
+struct Light { vec3 position; vec3 color; float intensity; };
+#define MAX_LIGHTS 10
+uniform int numLights;
+uniform Light lights[MAX_LIGHTS];
+uniform vec3 viewPos;
+
+// PBR inputs
+uniform vec4 baseColorFactor; // rgba
+uniform float metallicFactor;
+uniform float roughnessFactor;
+uniform bool  hasBaseColorMap;
+uniform bool  hasNormalMap;
+uniform bool  hasMRMap;
+uniform sampler2D baseColorTex;
+uniform sampler2D normalTex;
+uniform sampler2D mrTex; // glTF convention: G=roughness, B=metallic
+
+uniform sampler2D shadowMap;
+uniform mat4 lightSpaceMatrix;
+
+// Shadow
+float calculateShadow(vec4 fragPosLightSpace) {
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = projCoords * 0.5 + 0.5;
+    if (projCoords.z > 1.0) return 1.0;
+    float closestDepth = texture(shadowMap, projCoords.xy).r;
+    float currentDepth = projCoords.z;
+    float bias = 0.005;
+    return (currentDepth - bias) > closestDepth ? 0.5 : 1.0;
+}
+
+// Helpers
+const float PI = 3.14159265359;
+vec3 fresnelSchlick(float cosTheta, vec3 F0) {
+    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
+float DistributionGGX(vec3 N, vec3 H, float rough) {
+    float a = rough*rough; float a2 = a*a;
+    float NdotH = max(dot(N,H), 0.0);
+    float NdotH2 = NdotH*NdotH;
+    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+    return a2 / max(PI * denom * denom, 1e-4);
+}
+float GeometrySchlickGGX(float NdotV, float rough) {
+    float r = rough + 1.0;
+    float k = (r*r) / 8.0;
+    return NdotV / (NdotV * (1.0 - k) + k);
+}
+float GeometrySmith(vec3 N, vec3 V, vec3 L, float rough) {
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotL = max(dot(N, L), 0.0);
+    float ggx1 = GeometrySchlickGGX(NdotV, rough);
+    float ggx2 = GeometrySchlickGGX(NdotL, rough);
+    return ggx1 * ggx2;
+}
+
+void main() {
+    // Sample inputs
+    vec3 albedo = baseColorFactor.rgb;
+    if (hasBaseColorMap) albedo = pow(texture(baseColorTex, vUV).rgb, vec3(2.2)); // assume sRGB
+    float metallic = metallicFactor;
+    float roughness = clamp(roughnessFactor, 0.04, 1.0);
+    if (hasMRMap) {
+        vec3 mrs = texture(mrTex, vUV).rgb; // R=occlusion (optional), G=roughness, B=metallic (glTF)
+        roughness = clamp(mrs.g, 0.04, 1.0);
+        metallic = mrs.b;
+    }
+
+    // Normal mapping
+    vec3 N = normalize(vTBN[2]);
+    if (hasNormalMap) {
+        vec3 n = texture(normalTex, vUV).xyz * 2.0 - 1.0;
+        N = normalize(vTBN * n);
+    }
+
+    vec3 V = normalize(viewPos - vWorldPos);
+    vec3 F0 = mix(vec3(0.04), albedo, metallic);
+
+    vec3 Lo = vec3(0.0);
+    float shadow = calculateShadow(lightSpaceMatrix * vec4(vWorldPos, 1.0));
+    for (int i=0;i<numLights;i++) {
+        if (lights[i].intensity <= 0.0) continue;
+        vec3 L = normalize(lights[i].position - vWorldPos);
+        vec3 H = normalize(V + L);
+        float dist = length(lights[i].position - vWorldPos);
+        float atten = 1.0 / (dist*dist);
+        vec3 radiance = lights[i].color * lights[i].intensity * atten;
+
+        float NDF = DistributionGGX(N, H, roughness);
+        float G   = GeometrySmith(N, V, L, roughness);
+        vec3  F   = fresnelSchlick(max(dot(H, V), 0.0), F0);
+
+        vec3 nominator = NDF * G * F;
+        float denom = 4.0 * max(dot(N,V),0.0) * max(dot(N,L),0.0) + 1e-4;
+        vec3 specular = nominator / denom;
+
+        vec3 kS = F;
+        vec3 kD = (vec3(1.0) - kS) * (1.0 - metallic);
+
+        float NdotL = max(dot(N,L), 0.0);
+        Lo += (kD * albedo / PI + specular) * radiance * NdotL * shadow;
+    }
+
+    // No IBL; simple ambient term
+    vec3 ambient = vec3(0.03) * albedo;
+    vec3 color = ambient + Lo;
+    // gamma correction
+    color = pow(color, vec3(1.0/2.2));
+    FragColor = vec4(color, baseColorFactor.a);
+}
+
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/grid.vert
+----- Shader Code Start -----
+#version 330 core
+layout (location = 0) in vec3 aPos;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+void main()
+{
+    gl_Position = projection * view * model * vec4(aPos, 1.0);
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/grid.frag
+----- Shader Code Start -----
+#version 330 core
+out vec4 FragColor;
+
+void main()
+{
+    FragColor = vec4(0.4, 0.4, 0.4, 1.0); // Gray grid lines
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/rayscreen.vert
+----- Shader Code Start -----
+#version 330 core
+layout(location=0) in vec2 aPos;
+layout(location=1) in vec2 aUV;
+out vec2 vUV;
+void main() { vUV = aUV; gl_Position = vec4(aPos,0.0,1.0); }
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/rayscreen.frag
+----- Shader Code Start -----
+#version 330 core
+in  vec2 vUV;
+out vec4 FragColor;
+uniform sampler2D rayTex;
+void main() { FragColor = vec4(texture(rayTex,vUV).rgb, 1.0); }
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/standard.vert
+----- Shader Code Start -----
+#version 330 core
+
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 aNormal;
+
+// Matrices
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+// Shading mode: 0=Flat, 1=Gouraud
+uniform int shadingMode;
+
+// Outputs to the fragment shader
+out vec3 FragPos;
+out vec3 Normal;
+out vec3 GouraudLight;
+out vec2 UV;
+
+// Lights
+struct Light {
+    vec3 position;
+    vec3 color;
+    float intensity;
+};
+
+#define MAX_LIGHTS 10
+uniform int numLights;
+uniform Light lights[MAX_LIGHTS];
+
+// Material for Gouraud specular
+struct Material {
+    vec3 diffuse;
+    vec3 specular;
+    vec3 ambient;
+    float shininess;
+    float roughness;
+    float metallic;
+};
+
+uniform Material material;
+uniform vec3 viewPos; // Camera position in world space
+
+void main()
+{
+    // Compute position in world space
+    vec4 worldPos = model * vec4(aPos, 1.0);
+    FragPos = worldPos.xyz;
+
+    // Normal transformation via normal matrix
+    Normal = mat3(transpose(inverse(model))) * aNormal;
+
+    // Simple placeholder UV mapping
+    UV = aPos.xy * 0.5 + 0.5;
+
+    // Default to black unless we're in Gouraud shading mode
+    GouraudLight = vec3(0.0);
+
+    // Only compute Gouraud if shadingMode == 1
+    if (shadingMode == 1) {
+        vec3 normal = normalize(Normal);
+        vec3 viewDir = normalize(viewPos - FragPos);
+
+        for (int i = 0; i < numLights; i++) {
+            vec3 lightDir = normalize(lights[i].position - FragPos);
+
+            // Diffuse
+            float diff = max(dot(normal, lightDir), 0.0);
+            vec3 diffuse = material.diffuse * diff * lights[i].color * lights[i].intensity;
+
+            // Specular (Phong reflection model but computed at vertex)
+            vec3 reflectDir = reflect(-lightDir, normal);
+            float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+            vec3 specular = material.specular * spec * lights[i].color * lights[i].intensity;
+
+            GouraudLight += diffuse + specular;
+        }
+    }
+
+    // Final position for rasterization
+    gl_Position = projection * view * worldPos;
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/standard.frag
+----- Shader Code Start -----
+﻿#version 330 core
+
+out vec4 FragColor;
+
+in vec3 FragPos;
+in vec3 Normal;
+in vec3 GouraudLight;  // We only use this if shadingMode == 1
+in vec2 UV;
+
+uniform sampler2D shadowMap;
+uniform mat4 lightSpaceMatrix;
+
+// For texturing & shading controls
+uniform sampler2D cowTexture;
+uniform bool useTexture;
+uniform int shadingMode;
+uniform vec3 objectColor; // fallback if no texture
+
+// ------------------------------------------------------------------------
+// Global ambient
+uniform vec4 globalAmbient; // .a is often unused, so we just use .rgb
+
+// Light struct
+struct Light {
+    vec3 position;
+    vec3 color;
+    float intensity; // If 0, treat as disabled
+};
+
+#define MAX_LIGHTS 10
+uniform int numLights;
+uniform Light lights[MAX_LIGHTS];
+
+// ------------------------------------------------------------------------
+// Material struct
+struct Material {
+    vec3 diffuse;
+    vec3 specular;
+    vec3 ambient;
+    float shininess;
+    float roughness;
+    float metallic;
+};
+uniform Material material;
+
+// Camera position (for specular reflection in Gouraud)
+uniform vec3 viewPos;
+
+// ------------------------------------------------------------------------
+// Calculate Shadow
+float calculateShadow(vec4 fragPosLightSpace)
+{
+    // Perspective divide
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = projCoords * 0.5 + 0.5; // transform to [0,1] range
+
+    // Check if outside light projection
+    if (projCoords.z > 1.0)
+        return 1.0;
+
+    // Read depth from shadow map
+    float closestDepth = texture(shadowMap, projCoords.xy).r;
+    float currentDepth = projCoords.z;
+
+    // Bias to prevent shadow acne
+    float bias = 0.005;
+
+    // 1.0 = lit, 0.5 = shadowed
+    float shadow = (currentDepth - bias) > closestDepth ? 0.5 : 1.0;
+    return shadow;
+}
+
+// ------------------------------------------------------------------------
+// Main
+void main()
+{
+    // Base color from either texture or fallback color
+    vec3 baseColor = useTexture ? texture(cowTexture, UV).rgb : objectColor;
+
+    // Shadow factor
+    float shadow = calculateShadow(lightSpaceMatrix * vec4(FragPos, 1.0));
+
+    // Start with ambient term
+    vec3 totalLight = globalAmbient.rgb * material.ambient;
+
+    if (shadingMode == 0) {
+        // ----- FLAT Shading -----
+        vec3 faceNormal = normalize(cross(dFdx(FragPos), dFdy(FragPos)));
+
+        for (int i = 0; i < numLights; i++) {
+            if (lights[i].intensity <= 0.0) continue;
+            vec3 L = normalize(lights[i].position - FragPos);
+            float diff = max(dot(faceNormal, L), 0.0);
+            totalLight += shadow * material.diffuse * diff * lights[i].color * lights[i].intensity;
+        }
+    }
+    else if (shadingMode == 1) {
+        // ----- GOURAUD Shading -----
+        totalLight += shadow * GouraudLight;
+    }
+
+    // Final color
+    vec3 finalColor = baseColor * totalLight;
+    FragColor = vec4(finalColor, 1.0);
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/pbr.vert
+----- Shader Code Start -----
+#version 330 core
+
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 aNormal;
+layout(location = 2) in vec2 aUV;
+layout(location = 3) in vec3 aTangent;
+uniform bool hasTangents = false;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+out vec3 vWorldPos;
+out vec2 vUV;
+out mat3 vTBN;
+
+void main() {
+    vec3 N = normalize(mat3(transpose(inverse(model))) * aNormal);
+    vec3 T;
+    if (hasTangents) {
+        T = normalize(mat3(model) * aTangent);
+        // Orthonormalize T against N
+        T = normalize(T - N * dot(N, T));
+    } else {
+        // Fallback: build arbitrary T perpendicular to N
+        vec3 up = abs(N.y) < 0.999 ? vec3(0,1,0) : vec3(1,0,0);
+        T = normalize(cross(up, N));
+    }
+    vec3 B = normalize(cross(N, T));
+
+    vTBN = mat3(T, B, N);
+    vUV = aUV;
+    vWorldPos = vec3(model * vec4(aPos, 1.0));
+    gl_Position = projection * view * vec4(vWorldPos, 1.0);
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/pbr.frag
+----- Shader Code Start -----
+#version 330 core
+
+out vec4 FragColor;
+
+in vec3 vWorldPos;
+in vec2 vUV;
+in mat3 vTBN;
+
+// Lights
+struct Light { vec3 position; vec3 color; float intensity; };
+#define MAX_LIGHTS 10
+uniform int numLights;
+uniform Light lights[MAX_LIGHTS];
+uniform vec3 viewPos;
+
+// PBR inputs
+uniform vec4 baseColorFactor; // rgba
+uniform float metallicFactor;
+uniform float roughnessFactor;
+uniform bool  hasBaseColorMap;
+uniform bool  hasNormalMap;
+uniform bool  hasMRMap;
+uniform sampler2D baseColorTex;
+uniform sampler2D normalTex;
+uniform sampler2D mrTex; // glTF convention: G=roughness, B=metallic
+
+uniform sampler2D shadowMap;
+uniform mat4 lightSpaceMatrix;
+
+// Shadow
+float calculateShadow(vec4 fragPosLightSpace) {
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = projCoords * 0.5 + 0.5;
+    if (projCoords.z > 1.0) return 1.0;
+    float closestDepth = texture(shadowMap, projCoords.xy).r;
+    float currentDepth = projCoords.z;
+    float bias = 0.005;
+    return (currentDepth - bias) > closestDepth ? 0.5 : 1.0;
+}
+
+// Helpers
+const float PI = 3.14159265359;
+vec3 fresnelSchlick(float cosTheta, vec3 F0) {
+    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
+float DistributionGGX(vec3 N, vec3 H, float rough) {
+    float a = rough*rough; float a2 = a*a;
+    float NdotH = max(dot(N,H), 0.0);
+    float NdotH2 = NdotH*NdotH;
+    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+    return a2 / max(PI * denom * denom, 1e-4);
+}
+float GeometrySchlickGGX(float NdotV, float rough) {
+    float r = rough + 1.0;
+    float k = (r*r) / 8.0;
+    return NdotV / (NdotV * (1.0 - k) + k);
+}
+float GeometrySmith(vec3 N, vec3 V, vec3 L, float rough) {
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotL = max(dot(N, L), 0.0);
+    float ggx1 = GeometrySchlickGGX(NdotV, rough);
+    float ggx2 = GeometrySchlickGGX(NdotL, rough);
+    return ggx1 * ggx2;
+}
+
+void main() {
+    // Sample inputs
+    vec3 albedo = baseColorFactor.rgb;
+    if (hasBaseColorMap) albedo = pow(texture(baseColorTex, vUV).rgb, vec3(2.2)); // assume sRGB
+    float metallic = metallicFactor;
+    float roughness = clamp(roughnessFactor, 0.04, 1.0);
+    if (hasMRMap) {
+        vec3 mrs = texture(mrTex, vUV).rgb; // R=occlusion (optional), G=roughness, B=metallic (glTF)
+        roughness = clamp(mrs.g, 0.04, 1.0);
+        metallic = mrs.b;
+    }
+
+    // Normal mapping
+    vec3 N = normalize(vTBN[2]);
+    if (hasNormalMap) {
+        vec3 n = texture(normalTex, vUV).xyz * 2.0 - 1.0;
+        N = normalize(vTBN * n);
+    }
+
+    vec3 V = normalize(viewPos - vWorldPos);
+    vec3 F0 = mix(vec3(0.04), albedo, metallic);
+
+    vec3 Lo = vec3(0.0);
+    float shadow = calculateShadow(lightSpaceMatrix * vec4(vWorldPos, 1.0));
+    for (int i=0;i<numLights;i++) {
+        if (lights[i].intensity <= 0.0) continue;
+        vec3 L = normalize(lights[i].position - vWorldPos);
+        vec3 H = normalize(V + L);
+        float dist = length(lights[i].position - vWorldPos);
+        float atten = 1.0 / (dist*dist);
+        vec3 radiance = lights[i].color * lights[i].intensity * atten;
+
+        float NDF = DistributionGGX(N, H, roughness);
+        float G   = GeometrySmith(N, V, L, roughness);
+        vec3  F   = fresnelSchlick(max(dot(H, V), 0.0), F0);
+
+        vec3 nominator = NDF * G * F;
+        float denom = 4.0 * max(dot(N,V),0.0) * max(dot(N,L),0.0) + 1e-4;
+        vec3 specular = nominator / denom;
+
+        vec3 kS = F;
+        vec3 kD = (vec3(1.0) - kS) * (1.0 - metallic);
+
+        float NdotL = max(dot(N,L), 0.0);
+        Lo += (kD * albedo / PI + specular) * radiance * NdotL * shadow;
+    }
+
+    // No IBL; simple ambient term
+    vec3 ambient = vec3(0.03) * albedo;
+    vec3 color = ambient + Lo;
+    // gamma correction
+    color = pow(color, vec3(1.0/2.2));
+    FragColor = vec4(color, baseColorFactor.a);
+}
+
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/grid.vert
+----- Shader Code Start -----
+#version 330 core
+layout (location = 0) in vec3 aPos;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+void main()
+{
+    gl_Position = projection * view * model * vec4(aPos, 1.0);
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/grid.frag
+----- Shader Code Start -----
+#version 330 core
+out vec4 FragColor;
+
+void main()
+{
+    FragColor = vec4(0.4, 0.4, 0.4, 1.0); // Gray grid lines
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/rayscreen.vert
+----- Shader Code Start -----
+#version 330 core
+layout(location=0) in vec2 aPos;
+layout(location=1) in vec2 aUV;
+out vec2 vUV;
+void main() { vUV = aUV; gl_Position = vec4(aPos,0.0,1.0); }
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/rayscreen.frag
+----- Shader Code Start -----
+#version 330 core
+in  vec2 vUV;
+out vec4 FragColor;
+uniform sampler2D rayTex;
+void main() { FragColor = vec4(texture(rayTex,vUV).rgb, 1.0); }
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/standard.vert
+----- Shader Code Start -----
+#version 330 core
+
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 aNormal;
+
+// Matrices
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+// Shading mode: 0=Flat, 1=Gouraud
+uniform int shadingMode;
+
+// Outputs to the fragment shader
+out vec3 FragPos;
+out vec3 Normal;
+out vec3 GouraudLight;
+out vec2 UV;
+
+// Lights
+struct Light {
+    vec3 position;
+    vec3 color;
+    float intensity;
+};
+
+#define MAX_LIGHTS 10
+uniform int numLights;
+uniform Light lights[MAX_LIGHTS];
+
+// Material for Gouraud specular
+struct Material {
+    vec3 diffuse;
+    vec3 specular;
+    vec3 ambient;
+    float shininess;
+    float roughness;
+    float metallic;
+};
+
+uniform Material material;
+uniform vec3 viewPos; // Camera position in world space
+
+void main()
+{
+    // Compute position in world space
+    vec4 worldPos = model * vec4(aPos, 1.0);
+    FragPos = worldPos.xyz;
+
+    // Normal transformation via normal matrix
+    Normal = mat3(transpose(inverse(model))) * aNormal;
+
+    // Simple placeholder UV mapping
+    UV = aPos.xy * 0.5 + 0.5;
+
+    // Default to black unless we're in Gouraud shading mode
+    GouraudLight = vec3(0.0);
+
+    // Only compute Gouraud if shadingMode == 1
+    if (shadingMode == 1) {
+        vec3 normal = normalize(Normal);
+        vec3 viewDir = normalize(viewPos - FragPos);
+
+        for (int i = 0; i < numLights; i++) {
+            vec3 lightDir = normalize(lights[i].position - FragPos);
+
+            // Diffuse
+            float diff = max(dot(normal, lightDir), 0.0);
+            vec3 diffuse = material.diffuse * diff * lights[i].color * lights[i].intensity;
+
+            // Specular (Phong reflection model but computed at vertex)
+            vec3 reflectDir = reflect(-lightDir, normal);
+            float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+            vec3 specular = material.specular * spec * lights[i].color * lights[i].intensity;
+
+            GouraudLight += diffuse + specular;
+        }
+    }
+
+    // Final position for rasterization
+    gl_Position = projection * view * worldPos;
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/standard.frag
+----- Shader Code Start -----
+﻿#version 330 core
+
+out vec4 FragColor;
+
+in vec3 FragPos;
+in vec3 Normal;
+in vec3 GouraudLight;  // We only use this if shadingMode == 1
+in vec2 UV;
+
+uniform sampler2D shadowMap;
+uniform mat4 lightSpaceMatrix;
+
+// For texturing & shading controls
+uniform sampler2D cowTexture;
+uniform bool useTexture;
+uniform int shadingMode;
+uniform vec3 objectColor; // fallback if no texture
+
+// ------------------------------------------------------------------------
+// Global ambient
+uniform vec4 globalAmbient; // .a is often unused, so we just use .rgb
+
+// Light struct
+struct Light {
+    vec3 position;
+    vec3 color;
+    float intensity; // If 0, treat as disabled
+};
+
+#define MAX_LIGHTS 10
+uniform int numLights;
+uniform Light lights[MAX_LIGHTS];
+
+// ------------------------------------------------------------------------
+// Material struct
+struct Material {
+    vec3 diffuse;
+    vec3 specular;
+    vec3 ambient;
+    float shininess;
+    float roughness;
+    float metallic;
+};
+uniform Material material;
+
+// Camera position (for specular reflection in Gouraud)
+uniform vec3 viewPos;
+
+// ------------------------------------------------------------------------
+// Calculate Shadow
+float calculateShadow(vec4 fragPosLightSpace)
+{
+    // Perspective divide
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = projCoords * 0.5 + 0.5; // transform to [0,1] range
+
+    // Check if outside light projection
+    if (projCoords.z > 1.0)
+        return 1.0;
+
+    // Read depth from shadow map
+    float closestDepth = texture(shadowMap, projCoords.xy).r;
+    float currentDepth = projCoords.z;
+
+    // Bias to prevent shadow acne
+    float bias = 0.005;
+
+    // 1.0 = lit, 0.5 = shadowed
+    float shadow = (currentDepth - bias) > closestDepth ? 0.5 : 1.0;
+    return shadow;
+}
+
+// ------------------------------------------------------------------------
+// Main
+void main()
+{
+    // Base color from either texture or fallback color
+    vec3 baseColor = useTexture ? texture(cowTexture, UV).rgb : objectColor;
+
+    // Shadow factor
+    float shadow = calculateShadow(lightSpaceMatrix * vec4(FragPos, 1.0));
+
+    // Start with ambient term
+    vec3 totalLight = globalAmbient.rgb * material.ambient;
+
+    if (shadingMode == 0) {
+        // ----- FLAT Shading -----
+        vec3 faceNormal = normalize(cross(dFdx(FragPos), dFdy(FragPos)));
+
+        for (int i = 0; i < numLights; i++) {
+            if (lights[i].intensity <= 0.0) continue;
+            vec3 L = normalize(lights[i].position - FragPos);
+            float diff = max(dot(faceNormal, L), 0.0);
+            totalLight += shadow * material.diffuse * diff * lights[i].color * lights[i].intensity;
+        }
+    }
+    else if (shadingMode == 1) {
+        // ----- GOURAUD Shading -----
+        totalLight += shadow * GouraudLight;
+    }
+
+    // Final color
+    vec3 finalColor = baseColor * totalLight;
+    FragColor = vec4(finalColor, 1.0);
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/pbr.vert
+----- Shader Code Start -----
+#version 330 core
+
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 aNormal;
+layout(location = 2) in vec2 aUV;
+layout(location = 3) in vec3 aTangent;
+uniform bool hasTangents = false;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+out vec3 vWorldPos;
+out vec2 vUV;
+out mat3 vTBN;
+
+void main() {
+    vec3 N = normalize(mat3(transpose(inverse(model))) * aNormal);
+    vec3 T;
+    if (hasTangents) {
+        T = normalize(mat3(model) * aTangent);
+        // Orthonormalize T against N
+        T = normalize(T - N * dot(N, T));
+    } else {
+        // Fallback: build arbitrary T perpendicular to N
+        vec3 up = abs(N.y) < 0.999 ? vec3(0,1,0) : vec3(1,0,0);
+        T = normalize(cross(up, N));
+    }
+    vec3 B = normalize(cross(N, T));
+
+    vTBN = mat3(T, B, N);
+    vUV = aUV;
+    vWorldPos = vec3(model * vec4(aPos, 1.0));
+    gl_Position = projection * view * vec4(vWorldPos, 1.0);
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/pbr.frag
+----- Shader Code Start -----
+#version 330 core
+
+out vec4 FragColor;
+
+in vec3 vWorldPos;
+in vec2 vUV;
+in mat3 vTBN;
+
+// Lights
+struct Light { vec3 position; vec3 color; float intensity; };
+#define MAX_LIGHTS 10
+uniform int numLights;
+uniform Light lights[MAX_LIGHTS];
+uniform vec3 viewPos;
+
+// PBR inputs
+uniform vec4 baseColorFactor; // rgba
+uniform float metallicFactor;
+uniform float roughnessFactor;
+uniform bool  hasBaseColorMap;
+uniform bool  hasNormalMap;
+uniform bool  hasMRMap;
+uniform sampler2D baseColorTex;
+uniform sampler2D normalTex;
+uniform sampler2D mrTex; // glTF convention: G=roughness, B=metallic
+
+uniform sampler2D shadowMap;
+uniform mat4 lightSpaceMatrix;
+
+// Shadow
+float calculateShadow(vec4 fragPosLightSpace) {
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = projCoords * 0.5 + 0.5;
+    if (projCoords.z > 1.0) return 1.0;
+    float closestDepth = texture(shadowMap, projCoords.xy).r;
+    float currentDepth = projCoords.z;
+    float bias = 0.005;
+    return (currentDepth - bias) > closestDepth ? 0.5 : 1.0;
+}
+
+// Helpers
+const float PI = 3.14159265359;
+vec3 fresnelSchlick(float cosTheta, vec3 F0) {
+    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
+float DistributionGGX(vec3 N, vec3 H, float rough) {
+    float a = rough*rough; float a2 = a*a;
+    float NdotH = max(dot(N,H), 0.0);
+    float NdotH2 = NdotH*NdotH;
+    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+    return a2 / max(PI * denom * denom, 1e-4);
+}
+float GeometrySchlickGGX(float NdotV, float rough) {
+    float r = rough + 1.0;
+    float k = (r*r) / 8.0;
+    return NdotV / (NdotV * (1.0 - k) + k);
+}
+float GeometrySmith(vec3 N, vec3 V, vec3 L, float rough) {
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotL = max(dot(N, L), 0.0);
+    float ggx1 = GeometrySchlickGGX(NdotV, rough);
+    float ggx2 = GeometrySchlickGGX(NdotL, rough);
+    return ggx1 * ggx2;
+}
+
+void main() {
+    // Sample inputs
+    vec3 albedo = baseColorFactor.rgb;
+    if (hasBaseColorMap) albedo = pow(texture(baseColorTex, vUV).rgb, vec3(2.2)); // assume sRGB
+    float metallic = metallicFactor;
+    float roughness = clamp(roughnessFactor, 0.04, 1.0);
+    if (hasMRMap) {
+        vec3 mrs = texture(mrTex, vUV).rgb; // R=occlusion (optional), G=roughness, B=metallic (glTF)
+        roughness = clamp(mrs.g, 0.04, 1.0);
+        metallic = mrs.b;
+    }
+
+    // Normal mapping
+    vec3 N = normalize(vTBN[2]);
+    if (hasNormalMap) {
+        vec3 n = texture(normalTex, vUV).xyz * 2.0 - 1.0;
+        N = normalize(vTBN * n);
+    }
+
+    vec3 V = normalize(viewPos - vWorldPos);
+    vec3 F0 = mix(vec3(0.04), albedo, metallic);
+
+    vec3 Lo = vec3(0.0);
+    float shadow = calculateShadow(lightSpaceMatrix * vec4(vWorldPos, 1.0));
+    for (int i=0;i<numLights;i++) {
+        if (lights[i].intensity <= 0.0) continue;
+        vec3 L = normalize(lights[i].position - vWorldPos);
+        vec3 H = normalize(V + L);
+        float dist = length(lights[i].position - vWorldPos);
+        float atten = 1.0 / (dist*dist);
+        vec3 radiance = lights[i].color * lights[i].intensity * atten;
+
+        float NDF = DistributionGGX(N, H, roughness);
+        float G   = GeometrySmith(N, V, L, roughness);
+        vec3  F   = fresnelSchlick(max(dot(H, V), 0.0), F0);
+
+        vec3 nominator = NDF * G * F;
+        float denom = 4.0 * max(dot(N,V),0.0) * max(dot(N,L),0.0) + 1e-4;
+        vec3 specular = nominator / denom;
+
+        vec3 kS = F;
+        vec3 kD = (vec3(1.0) - kS) * (1.0 - metallic);
+
+        float NdotL = max(dot(N,L), 0.0);
+        Lo += (kD * albedo / PI + specular) * radiance * NdotL * shadow;
+    }
+
+    // No IBL; simple ambient term
+    vec3 ambient = vec3(0.03) * albedo;
+    vec3 color = ambient + Lo;
+    // gamma correction
+    color = pow(color, vec3(1.0/2.2));
+    FragColor = vec4(color, baseColorFactor.a);
+}
+
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/grid.vert
+----- Shader Code Start -----
+#version 330 core
+layout (location = 0) in vec3 aPos;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+void main()
+{
+    gl_Position = projection * view * model * vec4(aPos, 1.0);
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/grid.frag
+----- Shader Code Start -----
+#version 330 core
+out vec4 FragColor;
+
+void main()
+{
+    FragColor = vec4(0.4, 0.4, 0.4, 1.0); // Gray grid lines
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/rayscreen.vert
+----- Shader Code Start -----
+#version 330 core
+layout(location=0) in vec2 aPos;
+layout(location=1) in vec2 aUV;
+out vec2 vUV;
+void main() { vUV = aUV; gl_Position = vec4(aPos,0.0,1.0); }
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/rayscreen.frag
+----- Shader Code Start -----
+#version 330 core
+in  vec2 vUV;
+out vec4 FragColor;
+uniform sampler2D rayTex;
+void main() { FragColor = vec4(texture(rayTex,vUV).rgb, 1.0); }
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/standard.vert
+----- Shader Code Start -----
+#version 330 core
+
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 aNormal;
+
+// Matrices
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+// Shading mode: 0=Flat, 1=Gouraud
+uniform int shadingMode;
+
+// Outputs to the fragment shader
+out vec3 FragPos;
+out vec3 Normal;
+out vec3 GouraudLight;
+out vec2 UV;
+
+// Lights
+struct Light {
+    vec3 position;
+    vec3 color;
+    float intensity;
+};
+
+#define MAX_LIGHTS 10
+uniform int numLights;
+uniform Light lights[MAX_LIGHTS];
+
+// Material for Gouraud specular
+struct Material {
+    vec3 diffuse;
+    vec3 specular;
+    vec3 ambient;
+    float shininess;
+    float roughness;
+    float metallic;
+};
+
+uniform Material material;
+uniform vec3 viewPos; // Camera position in world space
+
+void main()
+{
+    // Compute position in world space
+    vec4 worldPos = model * vec4(aPos, 1.0);
+    FragPos = worldPos.xyz;
+
+    // Normal transformation via normal matrix
+    Normal = mat3(transpose(inverse(model))) * aNormal;
+
+    // Simple placeholder UV mapping
+    UV = aPos.xy * 0.5 + 0.5;
+
+    // Default to black unless we're in Gouraud shading mode
+    GouraudLight = vec3(0.0);
+
+    // Only compute Gouraud if shadingMode == 1
+    if (shadingMode == 1) {
+        vec3 normal = normalize(Normal);
+        vec3 viewDir = normalize(viewPos - FragPos);
+
+        for (int i = 0; i < numLights; i++) {
+            vec3 lightDir = normalize(lights[i].position - FragPos);
+
+            // Diffuse
+            float diff = max(dot(normal, lightDir), 0.0);
+            vec3 diffuse = material.diffuse * diff * lights[i].color * lights[i].intensity;
+
+            // Specular (Phong reflection model but computed at vertex)
+            vec3 reflectDir = reflect(-lightDir, normal);
+            float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+            vec3 specular = material.specular * spec * lights[i].color * lights[i].intensity;
+
+            GouraudLight += diffuse + specular;
+        }
+    }
+
+    // Final position for rasterization
+    gl_Position = projection * view * worldPos;
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/standard.frag
+----- Shader Code Start -----
+﻿#version 330 core
+
+out vec4 FragColor;
+
+in vec3 FragPos;
+in vec3 Normal;
+in vec3 GouraudLight;  // We only use this if shadingMode == 1
+in vec2 UV;
+
+uniform sampler2D shadowMap;
+uniform mat4 lightSpaceMatrix;
+
+// For texturing & shading controls
+uniform sampler2D cowTexture;
+uniform bool useTexture;
+uniform int shadingMode;
+uniform vec3 objectColor; // fallback if no texture
+
+// ------------------------------------------------------------------------
+// Global ambient
+uniform vec4 globalAmbient; // .a is often unused, so we just use .rgb
+
+// Light struct
+struct Light {
+    vec3 position;
+    vec3 color;
+    float intensity; // If 0, treat as disabled
+};
+
+#define MAX_LIGHTS 10
+uniform int numLights;
+uniform Light lights[MAX_LIGHTS];
+
+// ------------------------------------------------------------------------
+// Material struct
+struct Material {
+    vec3 diffuse;
+    vec3 specular;
+    vec3 ambient;
+    float shininess;
+    float roughness;
+    float metallic;
+};
+uniform Material material;
+
+// Camera position (for specular reflection in Gouraud)
+uniform vec3 viewPos;
+
+// ------------------------------------------------------------------------
+// Calculate Shadow
+float calculateShadow(vec4 fragPosLightSpace)
+{
+    // Perspective divide
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = projCoords * 0.5 + 0.5; // transform to [0,1] range
+
+    // Check if outside light projection
+    if (projCoords.z > 1.0)
+        return 1.0;
+
+    // Read depth from shadow map
+    float closestDepth = texture(shadowMap, projCoords.xy).r;
+    float currentDepth = projCoords.z;
+
+    // Bias to prevent shadow acne
+    float bias = 0.005;
+
+    // 1.0 = lit, 0.5 = shadowed
+    float shadow = (currentDepth - bias) > closestDepth ? 0.5 : 1.0;
+    return shadow;
+}
+
+// ------------------------------------------------------------------------
+// Main
+void main()
+{
+    // Base color from either texture or fallback color
+    vec3 baseColor = useTexture ? texture(cowTexture, UV).rgb : objectColor;
+
+    // Shadow factor
+    float shadow = calculateShadow(lightSpaceMatrix * vec4(FragPos, 1.0));
+
+    // Start with ambient term
+    vec3 totalLight = globalAmbient.rgb * material.ambient;
+
+    if (shadingMode == 0) {
+        // ----- FLAT Shading -----
+        vec3 faceNormal = normalize(cross(dFdx(FragPos), dFdy(FragPos)));
+
+        for (int i = 0; i < numLights; i++) {
+            if (lights[i].intensity <= 0.0) continue;
+            vec3 L = normalize(lights[i].position - FragPos);
+            float diff = max(dot(faceNormal, L), 0.0);
+            totalLight += shadow * material.diffuse * diff * lights[i].color * lights[i].intensity;
+        }
+    }
+    else if (shadingMode == 1) {
+        // ----- GOURAUD Shading -----
+        totalLight += shadow * GouraudLight;
+    }
+
+    // Final color
+    vec3 finalColor = baseColor * totalLight;
+    FragColor = vec4(finalColor, 1.0);
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/pbr.vert
+----- Shader Code Start -----
+#version 330 core
+
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 aNormal;
+layout(location = 2) in vec2 aUV;
+layout(location = 3) in vec3 aTangent;
+uniform bool hasTangents = false;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+out vec3 vWorldPos;
+out vec2 vUV;
+out mat3 vTBN;
+
+void main() {
+    vec3 N = normalize(mat3(transpose(inverse(model))) * aNormal);
+    vec3 T;
+    if (hasTangents) {
+        T = normalize(mat3(model) * aTangent);
+        // Orthonormalize T against N
+        T = normalize(T - N * dot(N, T));
+    } else {
+        // Fallback: build arbitrary T perpendicular to N
+        vec3 up = abs(N.y) < 0.999 ? vec3(0,1,0) : vec3(1,0,0);
+        T = normalize(cross(up, N));
+    }
+    vec3 B = normalize(cross(N, T));
+
+    vTBN = mat3(T, B, N);
+    vUV = aUV;
+    vWorldPos = vec3(model * vec4(aPos, 1.0));
+    gl_Position = projection * view * vec4(vWorldPos, 1.0);
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/pbr.frag
+----- Shader Code Start -----
+#version 330 core
+
+out vec4 FragColor;
+
+in vec3 vWorldPos;
+in vec2 vUV;
+in mat3 vTBN;
+
+// Lights
+struct Light { vec3 position; vec3 color; float intensity; };
+#define MAX_LIGHTS 10
+uniform int numLights;
+uniform Light lights[MAX_LIGHTS];
+uniform vec3 viewPos;
+
+// PBR inputs
+uniform vec4 baseColorFactor; // rgba
+uniform float metallicFactor;
+uniform float roughnessFactor;
+uniform bool  hasBaseColorMap;
+uniform bool  hasNormalMap;
+uniform bool  hasMRMap;
+uniform sampler2D baseColorTex;
+uniform sampler2D normalTex;
+uniform sampler2D mrTex; // glTF convention: G=roughness, B=metallic
+
+uniform sampler2D shadowMap;
+uniform mat4 lightSpaceMatrix;
+
+// Shadow
+float calculateShadow(vec4 fragPosLightSpace) {
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = projCoords * 0.5 + 0.5;
+    if (projCoords.z > 1.0) return 1.0;
+    float closestDepth = texture(shadowMap, projCoords.xy).r;
+    float currentDepth = projCoords.z;
+    float bias = 0.005;
+    return (currentDepth - bias) > closestDepth ? 0.5 : 1.0;
+}
+
+// Helpers
+const float PI = 3.14159265359;
+vec3 fresnelSchlick(float cosTheta, vec3 F0) {
+    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
+float DistributionGGX(vec3 N, vec3 H, float rough) {
+    float a = rough*rough; float a2 = a*a;
+    float NdotH = max(dot(N,H), 0.0);
+    float NdotH2 = NdotH*NdotH;
+    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+    return a2 / max(PI * denom * denom, 1e-4);
+}
+float GeometrySchlickGGX(float NdotV, float rough) {
+    float r = rough + 1.0;
+    float k = (r*r) / 8.0;
+    return NdotV / (NdotV * (1.0 - k) + k);
+}
+float GeometrySmith(vec3 N, vec3 V, vec3 L, float rough) {
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotL = max(dot(N, L), 0.0);
+    float ggx1 = GeometrySchlickGGX(NdotV, rough);
+    float ggx2 = GeometrySchlickGGX(NdotL, rough);
+    return ggx1 * ggx2;
+}
+
+void main() {
+    // Sample inputs
+    vec3 albedo = baseColorFactor.rgb;
+    if (hasBaseColorMap) albedo = pow(texture(baseColorTex, vUV).rgb, vec3(2.2)); // assume sRGB
+    float metallic = metallicFactor;
+    float roughness = clamp(roughnessFactor, 0.04, 1.0);
+    if (hasMRMap) {
+        vec3 mrs = texture(mrTex, vUV).rgb; // R=occlusion (optional), G=roughness, B=metallic (glTF)
+        roughness = clamp(mrs.g, 0.04, 1.0);
+        metallic = mrs.b;
+    }
+
+    // Normal mapping
+    vec3 N = normalize(vTBN[2]);
+    if (hasNormalMap) {
+        vec3 n = texture(normalTex, vUV).xyz * 2.0 - 1.0;
+        N = normalize(vTBN * n);
+    }
+
+    vec3 V = normalize(viewPos - vWorldPos);
+    vec3 F0 = mix(vec3(0.04), albedo, metallic);
+
+    vec3 Lo = vec3(0.0);
+    float shadow = calculateShadow(lightSpaceMatrix * vec4(vWorldPos, 1.0));
+    for (int i=0;i<numLights;i++) {
+        if (lights[i].intensity <= 0.0) continue;
+        vec3 L = normalize(lights[i].position - vWorldPos);
+        vec3 H = normalize(V + L);
+        float dist = length(lights[i].position - vWorldPos);
+        float atten = 1.0 / (dist*dist);
+        vec3 radiance = lights[i].color * lights[i].intensity * atten;
+
+        float NDF = DistributionGGX(N, H, roughness);
+        float G   = GeometrySmith(N, V, L, roughness);
+        vec3  F   = fresnelSchlick(max(dot(H, V), 0.0), F0);
+
+        vec3 nominator = NDF * G * F;
+        float denom = 4.0 * max(dot(N,V),0.0) * max(dot(N,L),0.0) + 1e-4;
+        vec3 specular = nominator / denom;
+
+        vec3 kS = F;
+        vec3 kD = (vec3(1.0) - kS) * (1.0 - metallic);
+
+        float NdotL = max(dot(N,L), 0.0);
+        Lo += (kD * albedo / PI + specular) * radiance * NdotL * shadow;
+    }
+
+    // No IBL; simple ambient term
+    vec3 ambient = vec3(0.03) * albedo;
+    vec3 color = ambient + Lo;
+    // gamma correction
+    color = pow(color, vec3(1.0/2.2));
+    FragColor = vec4(color, baseColorFactor.a);
+}
+
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/grid.vert
+----- Shader Code Start -----
+#version 330 core
+layout (location = 0) in vec3 aPos;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+void main()
+{
+    gl_Position = projection * view * model * vec4(aPos, 1.0);
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/grid.frag
+----- Shader Code Start -----
+#version 330 core
+out vec4 FragColor;
+
+void main()
+{
+    FragColor = vec4(0.4, 0.4, 0.4, 1.0); // Gray grid lines
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/rayscreen.vert
+----- Shader Code Start -----
+#version 330 core
+layout(location=0) in vec2 aPos;
+layout(location=1) in vec2 aUV;
+out vec2 vUV;
+void main() { vUV = aUV; gl_Position = vec4(aPos,0.0,1.0); }
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/rayscreen.frag
+----- Shader Code Start -----
+#version 330 core
+in  vec2 vUV;
+out vec4 FragColor;
+uniform sampler2D rayTex;
+void main() { FragColor = vec4(texture(rayTex,vUV).rgb, 1.0); }
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/standard.vert
+----- Shader Code Start -----
+#version 330 core
+
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 aNormal;
+
+// Matrices
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+// Shading mode: 0=Flat, 1=Gouraud
+uniform int shadingMode;
+
+// Outputs to the fragment shader
+out vec3 FragPos;
+out vec3 Normal;
+out vec3 GouraudLight;
+out vec2 UV;
+
+// Lights
+struct Light {
+    vec3 position;
+    vec3 color;
+    float intensity;
+};
+
+#define MAX_LIGHTS 10
+uniform int numLights;
+uniform Light lights[MAX_LIGHTS];
+
+// Material for Gouraud specular
+struct Material {
+    vec3 diffuse;
+    vec3 specular;
+    vec3 ambient;
+    float shininess;
+    float roughness;
+    float metallic;
+};
+
+uniform Material material;
+uniform vec3 viewPos; // Camera position in world space
+
+void main()
+{
+    // Compute position in world space
+    vec4 worldPos = model * vec4(aPos, 1.0);
+    FragPos = worldPos.xyz;
+
+    // Normal transformation via normal matrix
+    Normal = mat3(transpose(inverse(model))) * aNormal;
+
+    // Simple placeholder UV mapping
+    UV = aPos.xy * 0.5 + 0.5;
+
+    // Default to black unless we're in Gouraud shading mode
+    GouraudLight = vec3(0.0);
+
+    // Only compute Gouraud if shadingMode == 1
+    if (shadingMode == 1) {
+        vec3 normal = normalize(Normal);
+        vec3 viewDir = normalize(viewPos - FragPos);
+
+        for (int i = 0; i < numLights; i++) {
+            vec3 lightDir = normalize(lights[i].position - FragPos);
+
+            // Diffuse
+            float diff = max(dot(normal, lightDir), 0.0);
+            vec3 diffuse = material.diffuse * diff * lights[i].color * lights[i].intensity;
+
+            // Specular (Phong reflection model but computed at vertex)
+            vec3 reflectDir = reflect(-lightDir, normal);
+            float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+            vec3 specular = material.specular * spec * lights[i].color * lights[i].intensity;
+
+            GouraudLight += diffuse + specular;
+        }
+    }
+
+    // Final position for rasterization
+    gl_Position = projection * view * worldPos;
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/standard.frag
+----- Shader Code Start -----
+﻿#version 330 core
+
+out vec4 FragColor;
+
+in vec3 FragPos;
+in vec3 Normal;
+in vec3 GouraudLight;  // We only use this if shadingMode == 1
+in vec2 UV;
+
+uniform sampler2D shadowMap;
+uniform mat4 lightSpaceMatrix;
+
+// For texturing & shading controls
+uniform sampler2D cowTexture;
+uniform bool useTexture;
+uniform int shadingMode;
+uniform vec3 objectColor; // fallback if no texture
+
+// ------------------------------------------------------------------------
+// Global ambient
+uniform vec4 globalAmbient; // .a is often unused, so we just use .rgb
+
+// Light struct
+struct Light {
+    vec3 position;
+    vec3 color;
+    float intensity; // If 0, treat as disabled
+};
+
+#define MAX_LIGHTS 10
+uniform int numLights;
+uniform Light lights[MAX_LIGHTS];
+
+// ------------------------------------------------------------------------
+// Material struct
+struct Material {
+    vec3 diffuse;
+    vec3 specular;
+    vec3 ambient;
+    float shininess;
+    float roughness;
+    float metallic;
+};
+uniform Material material;
+
+// Camera position (for specular reflection in Gouraud)
+uniform vec3 viewPos;
+
+// ------------------------------------------------------------------------
+// Calculate Shadow
+float calculateShadow(vec4 fragPosLightSpace)
+{
+    // Perspective divide
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = projCoords * 0.5 + 0.5; // transform to [0,1] range
+
+    // Check if outside light projection
+    if (projCoords.z > 1.0)
+        return 1.0;
+
+    // Read depth from shadow map
+    float closestDepth = texture(shadowMap, projCoords.xy).r;
+    float currentDepth = projCoords.z;
+
+    // Bias to prevent shadow acne
+    float bias = 0.005;
+
+    // 1.0 = lit, 0.5 = shadowed
+    float shadow = (currentDepth - bias) > closestDepth ? 0.5 : 1.0;
+    return shadow;
+}
+
+// ------------------------------------------------------------------------
+// Main
+void main()
+{
+    // Base color from either texture or fallback color
+    vec3 baseColor = useTexture ? texture(cowTexture, UV).rgb : objectColor;
+
+    // Shadow factor
+    float shadow = calculateShadow(lightSpaceMatrix * vec4(FragPos, 1.0));
+
+    // Start with ambient term
+    vec3 totalLight = globalAmbient.rgb * material.ambient;
+
+    if (shadingMode == 0) {
+        // ----- FLAT Shading -----
+        vec3 faceNormal = normalize(cross(dFdx(FragPos), dFdy(FragPos)));
+
+        for (int i = 0; i < numLights; i++) {
+            if (lights[i].intensity <= 0.0) continue;
+            vec3 L = normalize(lights[i].position - FragPos);
+            float diff = max(dot(faceNormal, L), 0.0);
+            totalLight += shadow * material.diffuse * diff * lights[i].color * lights[i].intensity;
+        }
+    }
+    else if (shadingMode == 1) {
+        // ----- GOURAUD Shading -----
+        totalLight += shadow * GouraudLight;
+    }
+
+    // Final color
+    vec3 finalColor = baseColor * totalLight;
+    FragColor = vec4(finalColor, 1.0);
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/pbr.vert
+----- Shader Code Start -----
+#version 330 core
+
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 aNormal;
+layout(location = 2) in vec2 aUV;
+layout(location = 3) in vec3 aTangent;
+uniform bool hasTangents = false;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+out vec3 vWorldPos;
+out vec2 vUV;
+out mat3 vTBN;
+
+void main() {
+    vec3 N = normalize(mat3(transpose(inverse(model))) * aNormal);
+    vec3 T;
+    if (hasTangents) {
+        T = normalize(mat3(model) * aTangent);
+        // Orthonormalize T against N
+        T = normalize(T - N * dot(N, T));
+    } else {
+        // Fallback: build arbitrary T perpendicular to N
+        vec3 up = abs(N.y) < 0.999 ? vec3(0,1,0) : vec3(1,0,0);
+        T = normalize(cross(up, N));
+    }
+    vec3 B = normalize(cross(N, T));
+
+    vTBN = mat3(T, B, N);
+    vUV = aUV;
+    vWorldPos = vec3(model * vec4(aPos, 1.0));
+    gl_Position = projection * view * vec4(vWorldPos, 1.0);
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/pbr.frag
+----- Shader Code Start -----
+#version 330 core
+
+out vec4 FragColor;
+
+in vec3 vWorldPos;
+in vec2 vUV;
+in mat3 vTBN;
+
+// Lights
+struct Light { vec3 position; vec3 color; float intensity; };
+#define MAX_LIGHTS 10
+uniform int numLights;
+uniform Light lights[MAX_LIGHTS];
+uniform vec3 viewPos;
+
+// PBR inputs
+uniform vec4 baseColorFactor; // rgba
+uniform float metallicFactor;
+uniform float roughnessFactor;
+uniform bool  hasBaseColorMap;
+uniform bool  hasNormalMap;
+uniform bool  hasMRMap;
+uniform sampler2D baseColorTex;
+uniform sampler2D normalTex;
+uniform sampler2D mrTex; // glTF convention: G=roughness, B=metallic
+
+uniform sampler2D shadowMap;
+uniform mat4 lightSpaceMatrix;
+
+// Shadow
+float calculateShadow(vec4 fragPosLightSpace) {
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = projCoords * 0.5 + 0.5;
+    if (projCoords.z > 1.0) return 1.0;
+    float closestDepth = texture(shadowMap, projCoords.xy).r;
+    float currentDepth = projCoords.z;
+    float bias = 0.005;
+    return (currentDepth - bias) > closestDepth ? 0.5 : 1.0;
+}
+
+// Helpers
+const float PI = 3.14159265359;
+vec3 fresnelSchlick(float cosTheta, vec3 F0) {
+    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
+float DistributionGGX(vec3 N, vec3 H, float rough) {
+    float a = rough*rough; float a2 = a*a;
+    float NdotH = max(dot(N,H), 0.0);
+    float NdotH2 = NdotH*NdotH;
+    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+    return a2 / max(PI * denom * denom, 1e-4);
+}
+float GeometrySchlickGGX(float NdotV, float rough) {
+    float r = rough + 1.0;
+    float k = (r*r) / 8.0;
+    return NdotV / (NdotV * (1.0 - k) + k);
+}
+float GeometrySmith(vec3 N, vec3 V, vec3 L, float rough) {
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotL = max(dot(N, L), 0.0);
+    float ggx1 = GeometrySchlickGGX(NdotV, rough);
+    float ggx2 = GeometrySchlickGGX(NdotL, rough);
+    return ggx1 * ggx2;
+}
+
+void main() {
+    // Sample inputs
+    vec3 albedo = baseColorFactor.rgb;
+    if (hasBaseColorMap) albedo = pow(texture(baseColorTex, vUV).rgb, vec3(2.2)); // assume sRGB
+    float metallic = metallicFactor;
+    float roughness = clamp(roughnessFactor, 0.04, 1.0);
+    if (hasMRMap) {
+        vec3 mrs = texture(mrTex, vUV).rgb; // R=occlusion (optional), G=roughness, B=metallic (glTF)
+        roughness = clamp(mrs.g, 0.04, 1.0);
+        metallic = mrs.b;
+    }
+
+    // Normal mapping
+    vec3 N = normalize(vTBN[2]);
+    if (hasNormalMap) {
+        vec3 n = texture(normalTex, vUV).xyz * 2.0 - 1.0;
+        N = normalize(vTBN * n);
+    }
+
+    vec3 V = normalize(viewPos - vWorldPos);
+    vec3 F0 = mix(vec3(0.04), albedo, metallic);
+
+    vec3 Lo = vec3(0.0);
+    float shadow = calculateShadow(lightSpaceMatrix * vec4(vWorldPos, 1.0));
+    for (int i=0;i<numLights;i++) {
+        if (lights[i].intensity <= 0.0) continue;
+        vec3 L = normalize(lights[i].position - vWorldPos);
+        vec3 H = normalize(V + L);
+        float dist = length(lights[i].position - vWorldPos);
+        float atten = 1.0 / (dist*dist);
+        vec3 radiance = lights[i].color * lights[i].intensity * atten;
+
+        float NDF = DistributionGGX(N, H, roughness);
+        float G   = GeometrySmith(N, V, L, roughness);
+        vec3  F   = fresnelSchlick(max(dot(H, V), 0.0), F0);
+
+        vec3 nominator = NDF * G * F;
+        float denom = 4.0 * max(dot(N,V),0.0) * max(dot(N,L),0.0) + 1e-4;
+        vec3 specular = nominator / denom;
+
+        vec3 kS = F;
+        vec3 kD = (vec3(1.0) - kS) * (1.0 - metallic);
+
+        float NdotL = max(dot(N,L), 0.0);
+        Lo += (kD * albedo / PI + specular) * radiance * NdotL * shadow;
+    }
+
+    // No IBL; simple ambient term
+    vec3 ambient = vec3(0.03) * albedo;
+    vec3 color = ambient + Lo;
+    // gamma correction
+    color = pow(color, vec3(1.0/2.2));
+    FragColor = vec4(color, baseColorFactor.a);
+}
+
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/grid.vert
+----- Shader Code Start -----
+#version 330 core
+layout (location = 0) in vec3 aPos;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+void main()
+{
+    gl_Position = projection * view * model * vec4(aPos, 1.0);
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/grid.frag
+----- Shader Code Start -----
+#version 330 core
+out vec4 FragColor;
+
+void main()
+{
+    FragColor = vec4(0.4, 0.4, 0.4, 1.0); // Gray grid lines
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/rayscreen.vert
+----- Shader Code Start -----
+#version 330 core
+layout(location=0) in vec2 aPos;
+layout(location=1) in vec2 aUV;
+out vec2 vUV;
+void main() { vUV = aUV; gl_Position = vec4(aPos,0.0,1.0); }
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/rayscreen.frag
+----- Shader Code Start -----
+#version 330 core
+in  vec2 vUV;
+out vec4 FragColor;
+uniform sampler2D rayTex;
+void main() { FragColor = vec4(texture(rayTex,vUV).rgb, 1.0); }
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/standard.vert
+----- Shader Code Start -----
+#version 330 core
+
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 aNormal;
+
+// Matrices
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+// Shading mode: 0=Flat, 1=Gouraud
+uniform int shadingMode;
+
+// Outputs to the fragment shader
+out vec3 FragPos;
+out vec3 Normal;
+out vec3 GouraudLight;
+out vec2 UV;
+
+// Lights
+struct Light {
+    vec3 position;
+    vec3 color;
+    float intensity;
+};
+
+#define MAX_LIGHTS 10
+uniform int numLights;
+uniform Light lights[MAX_LIGHTS];
+
+// Material for Gouraud specular
+struct Material {
+    vec3 diffuse;
+    vec3 specular;
+    vec3 ambient;
+    float shininess;
+    float roughness;
+    float metallic;
+};
+
+uniform Material material;
+uniform vec3 viewPos; // Camera position in world space
+
+void main()
+{
+    // Compute position in world space
+    vec4 worldPos = model * vec4(aPos, 1.0);
+    FragPos = worldPos.xyz;
+
+    // Normal transformation via normal matrix
+    Normal = mat3(transpose(inverse(model))) * aNormal;
+
+    // Simple placeholder UV mapping
+    UV = aPos.xy * 0.5 + 0.5;
+
+    // Default to black unless we're in Gouraud shading mode
+    GouraudLight = vec3(0.0);
+
+    // Only compute Gouraud if shadingMode == 1
+    if (shadingMode == 1) {
+        vec3 normal = normalize(Normal);
+        vec3 viewDir = normalize(viewPos - FragPos);
+
+        for (int i = 0; i < numLights; i++) {
+            vec3 lightDir = normalize(lights[i].position - FragPos);
+
+            // Diffuse
+            float diff = max(dot(normal, lightDir), 0.0);
+            vec3 diffuse = material.diffuse * diff * lights[i].color * lights[i].intensity;
+
+            // Specular (Phong reflection model but computed at vertex)
+            vec3 reflectDir = reflect(-lightDir, normal);
+            float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+            vec3 specular = material.specular * spec * lights[i].color * lights[i].intensity;
+
+            GouraudLight += diffuse + specular;
+        }
+    }
+
+    // Final position for rasterization
+    gl_Position = projection * view * worldPos;
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/standard.frag
+----- Shader Code Start -----
+﻿#version 330 core
+
+out vec4 FragColor;
+
+in vec3 FragPos;
+in vec3 Normal;
+in vec3 GouraudLight;  // We only use this if shadingMode == 1
+in vec2 UV;
+
+uniform sampler2D shadowMap;
+uniform mat4 lightSpaceMatrix;
+
+// For texturing & shading controls
+uniform sampler2D cowTexture;
+uniform bool useTexture;
+uniform int shadingMode;
+uniform vec3 objectColor; // fallback if no texture
+
+// ------------------------------------------------------------------------
+// Global ambient
+uniform vec4 globalAmbient; // .a is often unused, so we just use .rgb
+
+// Light struct
+struct Light {
+    vec3 position;
+    vec3 color;
+    float intensity; // If 0, treat as disabled
+};
+
+#define MAX_LIGHTS 10
+uniform int numLights;
+uniform Light lights[MAX_LIGHTS];
+
+// ------------------------------------------------------------------------
+// Material struct
+struct Material {
+    vec3 diffuse;
+    vec3 specular;
+    vec3 ambient;
+    float shininess;
+    float roughness;
+    float metallic;
+};
+uniform Material material;
+
+// Camera position (for specular reflection in Gouraud)
+uniform vec3 viewPos;
+
+// ------------------------------------------------------------------------
+// Calculate Shadow
+float calculateShadow(vec4 fragPosLightSpace)
+{
+    // Perspective divide
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = projCoords * 0.5 + 0.5; // transform to [0,1] range
+
+    // Check if outside light projection
+    if (projCoords.z > 1.0)
+        return 1.0;
+
+    // Read depth from shadow map
+    float closestDepth = texture(shadowMap, projCoords.xy).r;
+    float currentDepth = projCoords.z;
+
+    // Bias to prevent shadow acne
+    float bias = 0.005;
+
+    // 1.0 = lit, 0.5 = shadowed
+    float shadow = (currentDepth - bias) > closestDepth ? 0.5 : 1.0;
+    return shadow;
+}
+
+// ------------------------------------------------------------------------
+// Main
+void main()
+{
+    // Base color from either texture or fallback color
+    vec3 baseColor = useTexture ? texture(cowTexture, UV).rgb : objectColor;
+
+    // Shadow factor
+    float shadow = calculateShadow(lightSpaceMatrix * vec4(FragPos, 1.0));
+
+    // Start with ambient term
+    vec3 totalLight = globalAmbient.rgb * material.ambient;
+
+    if (shadingMode == 0) {
+        // ----- FLAT Shading -----
+        vec3 faceNormal = normalize(cross(dFdx(FragPos), dFdy(FragPos)));
+
+        for (int i = 0; i < numLights; i++) {
+            if (lights[i].intensity <= 0.0) continue;
+            vec3 L = normalize(lights[i].position - FragPos);
+            float diff = max(dot(faceNormal, L), 0.0);
+            totalLight += shadow * material.diffuse * diff * lights[i].color * lights[i].intensity;
+        }
+    }
+    else if (shadingMode == 1) {
+        // ----- GOURAUD Shading -----
+        totalLight += shadow * GouraudLight;
+    }
+
+    // Final color
+    vec3 finalColor = baseColor * totalLight;
+    FragColor = vec4(finalColor, 1.0);
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/pbr.vert
+----- Shader Code Start -----
+#version 330 core
+
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 aNormal;
+layout(location = 2) in vec2 aUV;
+layout(location = 3) in vec3 aTangent;
+uniform bool hasTangents = false;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+out vec3 vWorldPos;
+out vec2 vUV;
+out mat3 vTBN;
+
+void main() {
+    vec3 N = normalize(mat3(transpose(inverse(model))) * aNormal);
+    vec3 T;
+    if (hasTangents) {
+        T = normalize(mat3(model) * aTangent);
+        // Orthonormalize T against N
+        T = normalize(T - N * dot(N, T));
+    } else {
+        // Fallback: build arbitrary T perpendicular to N
+        vec3 up = abs(N.y) < 0.999 ? vec3(0,1,0) : vec3(1,0,0);
+        T = normalize(cross(up, N));
+    }
+    vec3 B = normalize(cross(N, T));
+
+    vTBN = mat3(T, B, N);
+    vUV = aUV;
+    vWorldPos = vec3(model * vec4(aPos, 1.0));
+    gl_Position = projection * view * vec4(vWorldPos, 1.0);
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/pbr.frag
+----- Shader Code Start -----
+#version 330 core
+
+out vec4 FragColor;
+
+in vec3 vWorldPos;
+in vec2 vUV;
+in mat3 vTBN;
+
+// Lights
+struct Light { vec3 position; vec3 color; float intensity; };
+#define MAX_LIGHTS 10
+uniform int numLights;
+uniform Light lights[MAX_LIGHTS];
+uniform vec3 viewPos;
+
+// PBR inputs
+uniform vec4 baseColorFactor; // rgba
+uniform float metallicFactor;
+uniform float roughnessFactor;
+uniform bool  hasBaseColorMap;
+uniform bool  hasNormalMap;
+uniform bool  hasMRMap;
+uniform sampler2D baseColorTex;
+uniform sampler2D normalTex;
+uniform sampler2D mrTex; // glTF convention: G=roughness, B=metallic
+
+uniform sampler2D shadowMap;
+uniform mat4 lightSpaceMatrix;
+
+// Shadow
+float calculateShadow(vec4 fragPosLightSpace) {
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = projCoords * 0.5 + 0.5;
+    if (projCoords.z > 1.0) return 1.0;
+    float closestDepth = texture(shadowMap, projCoords.xy).r;
+    float currentDepth = projCoords.z;
+    float bias = 0.005;
+    return (currentDepth - bias) > closestDepth ? 0.5 : 1.0;
+}
+
+// Helpers
+const float PI = 3.14159265359;
+vec3 fresnelSchlick(float cosTheta, vec3 F0) {
+    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
+float DistributionGGX(vec3 N, vec3 H, float rough) {
+    float a = rough*rough; float a2 = a*a;
+    float NdotH = max(dot(N,H), 0.0);
+    float NdotH2 = NdotH*NdotH;
+    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+    return a2 / max(PI * denom * denom, 1e-4);
+}
+float GeometrySchlickGGX(float NdotV, float rough) {
+    float r = rough + 1.0;
+    float k = (r*r) / 8.0;
+    return NdotV / (NdotV * (1.0 - k) + k);
+}
+float GeometrySmith(vec3 N, vec3 V, vec3 L, float rough) {
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotL = max(dot(N, L), 0.0);
+    float ggx1 = GeometrySchlickGGX(NdotV, rough);
+    float ggx2 = GeometrySchlickGGX(NdotL, rough);
+    return ggx1 * ggx2;
+}
+
+void main() {
+    // Sample inputs
+    vec3 albedo = baseColorFactor.rgb;
+    if (hasBaseColorMap) albedo = pow(texture(baseColorTex, vUV).rgb, vec3(2.2)); // assume sRGB
+    float metallic = metallicFactor;
+    float roughness = clamp(roughnessFactor, 0.04, 1.0);
+    if (hasMRMap) {
+        vec3 mrs = texture(mrTex, vUV).rgb; // R=occlusion (optional), G=roughness, B=metallic (glTF)
+        roughness = clamp(mrs.g, 0.04, 1.0);
+        metallic = mrs.b;
+    }
+
+    // Normal mapping
+    vec3 N = normalize(vTBN[2]);
+    if (hasNormalMap) {
+        vec3 n = texture(normalTex, vUV).xyz * 2.0 - 1.0;
+        N = normalize(vTBN * n);
+    }
+
+    vec3 V = normalize(viewPos - vWorldPos);
+    vec3 F0 = mix(vec3(0.04), albedo, metallic);
+
+    vec3 Lo = vec3(0.0);
+    float shadow = calculateShadow(lightSpaceMatrix * vec4(vWorldPos, 1.0));
+    for (int i=0;i<numLights;i++) {
+        if (lights[i].intensity <= 0.0) continue;
+        vec3 L = normalize(lights[i].position - vWorldPos);
+        vec3 H = normalize(V + L);
+        float dist = length(lights[i].position - vWorldPos);
+        float atten = 1.0 / (dist*dist);
+        vec3 radiance = lights[i].color * lights[i].intensity * atten;
+
+        float NDF = DistributionGGX(N, H, roughness);
+        float G   = GeometrySmith(N, V, L, roughness);
+        vec3  F   = fresnelSchlick(max(dot(H, V), 0.0), F0);
+
+        vec3 nominator = NDF * G * F;
+        float denom = 4.0 * max(dot(N,V),0.0) * max(dot(N,L),0.0) + 1e-4;
+        vec3 specular = nominator / denom;
+
+        vec3 kS = F;
+        vec3 kD = (vec3(1.0) - kS) * (1.0 - metallic);
+
+        float NdotL = max(dot(N,L), 0.0);
+        Lo += (kD * albedo / PI + specular) * radiance * NdotL * shadow;
+    }
+
+    // No IBL; simple ambient term
+    vec3 ambient = vec3(0.03) * albedo;
+    vec3 color = ambient + Lo;
+    // gamma correction
+    color = pow(color, vec3(1.0/2.2));
+    FragColor = vec4(color, baseColorFactor.a);
+}
+
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/grid.vert
+----- Shader Code Start -----
+#version 330 core
+layout (location = 0) in vec3 aPos;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+void main()
+{
+    gl_Position = projection * view * model * vec4(aPos, 1.0);
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/grid.frag
+----- Shader Code Start -----
+#version 330 core
+out vec4 FragColor;
+
+void main()
+{
+    FragColor = vec4(0.4, 0.4, 0.4, 1.0); // Gray grid lines
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/rayscreen.vert
+----- Shader Code Start -----
+#version 330 core
+layout(location=0) in vec2 aPos;
+layout(location=1) in vec2 aUV;
+out vec2 vUV;
+void main() { vUV = aUV; gl_Position = vec4(aPos,0.0,1.0); }
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/rayscreen.frag
+----- Shader Code Start -----
+#version 330 core
+in  vec2 vUV;
+out vec4 FragColor;
+uniform sampler2D rayTex;
+void main() { FragColor = vec4(texture(rayTex,vUV).rgb, 1.0); }
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/standard.vert
+----- Shader Code Start -----
+#version 330 core
+
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 aNormal;
+
+// Matrices
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+// Shading mode: 0=Flat, 1=Gouraud
+uniform int shadingMode;
+
+// Outputs to the fragment shader
+out vec3 FragPos;
+out vec3 Normal;
+out vec3 GouraudLight;
+out vec2 UV;
+
+// Lights
+struct Light {
+    vec3 position;
+    vec3 color;
+    float intensity;
+};
+
+#define MAX_LIGHTS 10
+uniform int numLights;
+uniform Light lights[MAX_LIGHTS];
+
+// Material for Gouraud specular
+struct Material {
+    vec3 diffuse;
+    vec3 specular;
+    vec3 ambient;
+    float shininess;
+    float roughness;
+    float metallic;
+};
+
+uniform Material material;
+uniform vec3 viewPos; // Camera position in world space
+
+void main()
+{
+    // Compute position in world space
+    vec4 worldPos = model * vec4(aPos, 1.0);
+    FragPos = worldPos.xyz;
+
+    // Normal transformation via normal matrix
+    Normal = mat3(transpose(inverse(model))) * aNormal;
+
+    // Simple placeholder UV mapping
+    UV = aPos.xy * 0.5 + 0.5;
+
+    // Default to black unless we're in Gouraud shading mode
+    GouraudLight = vec3(0.0);
+
+    // Only compute Gouraud if shadingMode == 1
+    if (shadingMode == 1) {
+        vec3 normal = normalize(Normal);
+        vec3 viewDir = normalize(viewPos - FragPos);
+
+        for (int i = 0; i < numLights; i++) {
+            vec3 lightDir = normalize(lights[i].position - FragPos);
+
+            // Diffuse
+            float diff = max(dot(normal, lightDir), 0.0);
+            vec3 diffuse = material.diffuse * diff * lights[i].color * lights[i].intensity;
+
+            // Specular (Phong reflection model but computed at vertex)
+            vec3 reflectDir = reflect(-lightDir, normal);
+            float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+            vec3 specular = material.specular * spec * lights[i].color * lights[i].intensity;
+
+            GouraudLight += diffuse + specular;
+        }
+    }
+
+    // Final position for rasterization
+    gl_Position = projection * view * worldPos;
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/standard.frag
+----- Shader Code Start -----
+﻿#version 330 core
+
+out vec4 FragColor;
+
+in vec3 FragPos;
+in vec3 Normal;
+in vec3 GouraudLight;  // We only use this if shadingMode == 1
+in vec2 UV;
+
+uniform sampler2D shadowMap;
+uniform mat4 lightSpaceMatrix;
+
+// For texturing & shading controls
+uniform sampler2D cowTexture;
+uniform bool useTexture;
+uniform int shadingMode;
+uniform vec3 objectColor; // fallback if no texture
+
+// ------------------------------------------------------------------------
+// Global ambient
+uniform vec4 globalAmbient; // .a is often unused, so we just use .rgb
+
+// Light struct
+struct Light {
+    vec3 position;
+    vec3 color;
+    float intensity; // If 0, treat as disabled
+};
+
+#define MAX_LIGHTS 10
+uniform int numLights;
+uniform Light lights[MAX_LIGHTS];
+
+// ------------------------------------------------------------------------
+// Material struct
+struct Material {
+    vec3 diffuse;
+    vec3 specular;
+    vec3 ambient;
+    float shininess;
+    float roughness;
+    float metallic;
+};
+uniform Material material;
+
+// Camera position (for specular reflection in Gouraud)
+uniform vec3 viewPos;
+
+// ------------------------------------------------------------------------
+// Calculate Shadow
+float calculateShadow(vec4 fragPosLightSpace)
+{
+    // Perspective divide
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = projCoords * 0.5 + 0.5; // transform to [0,1] range
+
+    // Check if outside light projection
+    if (projCoords.z > 1.0)
+        return 1.0;
+
+    // Read depth from shadow map
+    float closestDepth = texture(shadowMap, projCoords.xy).r;
+    float currentDepth = projCoords.z;
+
+    // Bias to prevent shadow acne
+    float bias = 0.005;
+
+    // 1.0 = lit, 0.5 = shadowed
+    float shadow = (currentDepth - bias) > closestDepth ? 0.5 : 1.0;
+    return shadow;
+}
+
+// ------------------------------------------------------------------------
+// Main
+void main()
+{
+    // Base color from either texture or fallback color
+    vec3 baseColor = useTexture ? texture(cowTexture, UV).rgb : objectColor;
+
+    // Shadow factor
+    float shadow = calculateShadow(lightSpaceMatrix * vec4(FragPos, 1.0));
+
+    // Start with ambient term
+    vec3 totalLight = globalAmbient.rgb * material.ambient;
+
+    if (shadingMode == 0) {
+        // ----- FLAT Shading -----
+        vec3 faceNormal = normalize(cross(dFdx(FragPos), dFdy(FragPos)));
+
+        for (int i = 0; i < numLights; i++) {
+            if (lights[i].intensity <= 0.0) continue;
+            vec3 L = normalize(lights[i].position - FragPos);
+            float diff = max(dot(faceNormal, L), 0.0);
+            totalLight += shadow * material.diffuse * diff * lights[i].color * lights[i].intensity;
+        }
+    }
+    else if (shadingMode == 1) {
+        // ----- GOURAUD Shading -----
+        totalLight += shadow * GouraudLight;
+    }
+
+    // Final color
+    vec3 finalColor = baseColor * totalLight;
+    FragColor = vec4(finalColor, 1.0);
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/pbr.vert
+----- Shader Code Start -----
+#version 330 core
+
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 aNormal;
+layout(location = 2) in vec2 aUV;
+layout(location = 3) in vec3 aTangent;
+uniform bool hasTangents = false;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+out vec3 vWorldPos;
+out vec2 vUV;
+out mat3 vTBN;
+
+void main() {
+    vec3 N = normalize(mat3(transpose(inverse(model))) * aNormal);
+    vec3 T;
+    if (hasTangents) {
+        T = normalize(mat3(model) * aTangent);
+        // Orthonormalize T against N
+        T = normalize(T - N * dot(N, T));
+    } else {
+        // Fallback: build arbitrary T perpendicular to N
+        vec3 up = abs(N.y) < 0.999 ? vec3(0,1,0) : vec3(1,0,0);
+        T = normalize(cross(up, N));
+    }
+    vec3 B = normalize(cross(N, T));
+
+    vTBN = mat3(T, B, N);
+    vUV = aUV;
+    vWorldPos = vec3(model * vec4(aPos, 1.0));
+    gl_Position = projection * view * vec4(vWorldPos, 1.0);
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/pbr.frag
+----- Shader Code Start -----
+#version 330 core
+
+out vec4 FragColor;
+
+in vec3 vWorldPos;
+in vec2 vUV;
+in mat3 vTBN;
+
+// Lights
+struct Light { vec3 position; vec3 color; float intensity; };
+#define MAX_LIGHTS 10
+uniform int numLights;
+uniform Light lights[MAX_LIGHTS];
+uniform vec3 viewPos;
+
+// PBR inputs
+uniform vec4 baseColorFactor; // rgba
+uniform float metallicFactor;
+uniform float roughnessFactor;
+uniform bool  hasBaseColorMap;
+uniform bool  hasNormalMap;
+uniform bool  hasMRMap;
+uniform sampler2D baseColorTex;
+uniform sampler2D normalTex;
+uniform sampler2D mrTex; // glTF convention: G=roughness, B=metallic
+
+uniform sampler2D shadowMap;
+uniform mat4 lightSpaceMatrix;
+
+// Shadow
+float calculateShadow(vec4 fragPosLightSpace) {
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = projCoords * 0.5 + 0.5;
+    if (projCoords.z > 1.0) return 1.0;
+    float closestDepth = texture(shadowMap, projCoords.xy).r;
+    float currentDepth = projCoords.z;
+    float bias = 0.005;
+    return (currentDepth - bias) > closestDepth ? 0.5 : 1.0;
+}
+
+// Helpers
+const float PI = 3.14159265359;
+vec3 fresnelSchlick(float cosTheta, vec3 F0) {
+    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
+float DistributionGGX(vec3 N, vec3 H, float rough) {
+    float a = rough*rough; float a2 = a*a;
+    float NdotH = max(dot(N,H), 0.0);
+    float NdotH2 = NdotH*NdotH;
+    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+    return a2 / max(PI * denom * denom, 1e-4);
+}
+float GeometrySchlickGGX(float NdotV, float rough) {
+    float r = rough + 1.0;
+    float k = (r*r) / 8.0;
+    return NdotV / (NdotV * (1.0 - k) + k);
+}
+float GeometrySmith(vec3 N, vec3 V, vec3 L, float rough) {
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotL = max(dot(N, L), 0.0);
+    float ggx1 = GeometrySchlickGGX(NdotV, rough);
+    float ggx2 = GeometrySchlickGGX(NdotL, rough);
+    return ggx1 * ggx2;
+}
+
+void main() {
+    // Sample inputs
+    vec3 albedo = baseColorFactor.rgb;
+    if (hasBaseColorMap) albedo = pow(texture(baseColorTex, vUV).rgb, vec3(2.2)); // assume sRGB
+    float metallic = metallicFactor;
+    float roughness = clamp(roughnessFactor, 0.04, 1.0);
+    if (hasMRMap) {
+        vec3 mrs = texture(mrTex, vUV).rgb; // R=occlusion (optional), G=roughness, B=metallic (glTF)
+        roughness = clamp(mrs.g, 0.04, 1.0);
+        metallic = mrs.b;
+    }
+
+    // Normal mapping
+    vec3 N = normalize(vTBN[2]);
+    if (hasNormalMap) {
+        vec3 n = texture(normalTex, vUV).xyz * 2.0 - 1.0;
+        N = normalize(vTBN * n);
+    }
+
+    vec3 V = normalize(viewPos - vWorldPos);
+    vec3 F0 = mix(vec3(0.04), albedo, metallic);
+
+    vec3 Lo = vec3(0.0);
+    float shadow = calculateShadow(lightSpaceMatrix * vec4(vWorldPos, 1.0));
+    for (int i=0;i<numLights;i++) {
+        if (lights[i].intensity <= 0.0) continue;
+        vec3 L = normalize(lights[i].position - vWorldPos);
+        vec3 H = normalize(V + L);
+        float dist = length(lights[i].position - vWorldPos);
+        float atten = 1.0 / (dist*dist);
+        vec3 radiance = lights[i].color * lights[i].intensity * atten;
+
+        float NDF = DistributionGGX(N, H, roughness);
+        float G   = GeometrySmith(N, V, L, roughness);
+        vec3  F   = fresnelSchlick(max(dot(H, V), 0.0), F0);
+
+        vec3 nominator = NDF * G * F;
+        float denom = 4.0 * max(dot(N,V),0.0) * max(dot(N,L),0.0) + 1e-4;
+        vec3 specular = nominator / denom;
+
+        vec3 kS = F;
+        vec3 kD = (vec3(1.0) - kS) * (1.0 - metallic);
+
+        float NdotL = max(dot(N,L), 0.0);
+        Lo += (kD * albedo / PI + specular) * radiance * NdotL * shadow;
+    }
+
+    // No IBL; simple ambient term
+    vec3 ambient = vec3(0.03) * albedo;
+    vec3 color = ambient + Lo;
+    // gamma correction
+    color = pow(color, vec3(1.0/2.2));
+    FragColor = vec4(color, baseColorFactor.a);
+}
+
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/grid.vert
+----- Shader Code Start -----
+#version 330 core
+layout (location = 0) in vec3 aPos;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+void main()
+{
+    gl_Position = projection * view * model * vec4(aPos, 1.0);
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/grid.frag
+----- Shader Code Start -----
+#version 330 core
+out vec4 FragColor;
+
+void main()
+{
+    FragColor = vec4(0.4, 0.4, 0.4, 1.0); // Gray grid lines
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/rayscreen.vert
+----- Shader Code Start -----
+#version 330 core
+layout(location=0) in vec2 aPos;
+layout(location=1) in vec2 aUV;
+out vec2 vUV;
+void main() { vUV = aUV; gl_Position = vec4(aPos,0.0,1.0); }
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/rayscreen.frag
+----- Shader Code Start -----
+#version 330 core
+in  vec2 vUV;
+out vec4 FragColor;
+uniform sampler2D rayTex;
+void main() { FragColor = vec4(texture(rayTex,vUV).rgb, 1.0); }
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/standard.vert
+----- Shader Code Start -----
+#version 330 core
+
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 aNormal;
+
+// Matrices
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+// Shading mode: 0=Flat, 1=Gouraud
+uniform int shadingMode;
+
+// Outputs to the fragment shader
+out vec3 FragPos;
+out vec3 Normal;
+out vec3 GouraudLight;
+out vec2 UV;
+
+// Lights
+struct Light {
+    vec3 position;
+    vec3 color;
+    float intensity;
+};
+
+#define MAX_LIGHTS 10
+uniform int numLights;
+uniform Light lights[MAX_LIGHTS];
+
+// Material for Gouraud specular
+struct Material {
+    vec3 diffuse;
+    vec3 specular;
+    vec3 ambient;
+    float shininess;
+    float roughness;
+    float metallic;
+};
+
+uniform Material material;
+uniform vec3 viewPos; // Camera position in world space
+
+void main()
+{
+    // Compute position in world space
+    vec4 worldPos = model * vec4(aPos, 1.0);
+    FragPos = worldPos.xyz;
+
+    // Normal transformation via normal matrix
+    Normal = mat3(transpose(inverse(model))) * aNormal;
+
+    // Simple placeholder UV mapping
+    UV = aPos.xy * 0.5 + 0.5;
+
+    // Default to black unless we're in Gouraud shading mode
+    GouraudLight = vec3(0.0);
+
+    // Only compute Gouraud if shadingMode == 1
+    if (shadingMode == 1) {
+        vec3 normal = normalize(Normal);
+        vec3 viewDir = normalize(viewPos - FragPos);
+
+        for (int i = 0; i < numLights; i++) {
+            vec3 lightDir = normalize(lights[i].position - FragPos);
+
+            // Diffuse
+            float diff = max(dot(normal, lightDir), 0.0);
+            vec3 diffuse = material.diffuse * diff * lights[i].color * lights[i].intensity;
+
+            // Specular (Phong reflection model but computed at vertex)
+            vec3 reflectDir = reflect(-lightDir, normal);
+            float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+            vec3 specular = material.specular * spec * lights[i].color * lights[i].intensity;
+
+            GouraudLight += diffuse + specular;
+        }
+    }
+
+    // Final position for rasterization
+    gl_Position = projection * view * worldPos;
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/standard.frag
+----- Shader Code Start -----
+﻿#version 330 core
+
+out vec4 FragColor;
+
+in vec3 FragPos;
+in vec3 Normal;
+in vec3 GouraudLight;  // We only use this if shadingMode == 1
+in vec2 UV;
+
+uniform sampler2D shadowMap;
+uniform mat4 lightSpaceMatrix;
+
+// For texturing & shading controls
+uniform sampler2D cowTexture;
+uniform bool useTexture;
+uniform int shadingMode;
+uniform vec3 objectColor; // fallback if no texture
+
+// ------------------------------------------------------------------------
+// Global ambient
+uniform vec4 globalAmbient; // .a is often unused, so we just use .rgb
+
+// Light struct
+struct Light {
+    vec3 position;
+    vec3 color;
+    float intensity; // If 0, treat as disabled
+};
+
+#define MAX_LIGHTS 10
+uniform int numLights;
+uniform Light lights[MAX_LIGHTS];
+
+// ------------------------------------------------------------------------
+// Material struct
+struct Material {
+    vec3 diffuse;
+    vec3 specular;
+    vec3 ambient;
+    float shininess;
+    float roughness;
+    float metallic;
+};
+uniform Material material;
+
+// Camera position (for specular reflection in Gouraud)
+uniform vec3 viewPos;
+
+// ------------------------------------------------------------------------
+// Calculate Shadow
+float calculateShadow(vec4 fragPosLightSpace)
+{
+    // Perspective divide
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = projCoords * 0.5 + 0.5; // transform to [0,1] range
+
+    // Check if outside light projection
+    if (projCoords.z > 1.0)
+        return 1.0;
+
+    // Read depth from shadow map
+    float closestDepth = texture(shadowMap, projCoords.xy).r;
+    float currentDepth = projCoords.z;
+
+    // Bias to prevent shadow acne
+    float bias = 0.005;
+
+    // 1.0 = lit, 0.5 = shadowed
+    float shadow = (currentDepth - bias) > closestDepth ? 0.5 : 1.0;
+    return shadow;
+}
+
+// ------------------------------------------------------------------------
+// Main
+void main()
+{
+    // Base color from either texture or fallback color
+    vec3 baseColor = useTexture ? texture(cowTexture, UV).rgb : objectColor;
+
+    // Shadow factor
+    float shadow = calculateShadow(lightSpaceMatrix * vec4(FragPos, 1.0));
+
+    // Start with ambient term
+    vec3 totalLight = globalAmbient.rgb * material.ambient;
+
+    if (shadingMode == 0) {
+        // ----- FLAT Shading -----
+        vec3 faceNormal = normalize(cross(dFdx(FragPos), dFdy(FragPos)));
+
+        for (int i = 0; i < numLights; i++) {
+            if (lights[i].intensity <= 0.0) continue;
+            vec3 L = normalize(lights[i].position - FragPos);
+            float diff = max(dot(faceNormal, L), 0.0);
+            totalLight += shadow * material.diffuse * diff * lights[i].color * lights[i].intensity;
+        }
+    }
+    else if (shadingMode == 1) {
+        // ----- GOURAUD Shading -----
+        totalLight += shadow * GouraudLight;
+    }
+
+    // Final color
+    vec3 finalColor = baseColor * totalLight;
+    FragColor = vec4(finalColor, 1.0);
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/pbr.vert
+----- Shader Code Start -----
+#version 330 core
+
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 aNormal;
+layout(location = 2) in vec2 aUV;
+layout(location = 3) in vec3 aTangent;
+uniform bool hasTangents = false;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+out vec3 vWorldPos;
+out vec2 vUV;
+out mat3 vTBN;
+
+void main() {
+    vec3 N = normalize(mat3(transpose(inverse(model))) * aNormal);
+    vec3 T;
+    if (hasTangents) {
+        T = normalize(mat3(model) * aTangent);
+        // Orthonormalize T against N
+        T = normalize(T - N * dot(N, T));
+    } else {
+        // Fallback: build arbitrary T perpendicular to N
+        vec3 up = abs(N.y) < 0.999 ? vec3(0,1,0) : vec3(1,0,0);
+        T = normalize(cross(up, N));
+    }
+    vec3 B = normalize(cross(N, T));
+
+    vTBN = mat3(T, B, N);
+    vUV = aUV;
+    vWorldPos = vec3(model * vec4(aPos, 1.0));
+    gl_Position = projection * view * vec4(vWorldPos, 1.0);
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/pbr.frag
+----- Shader Code Start -----
+#version 330 core
+
+out vec4 FragColor;
+
+in vec3 vWorldPos;
+in vec2 vUV;
+in mat3 vTBN;
+
+// Lights
+struct Light { vec3 position; vec3 color; float intensity; };
+#define MAX_LIGHTS 10
+uniform int numLights;
+uniform Light lights[MAX_LIGHTS];
+uniform vec3 viewPos;
+
+// PBR inputs
+uniform vec4 baseColorFactor; // rgba
+uniform float metallicFactor;
+uniform float roughnessFactor;
+uniform bool  hasBaseColorMap;
+uniform bool  hasNormalMap;
+uniform bool  hasMRMap;
+uniform sampler2D baseColorTex;
+uniform sampler2D normalTex;
+uniform sampler2D mrTex; // glTF convention: G=roughness, B=metallic
+
+uniform sampler2D shadowMap;
+uniform mat4 lightSpaceMatrix;
+
+// Shadow
+float calculateShadow(vec4 fragPosLightSpace) {
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = projCoords * 0.5 + 0.5;
+    if (projCoords.z > 1.0) return 1.0;
+    float closestDepth = texture(shadowMap, projCoords.xy).r;
+    float currentDepth = projCoords.z;
+    float bias = 0.005;
+    return (currentDepth - bias) > closestDepth ? 0.5 : 1.0;
+}
+
+// Helpers
+const float PI = 3.14159265359;
+vec3 fresnelSchlick(float cosTheta, vec3 F0) {
+    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
+float DistributionGGX(vec3 N, vec3 H, float rough) {
+    float a = rough*rough; float a2 = a*a;
+    float NdotH = max(dot(N,H), 0.0);
+    float NdotH2 = NdotH*NdotH;
+    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+    return a2 / max(PI * denom * denom, 1e-4);
+}
+float GeometrySchlickGGX(float NdotV, float rough) {
+    float r = rough + 1.0;
+    float k = (r*r) / 8.0;
+    return NdotV / (NdotV * (1.0 - k) + k);
+}
+float GeometrySmith(vec3 N, vec3 V, vec3 L, float rough) {
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotL = max(dot(N, L), 0.0);
+    float ggx1 = GeometrySchlickGGX(NdotV, rough);
+    float ggx2 = GeometrySchlickGGX(NdotL, rough);
+    return ggx1 * ggx2;
+}
+
+void main() {
+    // Sample inputs
+    vec3 albedo = baseColorFactor.rgb;
+    if (hasBaseColorMap) albedo = pow(texture(baseColorTex, vUV).rgb, vec3(2.2)); // assume sRGB
+    float metallic = metallicFactor;
+    float roughness = clamp(roughnessFactor, 0.04, 1.0);
+    if (hasMRMap) {
+        vec3 mrs = texture(mrTex, vUV).rgb; // R=occlusion (optional), G=roughness, B=metallic (glTF)
+        roughness = clamp(mrs.g, 0.04, 1.0);
+        metallic = mrs.b;
+    }
+
+    // Normal mapping
+    vec3 N = normalize(vTBN[2]);
+    if (hasNormalMap) {
+        vec3 n = texture(normalTex, vUV).xyz * 2.0 - 1.0;
+        N = normalize(vTBN * n);
+    }
+
+    vec3 V = normalize(viewPos - vWorldPos);
+    vec3 F0 = mix(vec3(0.04), albedo, metallic);
+
+    vec3 Lo = vec3(0.0);
+    float shadow = calculateShadow(lightSpaceMatrix * vec4(vWorldPos, 1.0));
+    for (int i=0;i<numLights;i++) {
+        if (lights[i].intensity <= 0.0) continue;
+        vec3 L = normalize(lights[i].position - vWorldPos);
+        vec3 H = normalize(V + L);
+        float dist = length(lights[i].position - vWorldPos);
+        float atten = 1.0 / (dist*dist);
+        vec3 radiance = lights[i].color * lights[i].intensity * atten;
+
+        float NDF = DistributionGGX(N, H, roughness);
+        float G   = GeometrySmith(N, V, L, roughness);
+        vec3  F   = fresnelSchlick(max(dot(H, V), 0.0), F0);
+
+        vec3 nominator = NDF * G * F;
+        float denom = 4.0 * max(dot(N,V),0.0) * max(dot(N,L),0.0) + 1e-4;
+        vec3 specular = nominator / denom;
+
+        vec3 kS = F;
+        vec3 kD = (vec3(1.0) - kS) * (1.0 - metallic);
+
+        float NdotL = max(dot(N,L), 0.0);
+        Lo += (kD * albedo / PI + specular) * radiance * NdotL * shadow;
+    }
+
+    // No IBL; simple ambient term
+    vec3 ambient = vec3(0.03) * albedo;
+    vec3 color = ambient + Lo;
+    // gamma correction
+    color = pow(color, vec3(1.0/2.2));
+    FragColor = vec4(color, baseColorFactor.a);
+}
+
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/grid.vert
+----- Shader Code Start -----
+#version 330 core
+layout (location = 0) in vec3 aPos;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+void main()
+{
+    gl_Position = projection * view * model * vec4(aPos, 1.0);
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/grid.frag
+----- Shader Code Start -----
+#version 330 core
+out vec4 FragColor;
+
+void main()
+{
+    FragColor = vec4(0.4, 0.4, 0.4, 1.0); // Gray grid lines
+}
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/rayscreen.vert
+----- Shader Code Start -----
+#version 330 core
+layout(location=0) in vec2 aPos;
+layout(location=1) in vec2 aUV;
+out vec2 vUV;
+void main() { vUV = aUV; gl_Position = vec4(aPos,0.0,1.0); }
+
+----- Shader Code End -----
+
+? Opened shader file: shaders/rayscreen.frag
+----- Shader Code Start -----
+#version 330 core
+in  vec2 vUV;
+out vec4 FragColor;
+uniform sampler2D rayTex;
+void main() { FragColor = vec4(texture(rayTex,vUV).rgb, 1.0); }
+
+----- Shader Code End -----
+
