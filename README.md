@@ -48,17 +48,17 @@ Runs on desktop (GLFW/GLAD/ImGui) and web (WebGL2 via Emscripten) with a new Rea
 
 ### Desktop (CMake, cross-platform)
 ```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j
-./build/objviewer
+cmake -S . -B builds/desktop/cmake -DCMAKE_BUILD_TYPE=Release
+cmake --build builds/desktop/cmake -j
+./builds/desktop/cmake/glint3d
 ```
 
 ### Web (Emscripten)
 ```bash
-emcmake cmake -S . -B build-web -DCMAKE_BUILD_TYPE=Release
-cmake --build build-web -j
+emcmake cmake -S . -B builds/web/emscripten -DCMAKE_BUILD_TYPE=Release
+cmake --build builds/web/emscripten -j
 ```
-Open `build-web/objviewer.html` with a local web server. Assets under `Project1/assets` and `Project1/shaders` are preloaded.  
+Open `builds/web/emscripten/glint3d.html` with a local web server. Assets under `engine/assets` and `engine/shaders` are preloaded.  
 
 ---
 
@@ -67,9 +67,9 @@ Open `build-web/objviewer.html` with a local web server. Assets under `Project1/
 Located in `ui/`. This is a modern, product-ready interface that hosts the engine (WASM) in the same page.  
 
 1. Build the web engine (see above). Copy outputs to:
-   - `ui/public/engine/objviewer.js`  
-   - `ui/public/engine/objviewer.wasm`  
-   - `ui/public/engine/objviewer.data` (if generated)  
+   - `ui/public/engine/glint3d.js`  
+   - `ui/public/engine/glint3d.wasm`  
+   - `ui/public/engine/glint3d.data` (if generated)  
 
 2. Start the UI:
 ```bash
@@ -157,7 +157,7 @@ Suggestions:
 
 Apply JSON Ops v1 and render to PNG without a window:
 ```bash
-Project1.exe --ops recipe.json --render out.png --w 1024 --h 768
+./builds/vs/x64/Release/glint3d.exe --ops examples/json-ops/three-point-lighting.json --render out.png --w 1024 --h 768
 ```
 
 Options:
@@ -186,19 +186,23 @@ Options:
 
 ## Repo Layout
 
-- `Project1/src` — rendering, UI, loaders, raytracer  
-- `Project1/include` — headers  
-- `Project1/shaders` — GLSL  
-- `Project1/assets` — sample models, textures, recipes  
-- `docs/json_ops_v1.md`, `schemas/json_ops_v1.json` — scripting docs/schema  
+- `engine/src/` — rendering, UI, loaders, raytracer  
+- `engine/include/` — headers  
+- `engine/shaders/` — GLSL  
+- `engine/assets/` — sample models, textures, recipes  
+- `builds/` — organized build outputs (desktop/web/vs)
+- `examples/json-ops/` — sample JSON Operations files
+- `docs/` — JSON Ops documentation and schema  
 
 ---
 
 ## Samples
 
 Use the Samples menu or load recipes manually:
-- `assets/samples/recipes/three-point-lighting.json`  
-- `assets/samples/recipes/isometric-hero.json`  
+- `examples/json-ops/three-point-lighting.json`  
+- `examples/json-ops/isometric-hero.json`  
+- `examples/json-ops/studio-turntable.json`
+- `examples/json-ops/turntable-cli.json`  
 
 ---
 

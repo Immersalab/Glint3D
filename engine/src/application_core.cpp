@@ -11,10 +11,12 @@
 #ifndef WEB_USE_HTML_UI
 #include "imgui.h"
 #endif
+#include "stb_image.h"
 #include <iostream>
 #include <memory>
 #include <limits>
 #include <cmath>
+#include <vector>
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
@@ -48,6 +50,9 @@ bool ApplicationCore::init(const std::string& windowTitle, int width, int height
         std::cerr << "Failed to initialize GLFW\n";
         return false;
     }
+    
+    // Set window icon
+    setWindowIcon();
     
     // Initialize OpenGL function loading
     if (!initGLAD()) {
@@ -508,6 +513,45 @@ void ApplicationCore::createDefaultScene()
 void ApplicationCore::cleanupGL()
 {
     // OpenGL cleanup is handled by the systems themselves
+}
+
+void ApplicationCore::setWindowIcon()
+{
+    if (!m_window) return;
+    
+    // Try multiple possible icon paths for different build systems
+    const std::vector<std::string> iconPaths = {
+        "engine/assets/img/Glint3DIcon.png",    // CMake build from repo root
+        "assets/img/Glint3DIcon.png",           // Visual Studio build from repo root
+        "../engine/assets/img/Glint3DIcon.png", // If running from build dir
+        "../../engine/assets/img/Glint3DIcon.png" // Alternative build dir structure
+    };
+    
+    int width, height, channels;
+    unsigned char* data = nullptr;
+    std::string successPath;
+    
+    for (const auto& path : iconPaths) {
+        data = stbi_load(path.c_str(), &width, &height, &channels, 4); // Force RGBA
+        if (data) {
+            successPath = path;
+            break;
+        }
+    }
+    
+    if (!data) {
+        std::cerr << "Failed to load window icon from any of the attempted paths" << std::endl;
+        return;
+    }
+    
+    GLFWimage icon;
+    icon.width = width;
+    icon.height = height;
+    icon.pixels = data;
+    
+    glfwSetWindowIcon(m_window, 1, &icon);
+    
+    stbi_image_free(data);
 }
 
 // GLFW callback wrappers

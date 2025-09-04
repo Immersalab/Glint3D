@@ -97,6 +97,7 @@ private:
     bool initGLAD();
     void initCallbacks();
     void createDefaultScene();
+    void setWindowIcon();
     
     // GLFW callback wrappers
     static void mouseCallback(GLFWwindow* window, double xpos, double ypos);
