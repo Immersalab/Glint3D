@@ -148,7 +148,22 @@
       "Read(/D:\\class\\Glint3D\\engine\\assets\\img/**)",
       "Read(/D:\\class\\Glint3D\\engine\\assets\\img/**)",
       "Read(/D:\\class\\Glint3D\\builds\\vs\\x64\\Debug/**)",
-      "Read(/D:\\class\\Glint3D/**)"
+      "Read(/D:\\class\\Glint3D/**)",
+      "Read(/D:\\class\\Glint3D\\engine/**)",
+      "Read(/D:\\class\\Glint3D\\engine\\src/**)",
+      "Read(/D:\\class\\Glint3D\\engine\\src/**)",
+      "Read(/D:\\class\\Glint3D\\engine\\src/**)",
+      "Read(/D:\\class\\Glint3D\\engine\\src/**)",
+      "Read(/D:\\class\\Glint3D\\engine\\src/**)",
+      "Read(/D:\\class\\Glint3D\\engine\\src/**)",
+      "Read(/D:\\class\\Glint3D\\engine\\include/**)",
+      "Read(/D:\\class\\Glint3D\\engine\\src/**)",
+      "Read(/D:\\class\\Glint3D\\engine\\src/**)",
+      "Read(/D:\\class\\Glint3D\\engine\\src/**)",
+      "Read(/D:\\class\\Glint3D\\engine\\src/**)",
+      "Read(/D:\\class\\Glint3D\\engine\\src/**)",
+      "Read(/D:\\class\\Glint3D\\engine\\include/**)",
+      "Read(/D:\\class\\Glint3D\\engine/**)"
     ],
     "deny": [],
     "ask": []

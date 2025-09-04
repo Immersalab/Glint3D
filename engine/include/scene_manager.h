@@ -46,6 +46,7 @@ public:
                         const glm::vec3* deltaPos = nullptr,
                         const glm::vec3* deltaScale = nullptr, 
                         const glm::vec3* deltaRotDeg = nullptr);
+    bool duplicateObject(const std::string& sourceName, const std::string& newName, const glm::vec3& newPosition);
     bool moveObject(const std::string& name, const glm::vec3& delta);
     
     // Selection
@@ -63,6 +64,8 @@ public:
     std::vector<SceneObject>& getObjects() { return m_objects; }
     SceneObject* findObjectByName(const std::string& name);
     const SceneObject* findObjectByName(const std::string& name) const;
+    int findObjectIndex(const std::string& name) const;
+    bool deleteObject(const std::string& name);
 
     // Serialization
     std::string toJson() const;

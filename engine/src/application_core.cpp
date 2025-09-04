@@ -586,3 +586,4 @@ void ApplicationCore::keyCallback(GLFWwindow* window, int key, int scancode, int
         app->handleKey(key, scancode, action, mods);
     }
 }
+

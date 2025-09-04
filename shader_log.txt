@@ -44,3 +44,11 @@
 ? Failed to open shader: shaders/grid.frag
 ? Failed to open shader: shaders/rayscreen.vert
 ? Failed to open shader: shaders/rayscreen.frag
+? Failed to open shader: shaders/standard.vert
+? Failed to open shader: shaders/standard.frag
+? Failed to open shader: shaders/pbr.vert
+? Failed to open shader: shaders/pbr.frag
+? Failed to open shader: shaders/grid.vert
+? Failed to open shader: shaders/grid.frag
+? Failed to open shader: shaders/rayscreen.vert
+? Failed to open shader: shaders/rayscreen.frag

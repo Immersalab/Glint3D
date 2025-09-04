@@ -6,6 +6,11 @@
 #include <algorithm>
 #include <fstream>
 #include <sstream>
+#include <rapidjson/document.h>
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
+#include <rapidjson/prettywriter.h>
+#include <cmath>
 
 SceneManager::SceneManager() 
 {
@@ -204,6 +209,76 @@ const SceneObject* SceneManager::findObjectByName(const std::string& name) const
     return (it != m_objects.end()) ? &(*it) : nullptr;
 }
 
+int SceneManager::findObjectIndex(const std::string& name) const
+{
+    for (size_t i = 0; i < m_objects.size(); ++i) {
+        if (m_objects[i].name == name) {
+            return static_cast<int>(i);
+        }
+    }
+    return -1;
+}
+
+bool SceneManager::deleteObject(const std::string& name)
+{
+    auto it = std::find_if(m_objects.begin(), m_objects.end(),
+        [&name](const SceneObject& obj) { return obj.name == name; });
+    
+    if (it != m_objects.end()) {
+        // Clean up OpenGL resources
+        cleanupObjectOpenGL(*it);
+        
+        // Update selected index if needed
+        int deletedIndex = static_cast<int>(std::distance(m_objects.begin(), it));
+        if (m_selectedObjectIndex == deletedIndex) {
+            m_selectedObjectIndex = -1;
+        } else if (m_selectedObjectIndex > deletedIndex) {
+            m_selectedObjectIndex--;
+        }
+        
+        // Remove from vector
+        m_objects.erase(it);
+        return true;
+    }
+    return false;
+}
+
+bool SceneManager::duplicateObject(const std::string& sourceName, const std::string& newName, const glm::vec3& newPosition)
+{
+    const SceneObject* source = findObjectByName(sourceName);
+    if (!source) {
+        return false;
+    }
+    
+    if (findObjectByName(newName) != nullptr) {
+        std::cerr << "Object with name '" << newName << "' already exists\n";
+        return false;
+    }
+    
+    // Copy the source object
+    SceneObject newObj = *source;
+    newObj.name = newName;
+    
+    // Set new position
+    newObj.modelMatrix[3] = glm::vec4(newPosition, 1.0f);
+    
+    // Clear OpenGL handles (they will be regenerated)
+    newObj.VAO = 0;
+    newObj.VBO_positions = 0;
+    newObj.VBO_normals = 0;
+    newObj.VBO_uvs = 0;
+    newObj.VBO_tangents = 0;
+    newObj.EBO = 0;
+    
+    // Add to scene
+    m_objects.push_back(newObj);
+    
+    // Setup OpenGL for the new object
+    setupObjectOpenGL(m_objects.back());
+    
+    return true;
+}
+
 void SceneManager::clear()
 {
     for (auto& obj : m_objects) {
@@ -295,27 +370,113 @@ void SceneManager::cleanupObjectOpenGL(SceneObject& obj)
 
 std::string SceneManager::toJson() const
 {
-    std::ostringstream oss;
-    oss << "{\n";
-    oss << "  \"objects\": [\n";
+    using namespace rapidjson;
     
-    for (size_t i = 0; i < m_objects.size(); ++i) {
-        const auto& obj = m_objects[i];
-        oss << "    {\n";
-        oss << "      \"name\": \"" << obj.name << "\",\n";
-        oss << "      \"transform\": {\n";
+    Document doc;
+    doc.SetObject();
+    Document::AllocatorType& allocator = doc.GetAllocator();
+    
+    // Create objects array
+    Value objects(kArrayType);
+    
+    for (const auto& obj : m_objects) {
+        Value objVal(kObjectType);
+        
+        // Add object name
+        Value nameVal(obj.name.c_str(), allocator);
+        objVal.AddMember("name", nameVal, allocator);
+        
+        // Add transform
+        Value transform(kObjectType);
         
         // Extract position from model matrix
         glm::vec3 pos = glm::vec3(obj.modelMatrix[3]);
-        oss << "        \"position\": [" << pos.x << "," << pos.y << "," << pos.z << "]\n";
+        Value position(kArrayType);
+        position.PushBack(pos.x, allocator);
+        position.PushBack(pos.y, allocator);
+        position.PushBack(pos.z, allocator);
+        transform.AddMember("position", position, allocator);
         
-        oss << "      }\n";
-        oss << "    }";
-        if (i < m_objects.size() - 1) oss << ",";
-        oss << "\n";
+        // Extract scale from model matrix
+        glm::vec3 scale(
+            glm::length(glm::vec3(obj.modelMatrix[0])),
+            glm::length(glm::vec3(obj.modelMatrix[1])),
+            glm::length(glm::vec3(obj.modelMatrix[2]))
+        );
+        Value scaleVal(kArrayType);
+        scaleVal.PushBack(scale.x, allocator);
+        scaleVal.PushBack(scale.y, allocator);
+        scaleVal.PushBack(scale.z, allocator);
+        transform.AddMember("scale", scaleVal, allocator);
+        
+        // Extract rotation (Euler angles from normalized matrix)
+        glm::mat3 rotMatrix(
+            glm::vec3(obj.modelMatrix[0]) / scale.x,
+            glm::vec3(obj.modelMatrix[1]) / scale.y,
+            glm::vec3(obj.modelMatrix[2]) / scale.z
+        );
+        
+        // Convert rotation matrix to Euler angles (simplified)
+        float rotY = asin(glm::clamp(rotMatrix[0][2], -1.0f, 1.0f));
+        float rotX, rotZ;
+        if (cos(rotY) > 0.0001f) {
+            rotX = atan2(-rotMatrix[1][2], rotMatrix[2][2]);
+            rotZ = atan2(-rotMatrix[0][1], rotMatrix[0][0]);
+        } else {
+            rotX = atan2(rotMatrix[2][1], rotMatrix[1][1]);
+            rotZ = 0;
+        }
+        
+        Value rotation(kArrayType);
+        rotation.PushBack(glm::degrees(rotX), allocator);
+        rotation.PushBack(glm::degrees(rotY), allocator);
+        rotation.PushBack(glm::degrees(rotZ), allocator);
+        transform.AddMember("rotation", rotation, allocator);
+        
+        objVal.AddMember("transform", transform, allocator);
+        
+        // Add material information from object's built-in material
+        Value material(kObjectType);
+        
+        Value diffuse(kArrayType);
+        diffuse.PushBack(obj.material.diffuse.x, allocator);
+        diffuse.PushBack(obj.material.diffuse.y, allocator);
+        diffuse.PushBack(obj.material.diffuse.z, allocator);
+        material.AddMember("diffuse", diffuse, allocator);
+        
+        Value specular(kArrayType);
+        specular.PushBack(obj.material.specular.x, allocator);
+        specular.PushBack(obj.material.specular.y, allocator);
+        specular.PushBack(obj.material.specular.z, allocator);
+        material.AddMember("specular", specular, allocator);
+        
+        material.AddMember("shininess", obj.material.shininess, allocator);
+        material.AddMember("roughness", obj.material.roughness, allocator);
+        material.AddMember("metallic", obj.material.metallic, allocator);
+        
+        Value ambient(kArrayType);
+        ambient.PushBack(obj.material.ambient.x, allocator);
+        ambient.PushBack(obj.material.ambient.y, allocator);
+        ambient.PushBack(obj.material.ambient.z, allocator);
+        material.AddMember("ambient", ambient, allocator);
+        
+        objVal.AddMember("material", material, allocator);
+        
+        objects.PushBack(objVal, allocator);
     }
     
-    oss << "  ]\n";
-    oss << "}";
-    return oss.str();
+    doc.AddMember("objects", objects, allocator);
+    
+    // Add scene metadata
+    Value metadata(kObjectType);
+    metadata.AddMember("objectCount", (int)m_objects.size(), allocator);
+    metadata.AddMember("selectedIndex", m_selectedObjectIndex, allocator);
+    doc.AddMember("metadata", metadata, allocator);
+    
+    // Convert to string
+    StringBuffer buffer;
+    PrettyWriter<StringBuffer> writer(buffer);
+    doc.Accept(writer);
+    
+    return buffer.GetString();
 }

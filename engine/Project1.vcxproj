@@ -146,7 +146,7 @@ if exist "D:\Graphics\vcpkg\installed\x64-windows\bin\brotli*.dll" xcopy /y /d "
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>USE_ASSIMP</PreprocessorDefinitions>
+      <PreprocessorDefinitions>USE_ASSIMP;_SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir)Libraries\include;$(ProjectDir)Libraries\include\imgui\backends;$(ProjectDir)Libraries\include\imgui;$(ProjectDir)Libraries\lib;$(ProjectDir)Libraries\include\stb;D:\Graphics\vcpkg\installed\x64-windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -164,7 +164,7 @@ if exist "D:\Graphics\vcpkg\installed\x64-windows\bin\brotli*.dll" xcopy /y /d "
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>USE_ASSIMP</PreprocessorDefinitions>
+      <PreprocessorDefinitions>USE_ASSIMP;_SILENCE_CXX17_ITERATOR_BASE_CLASS_DEPRECATION_WARNING</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir)Libraries\include;$(ProjectDir)Libraries\include\imgui\backends;$(ProjectDir)Libraries\include\imgui;$(ProjectDir)Libraries\lib;$(ProjectDir)Libraries\include\stb;D:\Graphics\vcpkg\installed\x64-windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
