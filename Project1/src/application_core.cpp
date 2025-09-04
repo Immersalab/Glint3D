@@ -290,7 +290,8 @@ void ApplicationCore::handleMouseButton(int button, int action, int mods)
                 if (selObj >= 0) {
                     const auto& obj = m_scene->getObjects()[selObj];
                     center = glm::vec3(obj.modelMatrix[3]);
-                    if (m_gizmoLocal) {
+                    // Use renderer's gizmo space setting to match rendered gizmo
+                    if (m_renderer->gizmoLocalSpace()) {
                         glm::mat3 M3(obj.modelMatrix);
                         R[0] = glm::normalize(glm::vec3(M3[0]));
                         R[1] = glm::normalize(glm::vec3(M3[1]));

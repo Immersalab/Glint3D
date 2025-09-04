@@ -73,7 +73,7 @@ int main(int argc, char** argv)
     bool denoiseFlag = args.has("--denoise");
 
     auto* app = new ApplicationCore();
-    if (!app->init("OBJ Viewer", wantHeadless ? W : 800, wantHeadless ? H : 600, wantHeadless))
+    if (!app->init("Glint 3D", wantHeadless ? W : 800, wantHeadless ? H : 600, wantHeadless))
         return -1;
     if (denoiseFlag) app->setDenoiseEnabled(true);
 

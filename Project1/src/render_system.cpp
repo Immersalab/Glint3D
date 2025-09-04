@@ -117,6 +117,58 @@ void RenderSystem::render(const SceneManager& scene, const Light& lights)
     // Light indicators
     lights.renderIndicators(m_viewMatrix, m_projectionMatrix, m_selectedLightIndex);
 
+    // Selection outline for currently selected object (wireframe overlay)
+    {
+        int selObj = scene.getSelectedObjectIndex();
+        const auto& objs = scene.getObjects();
+        if (selObj >= 0 && selObj < (int)objs.size() && m_basicShader) {
+            const auto& obj = objs[selObj];
+            if (obj.VAO != 0) {
+                Shader* s = m_basicShader.get();
+                s->use();
+                // Matrices
+                s->setMat4("model", obj.modelMatrix);
+                s->setMat4("view", m_viewMatrix);
+                s->setMat4("projection", m_projectionMatrix);
+                // Solid highlight color via ambient-only lighting
+                s->setInt("shadingMode", 0); // flat path
+                s->setBool("useTexture", false);
+                s->setVec3("objectColor", glm::vec3(0.2f, 0.7f, 1.0f)); // cyan-ish
+                s->setVec3("viewPos", m_camera.position);
+                // Force bright ambient and no direct lights
+                glActiveTexture(GL_TEXTURE0 + 7);
+                glBindTexture(GL_TEXTURE_2D, m_dummyShadowTex);
+                s->setInt("shadowMap", 7);
+                s->setMat4("lightSpaceMatrix", glm::mat4(1.0f));
+                // Material ambient = 1, other params not used in flat ambient-only path
+                s->setVec3("material.ambient", glm::vec3(1.0f));
+                s->setInt("numLights", 0);
+                s->setVec4("globalAmbient", glm::vec4(1.0f));
+
+                // Draw as wireframe overlay with slight depth bias to reduce z-fighting
+#ifndef __EMSCRIPTEN__
+                GLint prevPolyMode[2];
+                glGetIntegerv(GL_POLYGON_MODE, prevPolyMode);
+                glEnable(GL_POLYGON_OFFSET_LINE);
+                glPolygonOffset(-1.0f, -1.0f);
+                glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                glLineWidth(1.5f);
+#endif
+                glBindVertexArray(obj.VAO);
+                if (obj.EBO != 0) {
+                    glDrawElements(GL_TRIANGLES, obj.objLoader.getIndexCount(), GL_UNSIGNED_INT, 0);
+                } else {
+                    glDrawArrays(GL_TRIANGLES, 0, obj.objLoader.getVertCount());
+                }
+                glBindVertexArray(0);
+#ifndef __EMSCRIPTEN__
+                glPolygonMode(GL_FRONT_AND_BACK, prevPolyMode[0]);
+                glDisable(GL_POLYGON_OFFSET_LINE);
+#endif
+            }
+        }
+    }
+
     // Draw gizmo at selected object's or light's center
     if (m_gizmo) {
         int selObj = -1;
