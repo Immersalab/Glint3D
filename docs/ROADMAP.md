@@ -130,22 +130,22 @@
 
 ## Use Cases
 
-### 🖥️ Development & Engineering
+### Development & Engineering
 - **CI/CD Golden Tests** — Headless renders generate baseline images; compare hashes to flag regressions.  
 - **Automated Asset Validation** — Load models via Ops, run diagnostics, export model health reports.  
 - **Bulk Thumbnail Generation** — Script consistent PNG previews for entire asset libraries.
 
-### 🌐 Web & Documentation
+### Web & Documentation
 - **Embeddable Viewers** — Host the web build in portals or docs; no installs required.  
 - **Shareable State Links** — Send a URL that reproduces the same scene setup everywhere.  
 - **Interactive Teaching Aids** — Reproducible JSON Ops scenes for labs or coursework.
 
-### 🎨 Creative & Technical Art
+### Creative & Technical Art
 - **Lookdev Previews** — Quick PBR checks before DCC import.  
 - **Performance Checks** — Perf HUD for triangles, draw calls, materials to spot bottlenecks.  
 - **Reference Viewer** — Transform gizmos and camera presets for clean presentation.
 
-### 🤖 ML & Research
+### ML & Research
 - **Deterministic Scene Generation** — Produce controlled datasets for training/testing.  
 - **Synthetic Data Renders** — Scripted camera sweeps, lighting variations, and outputs.  
 - **Benchmarking** — Measure render performance across hardware/driver versions reproducibly.
