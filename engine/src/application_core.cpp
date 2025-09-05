@@ -164,18 +164,28 @@ void ApplicationCore::shutdown()
     if (m_uiBridge) {
         m_uiBridge->shutdownUI();
     }
-    
+
+    // Ensure GPU resources owned by the scene are released before tearing down GL
+    if (m_scene) {
+        m_scene->clear();
+    }
     if (m_renderer) {
         m_renderer->shutdown();
     }
-    
+
+    // Destroy objects that may delete GL resources in their destructors
+    m_uiBridge.reset();
+    m_renderer.reset();
+    m_lights.reset();
+    m_scene.reset();
+
     cleanupGL();
-    
+
     if (m_window) {
         glfwDestroyWindow(m_window);
         m_window = nullptr;
     }
-    
+
     glfwTerminate();
 }
 
