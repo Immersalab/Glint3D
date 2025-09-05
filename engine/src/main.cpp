@@ -1,4 +1,5 @@
 #include "application_core.h"
+#include "scene_manager.h"
 #include <string>
 #include <vector>
 #include <algorithm>
@@ -172,6 +173,9 @@ int main(int argc, char** argv)
         // - RenderSystem::renderToPNG should render offscreen and write the image.
         // Apply ops if provided
         if (args.has("--ops")) {
+            // Start from a clean scene to avoid duplicate object names
+            app->getSceneManager().clear();
+
             std::string ops = loadTextFile(args.value("--ops"));
             if (ops.empty()) { fprintf(stderr, "Failed to read ops file\n"); return -2; }
             std::string err;
