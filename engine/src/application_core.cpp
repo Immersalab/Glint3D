@@ -519,10 +519,10 @@ void ApplicationCore::createDefaultScene()
     defaultCam.front = glm::vec3(0.0f, 0.0f, -1.0f);
     defaultCam.up = glm::vec3(0.0f, 1.0f, 0.0f);
     m_camera->setCameraState(defaultCam);
-
-    // Load a default object so the viewport isn't empty
+    // Load a default object only when running with the UI so the viewport isn't empty
     // Note: path is relative to runtime working directory containing the assets folder
-    m_scene->loadObject("Cube", "assets/models/cube.obj", glm::vec3(0.0f, 0.0f, -4.0f), glm::vec3(1.0f));
+    if (!m_headless)
+        m_scene->loadObject("Cube", "assets/models/cube.obj", glm::vec3(0.0f, 0.0f, -4.0f), glm::vec3(1.0f));
 }
 
 void ApplicationCore::cleanupGL()
