@@ -3,7 +3,7 @@
 A modern **OpenGL viewer and CPU raytracer** with **AI-powered tools** and cross-platform builds.  
 Runs on desktop (GLFW/GLAD/ImGui) and web (WebGL2 via Emscripten) with a new React/Tailwind UI.  
 
-> **Highâ€‘level pitch:**  
+> **High ‘level pitch:**  
 > **Glint3D** is a fast, lightweight 3D viewer and renderer built for **automation and reproducibility**.  
 > It runs the same on **desktop and in the browser**, so teams can **view, test, embed, and share** 3D scenes anywhere.  
 > Unlike heavy 3D tools, it focuses on **deterministic JSON Ops** and **headless rendering** for CI/CD and bulk rendering.  
