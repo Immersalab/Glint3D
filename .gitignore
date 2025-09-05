@@ -17,6 +17,8 @@ Makefile
 *.dll
 *.lib
 *.obj
+# Allow OBJ model files in assets
+!assets/models/*.obj
 *.pdb
 *.exp
 *.log
