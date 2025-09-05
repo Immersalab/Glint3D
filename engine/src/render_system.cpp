@@ -74,9 +74,11 @@ bool RenderSystem::init(int windowWidth, int windowHeight)
     if (m_axisRenderer) m_axisRenderer->init();
     if (m_skybox) m_skybox->init();
     
-    // Initialize screen quad for raytracing
-    initScreenQuad();
-    initRaytraceTexture();
+    // Initialize raytracing resources only when needed
+    if (m_renderMode == RenderMode::Raytrace) {
+        initScreenQuad();
+        initRaytraceTexture();
+    }
     if (m_gizmo) m_gizmo->init();
 
     // Create a 1x1 depth texture as a dummy shadow map to satisfy shaders
@@ -593,6 +595,11 @@ void RenderSystem::renderRaytraced(const SceneManager& scene, const Light& light
         std::cerr << "[RenderSystem] Screen quad shader not loaded\n";
         return;
     }
+
+    if (!m_screenQuadVAO)
+        initScreenQuad();
+    if (!m_raytraceTexture)
+        initRaytraceTexture();
 
     // Clear existing raytracer data and load all scene objects
     m_raytracer = std::make_unique<Raytracer>();
