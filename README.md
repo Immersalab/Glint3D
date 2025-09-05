@@ -1,13 +1,13 @@
-# Glint3D ✨ — Product Roadmap, Use Cases, and Engineering Plan
+# Glint3D ✨️ Roadmap, Use Cases, and Engineering Plan
 
 A modern **OpenGL viewer and CPU raytracer** with **AI-powered tools** and cross-platform builds.  
 Runs on desktop (GLFW/GLAD/ImGui) and web (WebGL2 via Emscripten) with a new React/Tailwind UI.  
 
-> **High‑level pitch:**  
+> **Highâ€‘level pitch:**  
 > **Glint3D** is a fast, lightweight 3D viewer and renderer built for **automation and reproducibility**.  
 > It runs the same on **desktop and in the browser**, so teams can **view, test, embed, and share** 3D scenes anywhere.  
 > Unlike heavy 3D tools, it focuses on **deterministic JSON Ops** and **headless rendering** for CI/CD and bulk rendering.  
-> **Optional AI** adds friendly diagnostics and natural‑language scene setup without sacrificing determinism.
+> **Optional AI** adds friendly diagnostics and naturalâ€‘language scene setup without sacrificing determinism.
 
 ---
 
@@ -24,7 +24,7 @@ Runs on desktop (GLFW/GLAD/ImGui) and web (WebGL2 via Emscripten) with a new Rea
 10. [Build Notes](#build-notes)  
 11. [Repo Layout](#repo-layout)  
 12. [Samples](#samples)  
-13. [Who It’s For & When It Wins](#who-its-for--when-it-wins)  
+13. [Who Itâ€™s For & When It Wins](#who-its-for--when-it-wins)  
 14. [Why Use This Viewer](#why-use-this-viewer-strengths)  
 15. [Not In Scope](#not-in-scope)  
 16. [Roadmap (Phased)](#roadmap-phased)  
@@ -95,9 +95,9 @@ Example:
 ```
 
 Exports to JS (Emscripten):
-- `app_apply_ops_json(json)` — apply a single op or array  
-- `app_share_link()` — export a shareable state link  
-- `app_scene_to_json()` — get current scene snapshot  
+- `app_apply_ops_json(json)` â€” apply a single op or array  
+- `app_share_link()` â€” export a shareable state link  
+- `app_scene_to_json()` â€” get current scene snapshot  
 
 Docs: `docs/json_ops_v1.md` (schema in `schemas/json_ops_v1.json`).  
 
@@ -105,10 +105,10 @@ Docs: `docs/json_ops_v1.md` (schema in `schemas/json_ops_v1.json`).
 
 ## Highlights
 
-- Natural-language commands via AI → JSON Ops v1 scripting  
-- Raster path with **PBR (Cook–Torrance)** and flat/Gouraud modes  
+- Natural-language commands via AI â†’ JSON Ops v1 scripting  
+- Raster path with **PBR (Cookâ€“Torrance)** and flat/Gouraud modes  
 - CPU raytracer with BVH + optional OpenImageDenoise  
-- **“Why is it black?” diagnostics** with one-click fixes  
+- **â€œWhy is it black?â€ diagnostics** with one-click fixes  
 - **Performance Coach HUD** with actionable suggestions  
 - Shareable scene state (JSON Ops v1) + headless CLI renderer  
 - Native OBJ loader; optional unified loader (glTF/GLB/FBX/DAE/PLY) via Assimp  
@@ -118,20 +118,20 @@ Docs: `docs/json_ops_v1.md` (schema in `schemas/json_ops_v1.json`).
 
 ## New Tools (MVPs)
 
-### 1) Explain-my-render: “Why is it black?”
+### 1) Explain-my-render: â€œWhy is it black?â€
 Detects and offers one-click fixes:
-- Missing normals → Recompute angle-weighted normals  
-- Bad winding (mostly backfacing) → Flip triangle order + invert normals  
-- No lights / tone-mapped black → Add a neutral key light  
-- sRGB mismatch → Toggle framebuffer sRGB  
+- Missing normals â†’ Recompute angle-weighted normals  
+- Bad winding (mostly backfacing) â†’ Flip triangle order + invert normals  
+- No lights / tone-mapped black â†’ Add a neutral key light  
+- sRGB mismatch â†’ Toggle framebuffer sRGB  
 
 ### 2) Perf Coach HUD
 Overlay shows: draw calls, total triangles, materials, textures, VRAM estimate.  
 Suggestions:
-- Meshes share a material → instancing candidate  
-- High draw calls → merge static meshes or instance  
-- High triangle count → consider LOD/decimation  
-- Optional: **“Ask AI for perf tips”** when AI is enabled  
+- Meshes share a material â†’ instancing candidate  
+- High draw calls â†’ merge static meshes or instance  
+- High triangle count â†’ consider LOD/decimation  
+- Optional: **â€œAsk AI for perf tipsâ€** when AI is enabled  
 
 ---
 
@@ -145,11 +145,11 @@ Suggestions:
 
 ## Menubar
 
-- File → Load Cube/Plane, Copy Share Link, Settings  
-- View → Point/Wire/Solid/Raytrace, Fullscreen, Perf HUD  
-- Gizmo → Mode, Axis, Local/Snap  
-- Samples → Prebuilt recipes (`examples/json-ops/`)  
-- Toolbar → Mode, Gizmo, Add Light, Denoise, Why is it black?  
+- File â†’ Load Cube/Plane, Copy Share Link, Settings  
+- View â†’ Point/Wire/Solid/Raytrace, Fullscreen, Perf HUD  
+- Gizmo â†’ Mode, Axis, Local/Snap  
+- Samples â†’ Prebuilt recipes (`examples/json-ops/`)  
+- Toolbar â†’ Mode, Gizmo, Add Light, Denoise, Why is it black?  
 
 ---
 
@@ -169,7 +169,7 @@ Options:
 
 ## Troubleshooting
 
-- **Black frame (raster)**: use “Why is it black?” panel, add lights, check normals, flip winding if needed.  
+- **Black frame (raster)**: use â€œWhy is it black?â€ panel, add lights, check normals, flip winding if needed.  
 - **Dark/washed PBR**: avoid double-gamma (disable FB sRGB if needed).  
 - **Headless asset paths**: run from repo root or use absolute paths.  
 
@@ -186,13 +186,13 @@ Options:
 
 ## Repo Layout
 
-- `engine/src/` — rendering, UI, loaders, raytracer  
-- `engine/include/` — headers  
-- `engine/shaders/` — GLSL  
-- `engine/assets/�sample models and textures   
-- `builds/` — organized build outputs (desktop/web/vs)
-- `examples/json-ops/` — sample JSON Operations files
-- `docs/` — JSON Ops documentation  
+- `engine/src/` â€” rendering, UI, loaders, raytracer  
+- `engine/include/` â€” headers  
+- `engine/shaders/` â€” GLSL  
+- `engine/assets/—sample models and textures   
+- `builds/` â€” organized build outputs (desktop/web/vs)
+- `examples/json-ops/` â€” sample JSON Operations files
+- `docs/` â€” JSON Ops documentation  
 
 ---
 
@@ -206,9 +206,9 @@ Use the Samples menu or load recipes manually:
 
 ---
 
-## Who It’s For & When It Wins
+## Who Itâ€™s For & When It Wins
 
-### Who It’s For
+### Who Itâ€™s For
 - **Engineering/product teams** needing repeatable viewport renders in CI/CD (game studios, CAD/PLM, digital twins).  
 - **Developers & technical artists** embedding a viewer in docs, portals, or internal tools.  
 - **ML/vision pipelines** requiring deterministic outputs.  
@@ -235,33 +235,33 @@ Use the Samples menu or load recipes manually:
 
 ## Not In Scope
 - Not a modeling/animation suite  
-- Not a full DCC replacement — complements your pipeline  
+- Not a full DCC replacement â€” complements your pipeline  
 
 ---
 
 ## Roadmap (Phased)
 
-### Phase 1 – Core Foundations  
+### Phase 1 â€“ Core Foundations  
 - Engine core (OpenGL/WebGL2, raster renderer)  
 - CPU raytracer (BVH + optional denoise)  
 - JSON Ops v1 (deterministic load, transform, lights, camera, render)  
 - Headless CLI rendering  
 
-### Phase 2 – Usability  
+### Phase 2 â€“ Usability  
 - Desktop ImGui UI, gizmos, perf HUD  
 - Web React/Tailwind wrapper, drag & drop, JSON console  
 - Importer registry (OBJ baseline, Assimp optional)  
 - Texture cache + optional KTX2/Basis  
 
-### Phase 3 – Collaboration  
+### Phase 3 â€“ Collaboration  
 - Web SDK for embedding (`viewer.js`)  
 - Shareable links + deep state reproduction  
 - Golden-test CI/CD mode  
 - Pipeline hooks (GitHub/GitLab templates)  
 
-### Phase 4 – AI Augmentation (Optional)  
-- Diagnostics assistant (“Why is it black?”)  
-- Natural-language → JSON Ops bridge  
+### Phase 4 â€“ AI Augmentation (Optional)  
+- Diagnostics assistant (â€œWhy is it black?â€)  
+- Natural-language â†’ JSON Ops bridge  
 - Perf Coach with AI recommendations  
 
 ---
@@ -281,7 +281,7 @@ Use the Samples menu or load recipes manually:
 
 ---
 
-## Refactor TODOs (Code‑level)
+## Refactor TODOs (Codeâ€‘level)
 (See detailed engineering plan.)
 
 ---
@@ -330,4 +330,4 @@ Use the Samples menu or load recipes manually:
   {"op":"render","out":"out/hero.png","width":1280,"height":720}
 ]
 ```
--  `schemas/` � JSON schemas (e.g., json_ops_v1.json)   
+-  `schemas/` — JSON schemas (e.g., json_ops_v1.json)   
