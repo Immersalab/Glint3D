@@ -1,7 +1,7 @@
 # GLINT3D QA ASSESSMENT REPORT
 
-Last Updated: 2025-09-04
-Assessment Date: 2025-09-04
+Last Updated: 2025-09-05
+Assessment Date: 2025-09-05
 Version: 0.3.0
 Schema/Engine: Schema json_ops_v1.3 | Engine 0.3.0
 
@@ -29,7 +29,7 @@ Render Modes - COMPLETE
 - Status: Points, Wireframe, Solid, CPU Raytrace are implemented and switchable.
 
 Camera - PARTIAL
-- Status: Free-fly with speed/sensitivity controls is implemented. Orbit and preset views are not implemented.
+- Status: Free-fly implemented. Presets implemented (front/back/left/right/top/bottom/iso FL/iso BR) with correct orientation and framing. Orbit pending.
 
 Lighting - PARTIAL
 - Status: Point lights supported with indicators. Directional/Spot and IBL are not implemented.
@@ -48,7 +48,7 @@ Determinism - NOT STARTED
 ## DETAILED STATUS AND PLANS
 
 1. Camera Presets - HIGH PRIORITY
-- Status: Not implemented
+- Status: Done
 - Estimated Effort: 2-3 hours
 
 Requirements (proposal):
@@ -61,11 +61,11 @@ void setCameraPreset(CameraPreset preset, const glm::vec3& target = glm::vec3(0)
 ```
 
 Plan
-- Add preset enum and API to camera_controller.h/.cpp
-- Compute preset pos/rot around a target with consistent FOV
-- UI buttons + hotkeys (1-8) and JSON op set_camera_preset
+- Add preset enum and API to camera_controller.h/.cpp (DONE)
+- Compute preset pos/rot around a target with consistent FOV (DONE)
+- UI buttons + hotkeys (1-8) and JSON op set_camera_preset (JSON op DONE; UI buttons pending)
 
-Preset Definitions (for testing; target=[0,0,0], up=[0,1,0], radius=R from tight bounds; default FOV=35 deg, margin=10% configurable)
+Preset Definitions (implemented; target=[0,0,0], up=[0,1,0]; distance chosen to frame bounding sphere using vertical FOV; defaults FOV=45°, margin=25% configurable via shared defaults)
 - Front:  pos = [ 0, 0, +R]
 - Back:   pos = [ 0, 0, -R]
 - Left:   pos = [-R, 0,  0]
@@ -138,6 +138,13 @@ Plan
 
 ## IMPLEMENTATION HISTORY
 
+2025-09-05 - Camera Presets + Tests
+- Implemented: Camera presets in engine with correct orientation and distance framing using vertical FOV and margin
+- Implemented: Shared defaults header for preset FOV/margin used by UI, CLI, and tests
+- Implemented: JSON op set_camera_preset (front/back/left/right/top/bottom/iso_fl/iso_br)
+- Added: Unit tests for determinism and orientation (tests/camera_preset_test.cpp)
+- Fixed: Pitch sign when deriving angles from front/target vectors
+
 2025-01-04 - Modern UI and Skybox Implementation
 - Added: Modern blue accent colors for UI theme
 - Added: Procedural gradient skybox system
@@ -164,14 +171,14 @@ Method: Priority-weighted (High=3, Medium=2, Low=1)
 |----------|----------|---------|---------|--------|
 | PBR Pipeline | Yes | - | - | 100% |
 | Render Modes | Yes | - | - | 100% |
-| Camera System | Free-fly | Orbit | Presets | 70% |
+| Camera System | Free-fly, Presets | Orbit | - | 80% |
 | Lighting | Point | - | Directional/Spot/IBL | 40% |
 | Background (solid/gradient) | Yes | - | - | 100% |
 | HDR/IBL | - | - | All | 0% |
 | Offscreen | PNG | - | MSAA Resolve | 70% |
 | Deterministic | - | - | Seed/Tone/Exposure | 0% |
 
-Overall Completion: ~57%
+Overall Completion: ~59%
 
 ---
 
@@ -197,8 +204,8 @@ Core Requirements
 Implementation Status
 - Status: Partial
 - Location: engine/src/json_ops.cpp
-- Implemented: load, set_camera, transform, remove (currently implemented as delete in code), render_image
-- Missing: add_light, duplicate, remove (formalize alias), set_camera_preset, orbit_camera, frame_object, select, set_background, exposure, tone_map
+- Implemented: load, set_camera, set_camera_preset, transform, remove (currently implemented as delete in code), render_image
+- Missing: add_light, duplicate, remove (formalize alias), orbit_camera, frame_object, select, set_background, exposure, tone_map
 - Implementation Priority: HIGH (6-8 hours)
 
 One-Line Semantics (for QA)
@@ -258,7 +265,7 @@ Implementation Status
 High Priority
 1. JSON Ops v1 completion (add_light, frame/select, background/exposure/tone_map, presets/orbit)
 2. Directional lights (minimal viable directional; defer spot until after presets)
-3. Camera presets system (UI + JSON ops parity)
+3. Camera presets system (backend DONE; UI buttons/hotkeys pending)
 4. Scene tree and selection panel (foundational UX)
 
 Medium Priority
@@ -278,7 +285,7 @@ Low Priority
 
 - Core Rendering: render_system manages raster vs raytrace modes, camera matrices, debug elements, gizmo, and selection highlight.
 - Scene: scene_manager stores objects and selection; material.h, pbr_material.h define material properties.
-- Camera: camera_controller provides free-fly and look-at controls; presets to be added.
+- Camera: camera_controller provides free-fly and look-at controls; presets implemented.
 - Lighting: light manages point lights and draws indicators; directional/spot planned.
 - Skybox: skybox handles procedural gradient skybox; HDR/IBL planned.
 - UI: imgui_ui_layer renders menus, settings, perf HUD, and uses UIBridge to emit commands.
@@ -404,4 +411,3 @@ CI Integration (proposed)
 - Visual test flakiness: use tolerance windows and seed control; keep reference scenes minimal and deterministic.
 - Asset path variability: introduce --asset-root and normalize relative paths in examples; document required assets.
 - Performance regressions: track HUD metrics across builds; consider simple timing logs in headless mode.
-

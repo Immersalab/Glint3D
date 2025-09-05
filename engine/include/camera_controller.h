@@ -1,6 +1,21 @@
 #pragma once
 #include <glm/glm.hpp>
 #include "render_system.h"
+#include "config_defaults.h"
+
+// Forward declarations
+class SceneManager;
+
+enum class CameraPreset {
+    Front = 0,  // Hotkey 1
+    Back,       // Hotkey 2  
+    Left,       // Hotkey 3
+    Right,      // Hotkey 4
+    Top,        // Hotkey 5
+    Bottom,     // Hotkey 6
+    IsoFL,      // Isometric Front-Left, Hotkey 7
+    IsoBR       // Isometric Back-Right, Hotkey 8
+};
 
 class CameraController 
 {
@@ -38,6 +53,16 @@ public:
     void setCameraState(const CameraState& state) { m_camera = state; }
     const CameraState& getCameraState() const { return m_camera; }
     CameraState& getCameraState() { return m_camera; }
+    
+    // Camera presets
+    void setCameraPreset(CameraPreset preset, const SceneManager& scene, 
+                        const glm::vec3& customTarget = glm::vec3(0.0f),
+                        float fov = Defaults::CameraPresetFovDeg,
+                        float margin = Defaults::CameraPresetMargin);
+    
+    // Static utility functions
+    static const char* presetName(CameraPreset preset);
+    static CameraPreset presetFromHotkey(int key); // 1-8 keys
 
 private:
     CameraState m_camera;

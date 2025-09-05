@@ -450,6 +450,23 @@ void ApplicationCore::handleFramebufferResize(int width, int height)
 
 void ApplicationCore::handleKey(int key, int scancode, int action, int mods)
 {
+    // Camera preset hotkeys (1-8 keys)
+    if (action == GLFW_PRESS && mods == 0) {
+        int presetKey = -1;
+        if (key >= GLFW_KEY_1 && key <= GLFW_KEY_8) {
+            presetKey = key - GLFW_KEY_1 + 1; // Convert to 1-8 range
+        }
+        
+        if (presetKey >= 1 && presetKey <= 8) {
+            CameraPreset preset = CameraController::presetFromHotkey(presetKey);
+            m_camera->setCameraPreset(preset, *m_scene);
+            
+            std::string presetName = CameraController::presetName(preset);
+            std::string message = "Camera preset: " + presetName;
+            if (m_uiBridge) m_uiBridge->addConsoleMessage(message);
+        }
+    }
+    
     // Quick gizmo mode switching while holding Shift
     if ((mods & GLFW_MOD_SHIFT) && action == GLFW_PRESS) {
         if (key == GLFW_KEY_Q) { m_gizmoMode = GizmoMode::Translate; m_renderer->setGizmoMode(m_gizmoMode); }

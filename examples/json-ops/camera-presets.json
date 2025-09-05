@@ -1,0 +1,23 @@
+{
+  "ops": [
+    {
+      "op": "load",
+      "name": "cube",
+      "path": "assets/models/cube.obj",
+      "position": [0, 0, 0],
+      "scale": [2, 2, 2]
+    },
+    {
+      "op": "add_light",
+      "position": [5, 5, 5],
+      "color": [1, 1, 1],
+      "intensity": 1.5
+    },
+    {
+      "op": "set_camera_preset",
+      "preset": "front",
+      "fov": 35,
+      "margin": 0.15
+    }
+  ]
+}

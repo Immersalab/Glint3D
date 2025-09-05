@@ -4,6 +4,7 @@
 #include "camera_controller.h"
 #include "light.h"
 #include "json_ops.h"
+#include "config_defaults.h"
 #include "render_utils.h"
 #include <iostream>
 #include <sstream>
@@ -209,6 +210,20 @@ void UIBridge::handleUICommand(const UICommandData& command)
                 defaultCam.up = glm::vec3(0.0f, 1.0f, 0.0f);
                 m_camera.setCameraState(defaultCam);
                 addConsoleMessage("Camera centered");
+            }
+            break;
+            
+        case UICommand::SetCameraPreset:
+            {
+                CameraPreset preset = static_cast<CameraPreset>(command.intParam);
+                glm::vec3 customTarget = command.vec3Param;
+                float fov = (command.floatParam > 0.0f) ? command.floatParam : Defaults::CameraPresetFovDeg;
+                float margin = Defaults::CameraPresetMargin; // unified default
+                
+                m_camera.setCameraPreset(preset, m_scene, customTarget, fov, margin);
+                
+                std::string presetName = CameraController::presetName(preset);
+                addConsoleMessage("Camera set to " + presetName + " preset");
             }
             break;
         case UICommand::ResetScene:

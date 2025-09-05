@@ -3,6 +3,7 @@
 #include "scene_manager.h"
 #include "render_system.h"
 #include "camera_controller.h"
+#include "config_defaults.h"
 #include "light.h"
 
 #include <glm/glm.hpp>
@@ -10,6 +11,8 @@
 
 #include <rapidjson/document.h>
 #include <rapidjson/error/en.h>
+#include <algorithm>
+#include <cctype>
 
 namespace {
     static bool getVec3(const rapidjson::Value& v, glm::vec3& out) {
@@ -109,6 +112,78 @@ bool JsonOpsExecutor::apply(const std::string& json, std::string& error)
             if (obj.HasMember("far"))  { if (!obj["far"].IsNumber())  { error = "set_camera: bad 'far'";  return false; } fz = (float)obj["far"].GetDouble(); }
             m_camera.setLens(fov, nz, fz);
 
+            // Sync renderer now
+            m_renderer.setCamera(m_camera.getCameraState());
+            m_renderer.updateViewMatrix();
+            return true;
+        }
+        else if (op == "set_camera_preset") {
+            // expected fields: preset (string), optional target (vec3), optional fov (number), optional margin (number)
+            if (!obj.HasMember("preset") || !obj["preset"].IsString()) { error = "set_camera_preset: missing 'preset'"; return false; }
+            std::string presetStr = obj["preset"].GetString();
+            std::string lower;
+            lower.resize(presetStr.size());
+            std::transform(presetStr.begin(), presetStr.end(), lower.begin(), [](unsigned char c){ return (char)std::tolower(c); });
+
+            CameraPreset preset = CameraPreset::Front;
+            if (lower == "front") preset = CameraPreset::Front;
+            else if (lower == "back") preset = CameraPreset::Back;
+            else if (lower == "left") preset = CameraPreset::Left;
+            else if (lower == "right") preset = CameraPreset::Right;
+            else if (lower == "top") preset = CameraPreset::Top;
+            else if (lower == "bottom") preset = CameraPreset::Bottom;
+            else if (lower == "iso_fl" || lower == "isofl" || lower == "iso-front-left") preset = CameraPreset::IsoFL;
+            else if (lower == "iso_br" || lower == "isobr" || lower == "iso-back-right") preset = CameraPreset::IsoBR;
+            else { error = "set_camera_preset: unknown preset '" + presetStr + "'"; return false; }
+
+            glm::vec3 target(0.0f);
+            if (obj.HasMember("target") && obj["target"].IsArray()) {
+                if (!getVec3(obj["target"], target)) { error = "set_camera_preset: bad 'target'"; return false; }
+            }
+
+            float fov = Defaults::CameraPresetFovDeg;
+            if (obj.HasMember("fov") && obj["fov"].IsNumber()) fov = (float)obj["fov"].GetDouble();
+            float margin = Defaults::CameraPresetMargin;
+            if (obj.HasMember("margin") && obj["margin"].IsNumber()) margin = (float)obj["margin"].GetDouble();
+
+            m_camera.setCameraPreset(preset, m_scene, target, fov, margin);
+            return true;
+        }
+        else if (op == "set_camera_preset") {
+            if (!obj.HasMember("preset") || !obj["preset"].IsString()) { error = "set_camera_preset: missing 'preset'"; return false; }
+            std::string presetStr = obj["preset"].GetString();
+            
+            // Parse preset name to enum
+            CameraPreset preset;
+            if (presetStr == "front") preset = CameraPreset::Front;
+            else if (presetStr == "back") preset = CameraPreset::Back;
+            else if (presetStr == "left") preset = CameraPreset::Left;
+            else if (presetStr == "right") preset = CameraPreset::Right;
+            else if (presetStr == "top") preset = CameraPreset::Top;
+            else if (presetStr == "bottom") preset = CameraPreset::Bottom;
+            else if (presetStr == "iso_fl" || presetStr == "iso-fl") preset = CameraPreset::IsoFL;
+            else if (presetStr == "iso_br" || presetStr == "iso-br") preset = CameraPreset::IsoBR;
+            else { error = "set_camera_preset: unknown preset '" + presetStr + "'"; return false; }
+            
+            // Optional parameters
+            glm::vec3 target(0.0f);
+            float fov = 45.0f;
+            float margin = 0.25f;
+            
+            if (obj.HasMember("target") && obj["target"].IsArray()) { 
+                if (!getVec3(obj["target"], target)) { error = "set_camera_preset: bad 'target'"; return false; } 
+            }
+            if (obj.HasMember("fov") && obj["fov"].IsNumber()) {
+                fov = (float)obj["fov"].GetDouble();
+                if (fov <= 0.0f || fov >= 180.0f) { error = "set_camera_preset: fov must be between 0 and 180 degrees"; return false; }
+            }
+            if (obj.HasMember("margin") && obj["margin"].IsNumber()) {
+                margin = (float)obj["margin"].GetDouble();
+                if (margin < 0.0f) { error = "set_camera_preset: margin must be >= 0"; return false; }
+            }
+            
+            m_camera.setCameraPreset(preset, m_scene, target, fov, margin);
+            
             // Sync renderer now
             m_renderer.setCamera(m_camera.getCameraState());
             m_renderer.updateViewMatrix();
@@ -256,4 +331,3 @@ bool JsonOpsExecutor::apply(const std::string& json, std::string& error)
     error = "root must be array or object";
     return false;
 }
-

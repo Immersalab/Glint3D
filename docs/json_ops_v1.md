@@ -101,7 +101,23 @@ Operations
    - Example:
      {"op":"set_camera","position":[0,1,5],"target":[0,1,0],"fov_deg":45,"near":0.1,"far":100}
 
-7) render
+7) set_camera_preset
+   - Purpose: Set camera to a standard view angle relative to the scene bounding sphere.
+   - Fields:
+     - `op`: "set_camera_preset"
+     - `preset`: "front" | "back" | "left" | "right" | "top" | "bottom" | "iso_fl" | "iso_br"
+     - `target`: vec3 (optional, default: scene bounding center)
+     - `fov`: number (optional, default: 45 degrees)
+     - `margin`: number (optional, default: 0.25 = 25% margin around bounding sphere)
+   - Notes:
+     - Camera position calculated from scene bounding sphere + margin
+     - iso_fl = Isometric Front-Left, iso_br = Isometric Back-Right
+     - Independent of prior camera state for deterministic results
+   - Examples:
+     {"op":"set_camera_preset","preset":"front","fov":45,"margin":0.3}
+     {"op":"set_camera_preset","preset":"iso_fl","target":[0,1,0],"fov":50,"margin":0.25}
+
+8) render
    - Purpose: Present or produce an image output.
    - Fields:
      - `op`: "render"

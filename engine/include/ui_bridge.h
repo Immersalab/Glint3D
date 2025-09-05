@@ -4,11 +4,11 @@
 #include <functional>
 #include "gizmo.h"
 #include "render_system.h"
+#include "camera_controller.h"
 
 // Forward declarations
 class SceneManager;
 class RenderSystem; 
-class CameraController;
 class Light;
 
 // Include needed for unique_ptr
@@ -93,6 +93,7 @@ enum class UICommand {
     
     // Scene operations
     CenterCamera,
+    SetCameraPreset,
     ResetScene,
     
     // Application control

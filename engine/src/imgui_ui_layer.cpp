@@ -439,6 +439,78 @@ void ImGuiUILayer::renderSettingsPanel(const UIState& state)
             ImGui::Spacing();
         }
         
+        // Camera Presets Section
+        if (ImGui::CollapsingHeader("Camera Presets", ImGuiTreeNodeFlags_DefaultOpen)) {
+            ImGui::Spacing();
+            ImGui::Text("Quick camera angles (Hotkeys 1-8):");
+            ImGui::Spacing();
+            
+            // Create a 4x2 grid of preset buttons
+            const float buttonWidth = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
+            
+            // Row 1: Front, Back
+            if (ImGui::Button("1-Front", ImVec2(buttonWidth, 0))) {
+                UICommandData cmd;
+                cmd.command = UICommand::SetCameraPreset;
+                cmd.intParam = static_cast<int>(CameraPreset::Front);
+                if (onCommand) onCommand(cmd);
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("2-Back", ImVec2(buttonWidth, 0))) {
+                UICommandData cmd;
+                cmd.command = UICommand::SetCameraPreset;
+                cmd.intParam = static_cast<int>(CameraPreset::Back);
+                if (onCommand) onCommand(cmd);
+            }
+            
+            // Row 2: Left, Right
+            if (ImGui::Button("3-Left", ImVec2(buttonWidth, 0))) {
+                UICommandData cmd;
+                cmd.command = UICommand::SetCameraPreset;
+                cmd.intParam = static_cast<int>(CameraPreset::Left);
+                if (onCommand) onCommand(cmd);
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("4-Right", ImVec2(buttonWidth, 0))) {
+                UICommandData cmd;
+                cmd.command = UICommand::SetCameraPreset;
+                cmd.intParam = static_cast<int>(CameraPreset::Right);
+                if (onCommand) onCommand(cmd);
+            }
+            
+            // Row 3: Top, Bottom
+            if (ImGui::Button("5-Top", ImVec2(buttonWidth, 0))) {
+                UICommandData cmd;
+                cmd.command = UICommand::SetCameraPreset;
+                cmd.intParam = static_cast<int>(CameraPreset::Top);
+                if (onCommand) onCommand(cmd);
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("6-Bottom", ImVec2(buttonWidth, 0))) {
+                UICommandData cmd;
+                cmd.command = UICommand::SetCameraPreset;
+                cmd.intParam = static_cast<int>(CameraPreset::Bottom);
+                if (onCommand) onCommand(cmd);
+            }
+            
+            // Row 4: Isometric views
+            if (ImGui::Button("7-Iso FL", ImVec2(buttonWidth, 0))) {
+                UICommandData cmd;
+                cmd.command = UICommand::SetCameraPreset;
+                cmd.intParam = static_cast<int>(CameraPreset::IsoFL);
+                if (onCommand) onCommand(cmd);
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("8-Iso BR", ImVec2(buttonWidth, 0))) {
+                UICommandData cmd;
+                cmd.command = UICommand::SetCameraPreset;
+                cmd.intParam = static_cast<int>(CameraPreset::IsoBR);
+                if (onCommand) onCommand(cmd);
+            }
+            
+            ImGui::Spacing();
+        }
+        
         // Scene Information Section
         if (ImGui::CollapsingHeader("Scene Information", ImGuiTreeNodeFlags_DefaultOpen)) {
             ImGui::Spacing();
