@@ -57,10 +57,10 @@ jobs:
           EXE="builds/desktop/cmake/glint"
           test -f "$EXE" || { echo "glint not found"; ls -R builds/desktop/cmake; exit 1; }
           xvfb-run -a "$EXE" --ops examples/json-ops/cube_basic.json --render out.png --w 128 --h 128
-          test -f out.png
+          test -f renders/out.png
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: headless-out-linux
-          path: out.png
+          path: renders/out.png
