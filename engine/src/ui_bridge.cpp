@@ -4,6 +4,7 @@
 #include "camera_controller.h"
 #include "light.h"
 #include "json_ops.h"
+#include "render_utils.h"
 #include <iostream>
 #include <sstream>
 #include <rapidjson/document.h>
@@ -316,8 +317,8 @@ void UIBridge::handleConsoleCommand(const UICommandData& cmd)
         addConsoleMessage("  help             - Show this help");
         addConsoleMessage("  clear            - Clear the console");
         addConsoleMessage("  load <path>      - Load a model (e.g., assets/models/cube.obj)");
-        addConsoleMessage("  render <out.png> [W H] - Render PNG to path, optional size");
-        addConsoleMessage("  save_png <out.png> [W H] - Alias for render");
+        addConsoleMessage("  render [<out.png>] [W H] - Render PNG to path, optional size (defaults to renders/ folder)");
+        addConsoleMessage("  save_png [<out.png>] [W H] - Alias for render");
         addConsoleMessage("  list             - List scene objects with indices");
         addConsoleMessage("  select <name|index> - Select an object by name or index");
         addConsoleMessage("Tips: Use Up/Down arrows to navigate command history.");
@@ -325,23 +326,30 @@ void UIBridge::handleConsoleCommand(const UICommandData& cmd)
     else if (command == "clear") {
         clearConsoleLog();
     }
-    else if (command.rfind("render ", 0) == 0) {
-        // Syntax: render <out.png> [W H]
-        std::istringstream ss(command.substr(7));
+    else if (command.rfind("render ", 0) == 0 || command == "render") {
+        // Syntax: render [<out.png>] [W H]
+        std::string args = (command == "render") ? "" : command.substr(7);
+        std::istringstream ss(args);
         std::string out; int w = 1024; int h = 1024;
         ss >> out;
-        if (!out.empty()) {
-            if (!(ss >> w)) w = 1024;
-            if (!(ss >> h)) h = 1024;
-            UICommandData r;
-            r.command = UICommand::RenderToPNG;
-            r.stringParam = out;
-            r.intParam = w;
-            r.floatParam = (float)h;
-            handleUICommand(r);
+        
+        // If no output filename provided, use default
+        if (out.empty()) {
+            out = RenderUtils::getDefaultOutputPath();
         } else {
-            addConsoleMessage("Usage: render <out.png> [W H]");
+            // Process the provided path
+            out = RenderUtils::processOutputPath(out);
         }
+        
+        if (!(ss >> w)) w = 1024;
+        if (!(ss >> h)) h = 1024;
+        
+        UICommandData r;
+        r.command = UICommand::RenderToPNG;
+        r.stringParam = out;
+        r.intParam = w;
+        r.floatParam = (float)h;
+        handleUICommand(r);
     }
     else if (command.substr(0, 5) == "load ") {
         std::string path = command.substr(5);
@@ -351,23 +359,30 @@ void UIBridge::handleConsoleCommand(const UICommandData& cmd)
         loadCmd.vec3Param = glm::vec3(0.0f, 0.0f, -2.0f);
         handleLoadObject(loadCmd);
     }
-    else if (command.rfind("save_png ", 0) == 0) {
-        // Alias to render
-        std::istringstream ss(command.substr(9));
+    else if (command.rfind("save_png ", 0) == 0 || command == "save_png") {
+        // Alias to render - Syntax: save_png [<out.png>] [W H]
+        std::string args = (command == "save_png") ? "" : command.substr(9);
+        std::istringstream ss(args);
         std::string out; int w = 1024; int h = 1024;
         ss >> out;
-        if (!out.empty()) {
-            if (!(ss >> w)) w = 1024;
-            if (!(ss >> h)) h = 1024;
-            UICommandData r;
-            r.command = UICommand::RenderToPNG;
-            r.stringParam = out;
-            r.intParam = w;
-            r.floatParam = (float)h;
-            handleUICommand(r);
+        
+        // If no output filename provided, use default
+        if (out.empty()) {
+            out = RenderUtils::getDefaultOutputPath();
         } else {
-            addConsoleMessage("Usage: save_png <out.png> [W H]");
+            // Process the provided path
+            out = RenderUtils::processOutputPath(out);
         }
+        
+        if (!(ss >> w)) w = 1024;
+        if (!(ss >> h)) h = 1024;
+        
+        UICommandData r;
+        r.command = UICommand::RenderToPNG;
+        r.stringParam = out;
+        r.intParam = w;
+        r.floatParam = (float)h;
+        handleUICommand(r);
     }
     else if (command == "list") {
         const auto& objs = m_scene.getObjects();

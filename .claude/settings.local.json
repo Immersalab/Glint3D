@@ -258,7 +258,13 @@
       "Bash(builds/desktop/cmake/Release/glint.exe:*)",
       "Bash(npm run build:*)",
       "Bash(npm run dev:*)",
-      "Bash(builds/desktop/cmake/Debug/glint.exe)"
+      "Bash(builds/desktop/cmake/Debug/glint.exe)",
+      "Bash(mkdir:*)",
+      "Bash(dir:*)",
+      "Bash(../builds/desktop/cmake/Release/glint.exe --ops ../examples/json-ops/three-point-lighting.json --render test_from_engine.png --w 200 --h 200)",
+      "Bash(../builds/desktop/cmake/Release/glint.exe --ops ../examples/json-ops/three-point-lighting.json --render test_from_engine_fixed.png --w 200 --h 200)",
+      "Bash(desktop/cmake/Release/glint.exe:*)",
+      "Bash(../builds/desktop/cmake/Release/glint.exe --ops ../examples/json-ops/three-point-lighting.json --render --w 200 --h 200)"
     ],
     "deny": [],
     "ask": []

@@ -1,10 +1,13 @@
 #include "application_core.h"
+#include "render_utils.h"
 #include <string>
 #include <vector>
 #include <algorithm>
 #include <fstream>
 #include <sstream>
 #include <cstdio>
+#include <filesystem>
+#include <chrono>
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
@@ -55,7 +58,14 @@ namespace {
         Args(int argc, char** argv){ for(int i=0;i<argc;++i) a.emplace_back(argv[i]); }
         bool has(const std::string& k) const { return std::find(a.begin(), a.end(), k) != a.end(); }
         std::string value(const std::string& k, const std::string& def="") const {
-            for (size_t i=0;i+1<a.size();++i) if (a[i]==k) return a[i+1]; return def;
+            for (size_t i=0;i<a.size();++i) {
+                if (a[i]==k) {
+                    // If this is the last argument or next argument is a flag, return default
+                    if (i+1 >= a.size() || a[i+1].rfind("--", 0) == 0) return def;
+                    return a[i+1];
+                }
+            }
+            return def;
         }
         int intOr(const std::string& k, int def) const {
             std::string v = value(k, ""); if (v.empty()) return def; try { return std::stoi(v); } catch(...) { return def; }
@@ -72,12 +82,12 @@ static void print_help()
     printf("Usage:\n");
     printf("  glint                          # Launch UI\n");
     printf("  glint --ops <file>             # Apply JSON ops headlessly\n");
-    printf("  glint --ops <file> --render <out.png> [--w W --h H] [--denoise] [--raytrace]\n");
+    printf("  glint --ops <file> --render [<out.png>] [--w W --h H] [--denoise] [--raytrace]\n");
     printf("\nOptions:\n");
     printf("  --help            Show this help\n");
     printf("  --version         Print version\n");
     printf("  --ops <file>      JSON ops file to apply (v1)\n");
-    printf("  --render <png>    Output PNG path for headless render\n");
+    printf("  --render [<png>]  Output PNG path for headless render (defaults to renders/ folder)\n");
     printf("  --w <int>         Output image width (default 1024)\n");
     printf("  --h <int>         Output image height (default 1024)\n");
     printf("  --denoise         Enable denoiser if available\n");
@@ -181,6 +191,8 @@ int main(int argc, char** argv)
         // Render
         if (args.has("--render")) {
             std::string out = args.value("--render");
+            // Process the output path using RenderUtils
+            out = RenderUtils::processOutputPath(out);
             if (!app->renderToPNG(out, W, H)) { fprintf(stderr, "Render failed\n"); return -4; }
         }
         delete app;

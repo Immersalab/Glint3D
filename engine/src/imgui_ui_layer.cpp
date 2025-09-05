@@ -1,6 +1,7 @@
 #include "imgui_ui_layer.h"
 #include "ui_bridge.h"
 #include "gl_platform.h"
+#include "render_utils.h"
 #include <GLFW/glfw3.h>
 #include <vector>
 #include <string>
@@ -393,17 +394,43 @@ void ImGuiUILayer::renderSettingsPanel(const UIState& state)
             
             // Output path setting
             ImGui::Text("Output Path for Renders");
-            static char outputPathBuffer[256] = "output.png";
+            static char outputPathBuffer[256] = "";
+            static bool bufferInitialized = false;
+            
+            // Initialize with default path on first use
+            if (!bufferInitialized) {
+                std::string defaultPath = RenderUtils::getDefaultOutputPath();
+                #ifdef _WIN32
+                strncpy_s(outputPathBuffer, sizeof(outputPathBuffer), defaultPath.c_str(), _TRUNCATE);
+                #else
+                strncpy(outputPathBuffer, defaultPath.c_str(), sizeof(outputPathBuffer) - 1);
+                outputPathBuffer[sizeof(outputPathBuffer) - 1] = '\0';
+                #endif
+                bufferInitialized = true;
+            }
+            
             ImGui::SetNextItemWidth(-1);
             if (ImGui::InputText("##output_path", outputPathBuffer, sizeof(outputPathBuffer))) {
                 // Store the path for later use
+            }
+            
+            ImGui::SameLine();
+            if (ImGui::SmallButton("Default")) {
+                std::string defaultPath = RenderUtils::getDefaultOutputPath();
+                #ifdef _WIN32
+                strncpy_s(outputPathBuffer, sizeof(outputPathBuffer), defaultPath.c_str(), _TRUNCATE);
+                #else
+                strncpy(outputPathBuffer, defaultPath.c_str(), sizeof(outputPathBuffer) - 1);
+                outputPathBuffer[sizeof(outputPathBuffer) - 1] = '\0';
+                #endif
             }
             
             // Render button
             if (ImGui::Button("Render Image", ImVec2(-1, 0))) {
                 UICommandData cmd;
                 cmd.command = UICommand::RenderToPNG;
-                cmd.stringParam = std::string(outputPathBuffer);
+                // Process the output path to ensure it uses default directory if needed
+                cmd.stringParam = RenderUtils::processOutputPath(std::string(outputPathBuffer));
                 cmd.intParam = 800;  // width
                 cmd.floatParam = 600.0f;  // height
                 if (onCommand) onCommand(cmd);
