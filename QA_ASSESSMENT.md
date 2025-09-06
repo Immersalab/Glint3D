@@ -138,6 +138,11 @@ Plan
 
 ## IMPLEMENTATION HISTORY
 
+2025-09-06 - Selection-Aware Camera Framing
+- Added: Camera presets now frame the currently selected object (if any); otherwise frame entire scene.
+- Added: Precise world-space AABB for selected object (transform 8 corners) to compute center and bounding-sphere radius.
+- Kept: Margin-based distance solve with vertical FOV; consistent results via UI (toolbar presets) and JSON Ops (select + set_camera_preset / frame_object).
+
 2025-09-06 - Scene Hierarchy Panel + MRU
 - Added: Scene Hierarchy panel listing objects and lights with selection, rename, delete, duplicate
 - Added: Lights shown with type tags [P]=Point, [D]=Directional, [S]=Spot, selectable and deletable via context menu

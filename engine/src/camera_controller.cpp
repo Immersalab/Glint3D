@@ -119,71 +119,79 @@ void CameraController::updateVectors()
 void CameraController::setCameraPreset(CameraPreset preset, const SceneManager& scene,
                                       const glm::vec3& customTarget, float fov, float margin)
 {
-    // Calculate scene bounding sphere
+    // Determine target center and radius. If an object is selected, frame it; otherwise frame whole scene.
     glm::vec3 center(0.0f);
-    float radius = 5.0f; // Default fallback radius
-    
-    // Calculate bounding box of all scene objects
+    float radius = 5.0f; // Fallback radius
+
     const auto& objects = scene.getObjects();
     if (!objects.empty()) {
-        glm::vec3 minBounds(std::numeric_limits<float>::max());
-        glm::vec3 maxBounds(std::numeric_limits<float>::lowest());
-        
-        bool hasValidBounds = false;
-        
-        for (const auto& obj : objects) {
-            // Transform object bounds to world space
+        int sel = scene.getSelectedObjectIndex();
+        if (sel >= 0 && sel < (int)objects.size()) {
+            // Precise world-space AABB for selected object by transforming 8 corners
+            const auto& obj = objects[(size_t)sel];
             glm::vec3 objMin = obj.objLoader.getMinBounds();
             glm::vec3 objMax = obj.objLoader.getMaxBounds();
-            
-            // Apply object transform to bounds (simplified - assumes uniform scaling)
-            glm::vec3 objCenter = (objMin + objMax) * 0.5f;
-            glm::vec3 objSize = objMax - objMin;
-            
-            // Transform center
-            glm::vec4 worldCenter = obj.modelMatrix * glm::vec4(objCenter, 1.0f);
-            
-            // Approximate transformed size (works for uniform scaling)
-            glm::vec3 scale = glm::vec3(
-                glm::length(glm::vec3(obj.modelMatrix[0])),
-                glm::length(glm::vec3(obj.modelMatrix[1])),
-                glm::length(glm::vec3(obj.modelMatrix[2]))
-            );
-            glm::vec3 worldSize = objSize * scale;
-            
-            glm::vec3 worldMin = glm::vec3(worldCenter) - worldSize * 0.5f;
-            glm::vec3 worldMax = glm::vec3(worldCenter) + worldSize * 0.5f;
-            
+            glm::vec3 worldMin(std::numeric_limits<float>::max());
+            glm::vec3 worldMax(std::numeric_limits<float>::lowest());
+            for (int j = 0; j < 8; ++j) {
+                glm::vec3 v((j & 1) ? objMax.x : objMin.x,
+                            (j & 2) ? objMax.y : objMin.y,
+                            (j & 4) ? objMax.z : objMin.z);
+                glm::vec3 w = glm::vec3(obj.modelMatrix * glm::vec4(v, 1.0f));
+                worldMin = glm::min(worldMin, w);
+                worldMax = glm::max(worldMax, w);
+            }
+            center = (worldMin + worldMax) * 0.5f;
+            glm::vec3 size = worldMax - worldMin;
+            radius = glm::length(size) * 0.5f; // bounding sphere radius enclosing the AABB
+        } else {
+            // Aggregate world-space AABB for entire scene (approximate per-object scale)
+            glm::vec3 minBounds(std::numeric_limits<float>::max());
+            glm::vec3 maxBounds(std::numeric_limits<float>::lowest());
+            bool hasValidBounds = false;
+            for (const auto& obj : objects) {
+                glm::vec3 objMin = obj.objLoader.getMinBounds();
+                glm::vec3 objMax = obj.objLoader.getMaxBounds();
+                glm::vec3 objCenter = (objMin + objMax) * 0.5f;
+                glm::vec3 objSize = objMax - objMin;
+                glm::vec4 worldCenter = obj.modelMatrix * glm::vec4(objCenter, 1.0f);
+                glm::vec3 scale = glm::vec3(
+                    glm::length(glm::vec3(obj.modelMatrix[0])),
+                    glm::length(glm::vec3(obj.modelMatrix[1])),
+                    glm::length(glm::vec3(obj.modelMatrix[2]))
+                );
+                glm::vec3 worldSize = objSize * scale;
+                glm::vec3 worldMin = glm::vec3(worldCenter) - worldSize * 0.5f;
+                glm::vec3 worldMax = glm::vec3(worldCenter) + worldSize * 0.5f;
+                if (hasValidBounds) {
+                    minBounds = glm::min(minBounds, worldMin);
+                    maxBounds = glm::max(maxBounds, worldMax);
+                } else {
+                    minBounds = worldMin;
+                    maxBounds = worldMax;
+                    hasValidBounds = true;
+                }
+            }
             if (hasValidBounds) {
-                minBounds = glm::min(minBounds, worldMin);
-                maxBounds = glm::max(maxBounds, worldMax);
-            } else {
-                minBounds = worldMin;
-                maxBounds = worldMax;
-                hasValidBounds = true;
+                center = (minBounds + maxBounds) * 0.5f;
+                glm::vec3 size = maxBounds - minBounds;
+                radius = glm::length(size) * 0.5f;
             }
         }
-        
-        if (hasValidBounds) {
-            center = (minBounds + maxBounds) * 0.5f;
-            glm::vec3 size = maxBounds - minBounds;
-            radius = glm::length(size) * 0.5f; // Bounding sphere radius
-        }
     }
-    
-    // Use custom target if provided (not zero vector)
+
+    // Custom explicit target overrides computed center
     if (glm::length(customTarget) > 0.001f) {
         center = customTarget;
     }
 
-    // Compute required camera distance to frame bounding sphere given vertical FOV
+    // Compute distance based on vertical FOV and margin
     const float fovRad = glm::radians(fov);
     const float dist = (radius * (1.0f + margin)) / std::max(0.0001f, std::tan(fovRad * 0.5f));
 
-    // Calculate camera position based on preset
+    // Determine direction from center based on preset
     glm::vec3 dirFromCenter(0.0f);
-    glm::vec3 up(0.0f, 1.0f, 0.0f); // Default up vector
-
+    glm::vec3 up(0.0f, 1.0f, 0.0f);
     switch (preset) {
         case CameraPreset::Front:   dirFromCenter = glm::vec3(0.0f, 0.0f,  1.0f); break;
         case CameraPreset::Back:    dirFromCenter = glm::vec3(0.0f, 0.0f, -1.0f); break;
@@ -191,23 +199,21 @@ void CameraController::setCameraPreset(CameraPreset preset, const SceneManager& 
         case CameraPreset::Right:   dirFromCenter = glm::vec3( 1.0f, 0.0f, 0.0f); break;
         case CameraPreset::Top:
             dirFromCenter = glm::vec3(0.0f, 1.0f, 0.0f);
-            up = glm::vec3(0.0f, 0.0f, -1.0f); // Roll so +Z is up on screen
+            up = glm::vec3(0.0f, 0.0f, -1.0f);
             break;
         case CameraPreset::Bottom:
             dirFromCenter = glm::vec3(0.0f, -1.0f, 0.0f);
-            up = glm::vec3(0.0f, 0.0f,  1.0f); // Roll so +Z is up on screen
+            up = glm::vec3(0.0f, 0.0f,  1.0f);
             break;
-        case CameraPreset::IsoFL: // Isometric Front-Left (from +Y looking toward origin)
+        case CameraPreset::IsoFL:
             dirFromCenter = glm::normalize(glm::vec3(-1.0f, 1.0f,  1.0f));
             break;
-        case CameraPreset::IsoBR: // Isometric Back-Right
+        case CameraPreset::IsoBR:
             dirFromCenter = glm::normalize(glm::vec3( 1.0f, 1.0f, -1.0f));
             break;
     }
 
     const glm::vec3 position = center + dirFromCenter * dist;
-
-    // Set camera state
     setTarget(position, center, up);
     setLens(fov, m_camera.nearClip, m_camera.farClip);
 }

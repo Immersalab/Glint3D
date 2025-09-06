@@ -3,6 +3,7 @@
 #include <vector>
 #include <memory>
 #include <glm/glm.hpp>
+#include <cstdint>
 #include "gl_platform.h"
 #include "gizmo.h"
 
