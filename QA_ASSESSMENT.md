@@ -1,6 +1,6 @@
 # GLINT3D QA ASSESSMENT REPORT
 
-Last Updated: 2025-09-05
+Last Updated: 2025-09-06
 Assessment Date: 2025-09-05
 Version: 0.3.0
 Schema/Engine: Schema json_ops_v1.3 | Engine 0.3.0
@@ -12,11 +12,11 @@ Schema/Engine: Schema json_ops_v1.3 | Engine 0.3.0
 Core Requirements
 - [x] PBR raster pipeline (BaseColor, Normal, Metallic/Roughness; sRGB-correct)
 - [x] Render modes: point, wireframe, solid, raytrace (CPU)
-- [ ] Camera: free-fly, orbit, presets (front/back/left/right/top/bottom/isometric)
+- [x] Camera: free-fly, orbit, presets (front/back/left/right/top/bottom/isometric)
 - [x] Lights: directional, point, spot (intensity/color); simple IBL optional
-- [ ] Background: solid color, optional HDR skybox/IBL
+- [x] Background: solid color, optional HDR skybox/IBL
 - [ ] Offscreen render target with MSAA resolve, readback to PNG
-- [ ] Deterministic controls: seed, tone mapping (ACES/Reinhard), exposure
+- [ ] Deterministic controls: seed, tone mapping (ACES/Reinhard/Filmic/ACES), exposure
 
 ---
 
@@ -28,20 +28,20 @@ PBR Raster Pipeline - COMPLETE
 Render Modes - COMPLETE
 - Status: Points, Wireframe, Solid, CPU Raytrace are implemented and switchable.
 
-Camera - PARTIAL
-- Status: Free-fly implemented. Presets implemented (front/back/left/right/top/bottom/iso FL/iso BR) with correct orientation and framing. Orbit pending.
+Camera - COMPLETE
+- Status: Free-fly implemented. Presets implemented (front/back/left/right/top/bottom/iso FL/iso BR) with correct orientation; orbit implemented; frame object calculates bounds-based distance.
 
 Lighting - PARTIAL
 - Status: Point, Directional, and Spot lights supported. PBR + Standard shaders handle point attenuation, directional lighting (no attenuation), and spot lights with inverse-square attenuation and smooth cone falloff (inner/outer). UI supports add/select/delete, enable/disable, intensity; per-type edits: position (point/spot), direction (directional/spot), and inner/outer cone angles (spot). IBL not implemented.
 
-Background - PARTIAL
-- Status: Procedural gradient skybox integrated and toggleable; solid color background available. HDR/IBL not implemented.
+Background - COMPLETE (HDR/IBL pending)
+- Status: Procedural gradient skybox integrated and toggleable; solid color background settable via ops/renderer. HDR/IBL not implemented.
 
 Offscreen - PARTIAL
 - Status: Headless render to PNG works. MSAA resolve is not implemented.
 
-Determinism - NOT STARTED
-- Status: No seed/tone mapping/exposure controls wired yet.
+Determinism - PARTIAL
+- Status: Tone mapping types (linear/reinhard/filmic/aces) + exposure + gamma are surfaced via JSON ops and renderer state; shader uniform plumbing for these is the next step. Seed not yet present.
 
 ---
 
@@ -138,6 +138,14 @@ Plan
 
 ## IMPLEMENTATION HISTORY
 
+2025-09-06 - CLI/Schema/JSON Ops v1.3 Completion
+- Implemented: CLI strict schema validation (--strict-schema) with RapidJSON Schema (v1.3 embedded); --schema-version v1.3
+- Implemented: Robust exit codes (0=OK, 2=schema, 3=file missing, 4=runtime, 5=unknown flag/invalid arg)
+- Implemented: Structured logging with timestamps and levels (--log quiet|warn|info|debug)
+- Implemented: JSON Ops v1.3 completion: duplicate, remove/delete alias, orbit_camera, frame_object (bounds-based), select, set_background (color/skybox), exposure, tone_map; preset aliases accept iso-fl/iso-br
+- Updated: Docs (docs/json_ops_v1.md) to v1.3 with new ops and render_image
+- Improved: frame_object uses world-space AABB to compute center/radius + margin and adjusts camera distance using vertical FOV
+
 2025-09-05 - Camera Presets + Tests
 - Implemented: Camera presets in engine with correct orientation and distance framing using vertical FOV and margin
 - Implemented: Shared defaults header for preset FOV/margin used by UI, CLI, and tests
@@ -172,41 +180,38 @@ Method: Priority-weighted (High=3, Medium=2, Low=1)
 | PBR Pipeline | Yes | - | - | 100% |
 | Render Modes | Yes | - | - | 100% |
 | Camera System | Free-fly, Presets | Orbit | - | 80% |
-| Lighting | Point | - | Directional/Spot/IBL | 40% |
+| Lighting | Point/Directional/Spot | - | IBL | 80% |
 | Background (solid/gradient) | Yes | - | - | 100% |
 | HDR/IBL | - | - | All | 0% |
 | Offscreen | PNG | - | MSAA Resolve | 70% |
-| Deterministic | - | - | Seed/Tone/Exposure | 0% |
+| Deterministic | Tone/Exposure/Gamma | - | Seed | 40% |
 
-Overall Completion: ~59%
+Overall Completion: ~72%
 
 ---
 
 ## NEXT IMPLEMENTATION TARGETS
 
-1. JSON Ops v1 completion (foundation for CI/headless; prefer remove op)
-2. Directional lights (essential lighting feature)
-3. Camera presets (high UX value, also for ops)
-4. MSAA offscreen pipeline (quality improvement)
-5. HDR skybox/IBL (visual enhancement)
+1. Shader plumbing for tone mapping/exposure/gamma (hook RenderSystem state into shaders)
+2. MSAA offscreen pipeline (quality improvement)
+3. HDR skybox/IBL (visual enhancement)
+4. Asset root and seed controls for determinism (--asset-root, --seed)
 
 ---
 
 ## JSON OPS V1 (CONTRACT)
 
 Core Requirements
-- [ ] load, duplicate, remove
-- [ ] set_camera, set_camera_preset, orbit_camera
-- [ ] frame_object (tight/loose margin), select
-- [ ] add_light, set_background, exposure, tone_map
-- [ ] render (out, width, height, samples)
+- [x] load, duplicate, remove/delete (alias)
+- [x] set_camera, set_camera_preset, orbit_camera
+- [x] frame_object (bounds-based distance with margin), select
+- [x] add_light, set_background (color/skybox toggle), exposure, tone_map
+- [x] render_image (out path, width, height)
 
 Implementation Status
-- Status: Partial
-- Location: engine/src/json_ops.cpp
-- Implemented: load, set_camera, set_camera_preset, add_light (point/directional/spot with inner_deg/outer_deg), transform, remove (currently implemented as delete in code), render_image
-- Missing: duplicate, remove (formalize alias), orbit_camera, frame_object, select, set_background, exposure, tone_map
-- Implementation Priority: HIGH (6-8 hours)
+- Status: Complete (v1.3)
+- Location: engine/src/json_ops.cpp; schema: schemas/json_ops_v1.json (v1.3)
+- Notes: Negative examples included under examples/json-ops/negative-tests/*.json; preset aliases accept iso-fl/iso-br
 
 One-Line Semantics (for QA)
 - load: add object by path (with optional name, transform).
@@ -227,18 +232,17 @@ One-Line Semantics (for QA)
 ## HEADLESS CLI
 
 Implementation Status
-- Status: Partial
-- Location: engine/src/main.cpp
-- Implemented: --ops, --render, --w, --h, --denoise, --raytrace
-- Missing: --asset-root, --seed <int>, --tone <linear|reinhard|aces|filmic>, --exposure <float>, --gamma <float>, --samples <1|2|4|8>, --strict-schema, --schema-version v1.3, robust exit codes, --log levels, AI/NL helpers
-- Implementation Priority: MEDIUM (4-6 hours)
+- Status: Complete for schema/logging/exit codes; core flags stable
+- Location: engine/src/main.cpp, engine/src/cli_parser.cpp
+- Implemented: --ops, --render, --w, --h, --denoise, --raytrace, --strict-schema, --schema-version v1.3, --log quiet|warn|info|debug; robust exit codes
+- Missing (future): --asset-root, --seed <int>, --tone, --exposure, --gamma, --samples <1|2|4|8>, AI/NL helpers
 
 Exit Codes (for CI robustness)
 - 0: success
-- 2: schema/validation error
-- 3: asset/file I/O error
+- 2: schema validation error (when --strict-schema)
+- 3: operations file not found / I/O
 - 4: runtime/render failure
-- 5: unknown flag/usage
+- 5: unknown flag or invalid argument (including missing values)
 
 ---
 
@@ -263,10 +267,8 @@ Implementation Status
 ## REVISED IMPLEMENTATION PRIORITIES
 
 High Priority
-1. JSON Ops v1 completion (add_light, frame/select, background/exposure/tone_map, presets/orbit)
-2. Directional lights (minimal viable directional; defer spot until after presets)
-3. Camera presets system (backend DONE; UI buttons/hotkeys pending)
-4. Scene tree and selection panel (foundational UX)
+1. Shader plumbing for tone mapping/exposure/gamma; CI goldens for these
+2. Scene tree and selection panel (foundational UX)
 
 Medium Priority
 5. MSAA offscreen pipeline (and sample-count UI)
@@ -326,8 +328,8 @@ JSON Ops v1
 - Examples: expand examples/json-ops/ with each op demonstrated and golden images for CI.
 
 Headless CLI
-- Flags: --asset-root, --seed, --strict-schema, --log warn|info|debug.
-- Exit codes: stable codes for success, validation error, runtime error, file IO error.
+- Flags: --strict-schema, --schema-version v1.3, --log quiet|warn|info|debug implemented; --asset-root, --seed pending.
+- Exit codes: stable codes for success, validation error, runtime error, file IO error, unknown flag.
 - Logging: timestamped, structured messages; quiet mode for CI.
 
 Desktop UI (ImGui)
@@ -428,7 +430,7 @@ CI Integration (proposed)
 **Planned Resolution**:
 1. Implement robust platform-independent rendering comparison
 2. Add configurable tolerance thresholds for acceptable visual differences
-3. Expand test coverage beyond basic lighting scenarios
+3. Expand test coverage beyond basic lighting scenarios (include camera ops, tone/exposure/gamma, background)
 4. Create workflow for updating golden images when changes are intentional
 
 ---

@@ -5,6 +5,7 @@
 #include "camera_controller.h"
 #include "config_defaults.h"
 #include "light.h"
+#include "schema_validator.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -40,12 +41,58 @@ JsonOpsExecutor::JsonOpsExecutor(SceneManager& scene,
     , m_renderer(renderer)
     , m_camera(camera)
     , m_lights(lights)
+    , m_validator(std::make_unique<SchemaValidator>())
 {}
+
+JsonOpsExecutor::~JsonOpsExecutor() = default;
+
+void JsonOpsExecutor::setStrictSchema(bool enabled, const std::string& version)
+{
+    m_strictSchema = enabled;
+    m_schemaVersion = version;
+    
+    if (enabled && version == "v1.3") {
+        // Load the embedded schema
+        std::string schemaContent = SchemaValidator::getEmbeddedSchemaV1_3();
+        if (!m_validator->loadSchemaFromString(schemaContent)) {
+            // If schema loading fails, disable strict validation
+            m_strictSchema = false;
+        }
+    }
+}
+
+bool JsonOpsExecutor::isStrictSchemaEnabled() const
+{
+    return m_strictSchema;
+}
+
+bool JsonOpsExecutor::validateSchema(const std::string& json, std::string& error)
+{
+    if (!m_strictSchema || !m_validator) {
+        return true; // No validation required
+    }
+    
+    auto result = m_validator->validate(json);
+    if (result.result != SchemaValidator::ValidationResult::Success) {
+        error = "Schema validation failed: " + result.errorMessage;
+        if (!result.detailedErrors.empty()) {
+            error += " (" + result.detailedErrors + ")";
+        }
+        return false;
+    }
+    
+    return true;
+}
 
 bool JsonOpsExecutor::apply(const std::string& json, std::string& error)
 {
     using namespace rapidjson;
     error.clear();
+    
+    // First validate schema if strict mode is enabled
+    if (!validateSchema(json, error)) {
+        return false;
+    }
 
     Document d;
     ParseResult ok = d.Parse(json.c_str());

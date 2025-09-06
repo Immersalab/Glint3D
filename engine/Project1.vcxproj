@@ -227,6 +227,8 @@ if exist "D:\Graphics\vcpkg\installed\x64-windows\bin\brotli*.dll" xcopy /y /d "
     <ClCompile Include="src\triangle.cpp" />
     <ClCompile Include="src\ai_bridge.cpp" />
     <ClCompile Include="src\json_ops.cpp" />
+    <ClCompile Include="src\cli_parser.cpp" />
+    <ClCompile Include="src\schema_validator.cpp" />
     
     
     <!-- removed legacy render_offscreen.cpp from build -->
@@ -256,6 +258,8 @@ if exist "D:\Graphics\vcpkg\installed\x64-windows\bin\brotli*.dll" xcopy /y /d "
     <ClInclude Include="include\objloader.h" />
     <ClInclude Include="include\material.h" />
     <ClInclude Include="include\json_ops.h" />
+    <ClInclude Include="include\cli_parser.h" />
+    <ClInclude Include="include\schema_validator.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\ai_bridge.h" />

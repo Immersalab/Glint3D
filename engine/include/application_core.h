@@ -42,6 +42,10 @@ public:
     void setRaytraceMode(bool enabled);
     bool isRaytraceMode() const;
     
+    // Schema validation support
+    void setStrictSchema(bool enabled, const std::string& version = "v1.3");
+    bool isStrictSchemaEnabled() const;
+    
     // Input callbacks (called by GLFW)
     void handleMouseMove(double xpos, double ypos);
     void handleMouseButton(int button, int action, int mods);

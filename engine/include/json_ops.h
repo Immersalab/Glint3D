@@ -8,6 +8,7 @@ class SceneManager;
 class RenderSystem;
 class CameraController;
 class Light;
+class SchemaValidator;
 
 // JsonOpsExecutor: parses and applies JSON operations to the engine state.
 //
@@ -21,16 +22,28 @@ public:
                     RenderSystem& renderer,
                     CameraController& camera,
                     Light& lights);
-    ~JsonOpsExecutor() = default;
+    ~JsonOpsExecutor();
 
     // Apply a JSON string containing one or more operations.
     // Returns true on success; false populates `error` with a human-readable message.
     bool apply(const std::string& json, std::string& error);
+    
+    // Set schema validation options
+    void setStrictSchema(bool enabled, const std::string& version = "v1.3");
+    
+    // Check if strict schema validation is enabled
+    bool isStrictSchemaEnabled() const;
 
 private:
     SceneManager& m_scene;
     RenderSystem& m_renderer;
     CameraController& m_camera;
     Light& m_lights;
+    
+    bool m_strictSchema = false;
+    std::string m_schemaVersion = "v1.3";
+    std::unique_ptr<SchemaValidator> m_validator;
+    
+    bool validateSchema(const std::string& json, std::string& error);
 };
 

@@ -1,5 +1,6 @@
 #include "application_core.h"
 #include "render_utils.h"
+#include "cli_parser.h"
 #include <string>
 #include <vector>
 #include <algorithm>
@@ -53,88 +54,74 @@ extern "C" {
 #endif
 
 namespace {
-    struct Args {
-        std::vector<std::string> a;
-        Args(int argc, char** argv){ for(int i=0;i<argc;++i) a.emplace_back(argv[i]); }
-        bool has(const std::string& k) const { return std::find(a.begin(), a.end(), k) != a.end(); }
-        std::string value(const std::string& k, const std::string& def="") const {
-            for (size_t i=0;i<a.size();++i) {
-                if (a[i]==k) {
-                    // If this is the last argument or next argument is a flag, return default
-                    if (i+1 >= a.size() || a[i+1].rfind("--", 0) == 0) return def;
-                    return a[i+1];
-                }
-            }
-            return def;
-        }
-        int intOr(const std::string& k, int def) const {
-            std::string v = value(k, ""); if (v.empty()) return def; try { return std::stoi(v); } catch(...) { return def; }
-        }
-    };
     static std::string loadTextFile(const std::string& path){ std::ifstream f(path, std::ios::binary); if(!f) return {}; std::ostringstream ss; ss<<f.rdbuf(); return ss.str(); }
 }
 
 static const char* GLINT_VERSION = "0.3.0";
 
-static void print_help()
-{
-    printf("   _____ _      _____ _   _ _______ ____  _____\n");
-    printf("  / ____| |    |_   _| \\ | |__   __|___ \\|  __ \\\n");
-    printf(" | |  __| |      | | |  \\| |  | |    __) | |  | |\n");
-    printf(" | | |_ | |      | | | . ` |  | |   |__ <| |  | |\n");
-    printf(" | |__| | |____ _| |_| |\\  |  | |   ___) | |__| |\n");
-    printf("  \\_____|______|_____|_| \\_|  |_|  |____/|_____/\n");
-    printf("\n");
-    printf("             3D Engine v%s\n", GLINT_VERSION);
-    printf("\n");
-    printf("Usage:\n");
-    printf("  glint                          # Launch UI\n");
-    printf("  glint --ops <file>             # Apply JSON ops headlessly\n");
-    printf("  glint --ops <file> --render [<out.png>] [--w W --h H] [--denoise] [--raytrace]\n");
-    printf("\nOptions:\n");
-    printf("  --help            Show this help\n");
-    printf("  --version         Print version\n");
-    printf("  --ops <file>      JSON ops file to apply (v1.3)\n");
-    printf("  --render [<png>]  Output PNG path for headless render (defaults to renders/ folder)\n");
-    printf("  --w <int>         Output image width (default 1024)\n");
-    printf("  --h <int>         Output image height (default 1024)\n");
-    printf("  --denoise         Enable denoiser if available\n");
-    printf("  --raytrace        Force raytracing mode for rendering\n");
-    printf("\nJSON Operations v1.3 (Core Operations):\n");
-    printf("  Object:     load, duplicate, remove/delete, select, transform\n");
-    printf("  Camera:     set_camera, set_camera_preset, orbit_camera, frame_object\n");
-    printf("  Lighting:   add_light (point/directional/spot)\n");
-    printf("  Materials:  set_material, set_background, exposure, tone_map\n");
-    printf("  Rendering:  render_image\n");
-    printf("\nExamples:\n");
-    printf("  glint --ops examples/json-ops/duplicate-test.json --render output.png\n");
-    printf("  glint --ops examples/json-ops/camera-preset-test.json --render --w 800 --h 600\n");
-    printf("\nDocumentation:\n");
-    printf("  See examples/README.md for operation details and examples/json-ops/ for samples\n");
-    printf("  Schema validation: schemas/json_ops_v1.json\n");
-}
-
 int main(int argc, char** argv)
 {
-    Args args(argc, argv);
-    if (args.has("--help")) { print_help(); return 0; }
-    if (args.has("--version")) { printf("%s\n", GLINT_VERSION); return 0; }
-    bool wantHeadless = args.has("--ops") || args.has("--render");
-    int W = args.intOr("--w", 1024);
-    int H = args.intOr("--h", 1024);
-    bool denoiseFlag = args.has("--denoise");
-    bool raytraceFlag = args.has("--raytrace");
-
+    // Parse command line arguments
+    auto parseResult = CLIParser::parse(argc, argv);
+    
+    // Handle parse errors
+    if (parseResult.exitCode != CLIExitCode::Success) {
+        Logger::error(parseResult.errorMessage);
+        return static_cast<int>(parseResult.exitCode);
+    }
+    
+    // Set up logging level
+    Logger::setLevel(parseResult.options.logLevel);
+    
+    // Handle help and version
+    if (parseResult.options.showHelp) {
+        CLIParser::printHelp();
+        return 0;
+    }
+    
+    if (parseResult.options.showVersion) {
+        CLIParser::printVersion();
+        return 0;
+    }
+    
+    Logger::info("Glint 3D Engine v" + std::string(GLINT_VERSION));
+    
+    // Initialize application
     auto* app = new ApplicationCore();
-    if (!app->init("Glint 3D", wantHeadless ? W : 800, wantHeadless ? H : 600, wantHeadless))
-        return -1;
-    if (denoiseFlag) app->setDenoiseEnabled(true);
-    if (raytraceFlag) app->setRaytraceMode(true);
+    int windowWidth = parseResult.options.headlessMode ? parseResult.options.outputWidth : 800;
+    int windowHeight = parseResult.options.headlessMode ? parseResult.options.outputHeight : 600;
+    
+    if (!app->init("Glint 3D", windowWidth, windowHeight, parseResult.options.headlessMode)) {
+        Logger::error("Failed to initialize application");
+        delete app;
+        return static_cast<int>(CLIExitCode::RuntimeError);
+    }
+    
+    // Configure application settings
+    if (parseResult.options.enableDenoise) {
+        Logger::debug("Enabling denoiser");
+        app->setDenoiseEnabled(true);
+    }
+    
+    if (parseResult.options.forceRaytrace) {
+        Logger::debug("Enabling raytracing mode");
+        app->setRaytraceMode(true);
+    }
+    
+    // Configure schema validation
+    if (parseResult.options.strictSchema) {
+        Logger::debug("Enabling strict schema validation for " + parseResult.options.schemaVersion);
+        app->setStrictSchema(true, parseResult.options.schemaVersion);
+    }
 
 #ifdef __EMSCRIPTEN__
     // Assign global for JS bridge
     g_app = app;
-    if (wantHeadless) return -1; // web build doesn't support headless here
+    if (parseResult.options.headlessMode) {
+        Logger::error("Web build does not support headless mode");
+        delete app;
+        return static_cast<int>(CLIExitCode::RuntimeError);
+    }
     // Web: parse ?state=... and replay ops
     {
         const char* s64 = emscripten_run_script_string("(function(){var p=(new URLSearchParams(window.location.search)).get('state');return p?p:'';})()");
@@ -196,28 +183,58 @@ int main(int argc, char** argv)
     }
     emscripten_set_main_loop_arg([](void* p){ static_cast<ApplicationCore*>(p)->frame(); }, app, 0, true);
 #else
-    if (wantHeadless) {
-        // TODO: Wire JSON Ops and headless render to ApplicationCore/RenderSystem implementations.
-        // - UIBridge::applyJsonOps should apply ops to the core scene.
-        // - RenderSystem::renderToPNG should render offscreen and write the image.
+    if (parseResult.options.headlessMode) {
+        Logger::info("Running in headless mode");
+        
         // Apply ops if provided
-        if (args.has("--ops")) {
-            std::string ops = loadTextFile(args.value("--ops"));
-            if (ops.empty()) { fprintf(stderr, "Failed to read ops file\n"); return -2; }
+        if (!parseResult.options.opsFile.empty()) {
+            Logger::info("Loading operations from: " + parseResult.options.opsFile);
+            std::string ops = loadTextFile(parseResult.options.opsFile);
+            if (ops.empty()) {
+                Logger::error("Failed to read operations file: " + parseResult.options.opsFile);
+                delete app;
+                return static_cast<int>(CLIExitCode::FileNotFound);
+            }
+            
             std::string err;
-            if (!app->applyJsonOpsV1(ops, err)) { fprintf(stderr, "Ops error: %s\n", err.c_str()); return -3; }
+            if (!app->applyJsonOpsV1(ops, err)) {
+                Logger::error("Operations failed: " + err);
+                delete app;
+                // Check if it's a schema validation error
+                if (parseResult.options.strictSchema && err.find("Schema validation failed") != std::string::npos) {
+                    return static_cast<int>(CLIExitCode::SchemaValidationError);
+                }
+                return static_cast<int>(CLIExitCode::RuntimeError);
+            }
+            Logger::info("Operations applied successfully");
         }
 
-        // Render
-        if (args.has("--render")) {
-            std::string out = args.value("--render");
-            // Process the output path using RenderUtils
-            out = RenderUtils::processOutputPath(out);
-            if (!app->renderToPNG(out, W, H)) { fprintf(stderr, "Render failed\n"); return -4; }
+        // Render if requested
+        if (!parseResult.options.outputFile.empty() || !parseResult.options.opsFile.empty()) {
+            std::string outputPath = parseResult.options.outputFile;
+            if (outputPath.empty()) {
+                // Generate default output path
+                outputPath = RenderUtils::processOutputPath("");
+            } else {
+                outputPath = RenderUtils::processOutputPath(outputPath);
+            }
+            
+            Logger::info("Rendering to: " + outputPath + 
+                        " (" + std::to_string(parseResult.options.outputWidth) + 
+                        "x" + std::to_string(parseResult.options.outputHeight) + ")");
+            
+            if (!app->renderToPNG(outputPath, parseResult.options.outputWidth, parseResult.options.outputHeight)) {
+                Logger::error("Render failed");
+                delete app;
+                return static_cast<int>(CLIExitCode::RuntimeError);
+            }
+            Logger::info("Render completed successfully");
         }
+        
         delete app;
         return 0;
     } else {
+        Logger::info("Launching UI mode");
         app->run();
         delete app;
         return 0;

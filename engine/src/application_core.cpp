@@ -207,6 +207,21 @@ bool ApplicationCore::applyJsonOpsV1(const std::string& json, std::string& error
     return false;
 }
 
+void ApplicationCore::setStrictSchema(bool enabled, const std::string& version)
+{
+    if (m_ops) {
+        m_ops->setStrictSchema(enabled, version);
+    }
+}
+
+bool ApplicationCore::isStrictSchemaEnabled() const
+{
+    if (m_ops) {
+        return m_ops->isStrictSchemaEnabled();
+    }
+    return false;
+}
+
 std::string ApplicationCore::buildShareLink() const
 {
     return m_uiBridge->buildShareLink();
