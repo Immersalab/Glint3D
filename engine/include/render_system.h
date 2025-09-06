@@ -18,6 +18,13 @@ struct SceneObject;
 
 class Shader;
 
+enum class RenderToneMapMode {
+    Linear = 0,
+    Reinhard,
+    Filmic,
+    ACES
+};
+
 enum class RenderMode {
     Points = 0,
     Wireframe = 1, 
@@ -93,6 +100,17 @@ public:
     void setFramebufferSRGBEnabled(bool enabled) { m_framebufferSRGBEnabled = enabled; }
     bool isFramebufferSRGBEnabled() const { return m_framebufferSRGBEnabled; }
 
+    // Presentation/appearance
+    void setBackgroundColor(const glm::vec3& c) { m_backgroundColor = c; }
+    const glm::vec3& getBackgroundColor() const { return m_backgroundColor; }
+    bool loadSkybox(const std::string& path); // simple loader/enable toggle
+    void setExposure(float v) { m_exposure = v; }
+    float getExposure() const { return m_exposure; }
+    void setToneMapping(RenderToneMapMode m) { m_tonemap = m; }
+    RenderToneMapMode getToneMapping() const { return m_tonemap; }
+    void setGamma(float g) { m_gamma = g; }
+    float getGamma() const { return m_gamma; }
+
     // Debug/utility rendering
     void setShowGrid(bool show) { m_showGrid = show; }
     void setShowAxes(bool show) { m_showAxes = show; }
@@ -143,6 +161,10 @@ private:
     RenderMode m_renderMode = RenderMode::Solid;
     ShadingMode m_shadingMode = ShadingMode::Gouraud;
     bool m_framebufferSRGBEnabled = true;
+    glm::vec3 m_backgroundColor{0.10f, 0.11f, 0.12f};
+    float m_exposure = 0.0f;
+    float m_gamma = 2.2f;
+    RenderToneMapMode m_tonemap = RenderToneMapMode::Linear;
     
     // Debug rendering
     bool m_showGrid = true;

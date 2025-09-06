@@ -134,6 +134,9 @@ void ImGuiUILayer::render(const UIState& state)
     
     // Render console
     renderConsole(state);
+    
+    // Render help dialogs
+    renderHelpDialogs();
 
     // Finalize ImGui
     ImGui::Render();
@@ -296,11 +299,15 @@ void ImGuiUILayer::renderMainMenuBar(const UIState& state)
         // Help menu
         if (ImGui::BeginMenu("Help")) {
             if (ImGui::MenuItem("Controls", "F1")) {
-                // Show controls help
+                m_showControlsHelp = true;
+            }
+            
+            if (ImGui::MenuItem("JSON Operations")) {
+                m_showJsonOpsHelp = true;
             }
             
             if (ImGui::MenuItem("About Glint3D")) {
-                // Show about dialog
+                m_showAboutDialog = true;
             }
             
             ImGui::EndMenu();
@@ -1069,5 +1076,133 @@ void ImGuiUILayer::setupDarkTheme()
     style.AntiAliasedLines = true;
     style.AntiAliasedLinesUseTex = true;
     style.AntiAliasedFill = true;
+#endif
+}
+
+void ImGuiUILayer::renderHelpDialogs()
+{
+#ifndef WEB_USE_HTML_UI
+    // Controls Help Dialog
+    if (m_showControlsHelp) {
+        ImGui::SetNextWindowSize(ImVec2(500, 400), ImGuiCond_FirstUseEver);
+        if (ImGui::Begin("Controls Help", &m_showControlsHelp)) {
+            ImGui::TextWrapped("Glint3D Controls:");
+            ImGui::Separator();
+            
+            ImGui::Text("Camera Movement:");
+            ImGui::BulletText("WASD - Move camera forward/left/back/right");
+            ImGui::BulletText("Space - Move camera up");
+            ImGui::BulletText("Shift - Move camera down");
+            ImGui::BulletText("Mouse drag - Rotate camera view");
+            ImGui::BulletText("Scroll wheel - Zoom in/out");
+            
+            ImGui::Spacing();
+            ImGui::Text("Camera Presets:");
+            ImGui::BulletText("1-8 Keys - Quick camera presets (Front, Back, Left, Right, Top, Bottom, IsoFL, IsoBR)");
+            
+            ImGui::Spacing();
+            ImGui::Text("UI Controls:");
+            ImGui::BulletText("F1 - Toggle this help");
+            ImGui::BulletText("Tab - Toggle settings panel");
+            ImGui::BulletText("F11 - Toggle fullscreen (if supported)");
+            
+            ImGui::Spacing();
+            ImGui::Text("Object Interaction:");
+            ImGui::BulletText("Click on objects to select them");
+            ImGui::BulletText("Selected objects show in the settings panel");
+            ImGui::BulletText("Use gizmos to transform selected objects");
+        }
+        ImGui::End();
+    }
+    
+    // JSON Operations Help Dialog
+    if (m_showJsonOpsHelp) {
+        ImGui::SetNextWindowSize(ImVec2(700, 600), ImGuiCond_FirstUseEver);
+        if (ImGui::Begin("JSON Operations v1.3 Reference", &m_showJsonOpsHelp)) {
+            ImGui::TextWrapped("Complete reference for JSON Operations v1.3:");
+            ImGui::Separator();
+            
+            if (ImGui::CollapsingHeader("Object Management", ImGuiTreeNodeFlags_DefaultOpen)) {
+                ImGui::BulletText("load - Load models: {\"op\":\"load\", \"path\":\"model.obj\", \"name\":\"MyObject\"}");
+                ImGui::BulletText("duplicate - Copy objects: {\"op\":\"duplicate\", \"source\":\"Original\", \"name\":\"Copy\", \"position\":[3,0,0]}");
+                ImGui::BulletText("remove/delete - Remove: {\"op\":\"remove\", \"name\":\"ObjectName\"} (aliases)");
+                ImGui::BulletText("select - Select object: {\"op\":\"select\", \"name\":\"ObjectName\"}");
+                ImGui::BulletText("transform - Apply transforms: {\"op\":\"transform\", \"name\":\"Obj\", \"translate\":[1,0,0]}");
+            }
+            
+            if (ImGui::CollapsingHeader("Camera Control")) {
+                ImGui::BulletText("set_camera - Set position/target: {\"op\":\"set_camera\", \"position\":[0,2,5], \"target\":[0,0,0]}");
+                ImGui::BulletText("set_camera_preset - Quick views: {\"op\":\"set_camera_preset\", \"preset\":\"front|back|left|right|top|bottom|iso_fl|iso_br\"}");
+                ImGui::BulletText("orbit_camera - Rotate around center: {\"op\":\"orbit_camera\", \"yaw\":45, \"pitch\":15}");
+                ImGui::BulletText("frame_object - Focus on object: {\"op\":\"frame_object\", \"name\":\"ObjectName\"}");
+            }
+            
+            if (ImGui::CollapsingHeader("Lighting")) {
+                ImGui::BulletText("add_light - Add lights:");
+                ImGui::Indent();
+                ImGui::BulletText("Point: {\"op\":\"add_light\", \"type\":\"point\", \"position\":[0,5,0], \"intensity\":2.0}");
+                ImGui::BulletText("Directional: {\"op\":\"add_light\", \"type\":\"directional\", \"direction\":[-1,-1,-1]}");
+                ImGui::BulletText("Spot: {\"op\":\"add_light\", \"type\":\"spot\", \"position\":[0,5,0], \"direction\":[0,-1,0], \"inner_deg\":15, \"outer_deg\":30}");
+                ImGui::Unindent();
+            }
+            
+            if (ImGui::CollapsingHeader("Materials & Appearance")) {
+                ImGui::BulletText("set_material - Modify materials: {\"op\":\"set_material\", \"target\":\"Obj\", \"material\":{\"color\":[1,0,0], \"roughness\":0.5}}");
+                ImGui::BulletText("set_background - Set background: {\"op\":\"set_background\", \"color\":[0.2,0.4,0.8]}");
+                ImGui::BulletText("exposure - Adjust exposure: {\"op\":\"exposure\", \"value\":-1.0}");
+                ImGui::BulletText("tone_map - Configure tone mapping: {\"op\":\"tone_map\", \"type\":\"filmic|linear|reinhard|aces\"}");
+            }
+            
+            if (ImGui::CollapsingHeader("Rendering")) {
+                ImGui::BulletText("render_image - Render to PNG: {\"op\":\"render_image\", \"path\":\"output.png\", \"width\":800, \"height\":600}");
+            }
+            
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::TextWrapped("Tips:");
+            ImGui::BulletText("All vector parameters use [x, y, z] format");
+            ImGui::BulletText("Rotation values are in degrees, not radians");
+            ImGui::BulletText("See examples/json-ops/ for complete examples");
+            ImGui::BulletText("Schema validation: schemas/json_ops_v1.json");
+            ImGui::BulletText("Use console command 'json_ops' for quick reference");
+        }
+        ImGui::End();
+    }
+    
+    // About Dialog
+    if (m_showAboutDialog) {
+        ImGui::SetNextWindowSize(ImVec2(400, 300), ImGuiCond_FirstUseEver);
+        if (ImGui::Begin("About Glint3D", &m_showAboutDialog)) {
+            ImGui::Text("Glint3D Engine");
+            ImGui::Text("Version 0.3.0");
+            ImGui::Separator();
+            
+            ImGui::TextWrapped("A modern 3D rendering engine with dual OpenGL rasterization and CPU raytracing capabilities.");
+            
+            ImGui::Spacing();
+            ImGui::Text("Features:");
+            ImGui::BulletText("OpenGL/WebGL rendering");
+            ImGui::BulletText("CPU raytracer with BVH acceleration");
+            ImGui::BulletText("PBR material system");
+            ImGui::BulletText("JSON Operations API v1.3");
+            ImGui::BulletText("Cross-platform (Desktop & Web)");
+            ImGui::BulletText("Point, Directional, and Spot lighting");
+            ImGui::BulletText("Camera presets and controls");
+            ImGui::BulletText("Asset import (OBJ, glTF, FBX via Assimp)");
+            
+            ImGui::Spacing();
+            ImGui::Text("Built with:");
+            ImGui::BulletText("OpenGL 3.3+");
+            ImGui::BulletText("ImGui for desktop UI");
+            ImGui::BulletText("React + Tailwind for web UI");
+            ImGui::BulletText("Emscripten for web deployment");
+            ImGui::BulletText("GLM for mathematics");
+            
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Text("© 2024 Glint3D Project");
+        }
+        ImGui::End();
+    }
 #endif
 }

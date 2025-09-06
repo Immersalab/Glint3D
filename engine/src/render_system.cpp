@@ -49,7 +49,7 @@ bool RenderSystem::init(int windowWidth, int windowHeight)
     if (m_framebufferSRGBEnabled) glEnable(GL_FRAMEBUFFER_SRGB); else glDisable(GL_FRAMEBUFFER_SRGB);
 #endif
     glViewport(0, 0, windowWidth, windowHeight);
-    glClearColor(0.10f, 0.11f, 0.12f, 1.0f);
+    glClearColor(m_backgroundColor.r, m_backgroundColor.g, m_backgroundColor.b, 1.0f);
 
     // Load shaders
     m_basicShader = std::make_unique<Shader>();
@@ -122,7 +122,8 @@ void RenderSystem::shutdown()
 
 void RenderSystem::render(const SceneManager& scene, const Light& lights)
 {
-    // Clear buffers
+    // Clear buffers with current background color
+    glClearColor(m_backgroundColor.r, m_backgroundColor.g, m_backgroundColor.b, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
     // Choose render path based on mode
@@ -229,6 +230,16 @@ void RenderSystem::render(const SceneManager& scene, const Light& lights)
     }
     
     updateRenderStats(scene);
+}
+
+bool RenderSystem::loadSkybox(const std::string& path)
+{
+    // Minimal implementation: ensure skybox is initialized and enable it.
+    // If needed, future enhancement can parse `path` for cubemap faces.
+    if (!m_skybox) return false;
+    if (!m_skybox->init()) return false;
+    setShowSkybox(true);
+    return true;
 }
 
 bool RenderSystem::renderToTexture(const SceneManager& scene, const Light& lights,

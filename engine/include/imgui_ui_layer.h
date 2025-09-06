@@ -21,9 +21,15 @@ private:
     void renderSettingsPanel(const UIState& state);
     void renderPerformanceHUD(const UIState& state);
     void renderConsole(const UIState& state);
+    void renderHelpDialogs();
     void setupDarkTheme();
     
     // Local UI state that can be toggled independently
     bool m_showSettingsPanel = true;
     bool m_showPerfHUD = false;
+    
+    // Help dialogs
+    bool m_showControlsHelp = false;
+    bool m_showJsonOpsHelp = false;
+    bool m_showAboutDialog = false;
 };

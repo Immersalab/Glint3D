@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "ops": [
+    {
+      "op": "load",
+      "path": "engine/assets/models/cube.obj",
+      "name": "CenterCube",
+      "position": [0, 0, 0]
+    },
+    {
+      "op": "set_camera",
+      "position": [5, 2, 5],
+      "target": [0, 0, 0]
+    },
+    {
+      "op": "orbit_camera",
+      "yaw": 45.0,
+      "pitch": 15.0,
+      "center": [0, 0, 0]
+    },
+    {
+      "op": "add_light",
+      "type": "directional",
+      "direction": [-1, -1, -1],
+      "intensity": 1.0
+    }
+  ]
+}

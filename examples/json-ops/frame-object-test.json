@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "ops": [
+    {
+      "op": "load",
+      "path": "engine/assets/models/cube.obj",
+      "name": "TargetCube",
+      "position": [0, 0, 0]
+    },
+    {
+      "op": "load",
+      "path": "engine/assets/models/cube.obj",
+      "name": "OffCube",
+      "position": [10, 5, 3]
+    },
+    {
+      "op": "set_camera",
+      "position": [0, 0, 10],
+      "target": [0, 0, 0]
+    },
+    {
+      "op": "frame_object",
+      "name": "OffCube",
+      "margin": 0.2
+    },
+    {
+      "op": "add_light",
+      "type": "directional",
+      "direction": [-1, -1, -1],
+      "intensity": 1.0
+    }
+  ]
+}

@@ -13,6 +13,7 @@
 #include <rapidjson/error/en.h>
 #include <algorithm>
 #include <cctype>
+#include <limits>
 
 namespace {
     static bool getVec3(const rapidjson::Value& v, glm::vec3& out) {
@@ -132,8 +133,8 @@ bool JsonOpsExecutor::apply(const std::string& json, std::string& error)
             else if (lower == "right") preset = CameraPreset::Right;
             else if (lower == "top") preset = CameraPreset::Top;
             else if (lower == "bottom") preset = CameraPreset::Bottom;
-            else if (lower == "iso_fl" || lower == "isofl" || lower == "iso-front-left") preset = CameraPreset::IsoFL;
-            else if (lower == "iso_br" || lower == "isobr" || lower == "iso-back-right") preset = CameraPreset::IsoBR;
+            else if (lower == "iso_fl" || lower == "isofl" || lower == "iso-front-left" || lower == "iso-fl") preset = CameraPreset::IsoFL;
+            else if (lower == "iso_br" || lower == "isobr" || lower == "iso-back-right" || lower == "iso-br") preset = CameraPreset::IsoBR;
             else { error = "set_camera_preset: unknown preset '" + presetStr + "'"; return false; }
 
             glm::vec3 target(0.0f);
@@ -147,46 +148,6 @@ bool JsonOpsExecutor::apply(const std::string& json, std::string& error)
             if (obj.HasMember("margin") && obj["margin"].IsNumber()) margin = (float)obj["margin"].GetDouble();
 
             m_camera.setCameraPreset(preset, m_scene, target, fov, margin);
-            return true;
-        }
-        else if (op == "set_camera_preset") {
-            if (!obj.HasMember("preset") || !obj["preset"].IsString()) { error = "set_camera_preset: missing 'preset'"; return false; }
-            std::string presetStr = obj["preset"].GetString();
-            
-            // Parse preset name to enum
-            CameraPreset preset;
-            if (presetStr == "front") preset = CameraPreset::Front;
-            else if (presetStr == "back") preset = CameraPreset::Back;
-            else if (presetStr == "left") preset = CameraPreset::Left;
-            else if (presetStr == "right") preset = CameraPreset::Right;
-            else if (presetStr == "top") preset = CameraPreset::Top;
-            else if (presetStr == "bottom") preset = CameraPreset::Bottom;
-            else if (presetStr == "iso_fl" || presetStr == "iso-fl") preset = CameraPreset::IsoFL;
-            else if (presetStr == "iso_br" || presetStr == "iso-br") preset = CameraPreset::IsoBR;
-            else { error = "set_camera_preset: unknown preset '" + presetStr + "'"; return false; }
-            
-            // Optional parameters
-            glm::vec3 target(0.0f);
-            float fov = 45.0f;
-            float margin = 0.25f;
-            
-            if (obj.HasMember("target") && obj["target"].IsArray()) { 
-                if (!getVec3(obj["target"], target)) { error = "set_camera_preset: bad 'target'"; return false; } 
-            }
-            if (obj.HasMember("fov") && obj["fov"].IsNumber()) {
-                fov = (float)obj["fov"].GetDouble();
-                if (fov <= 0.0f || fov >= 180.0f) { error = "set_camera_preset: fov must be between 0 and 180 degrees"; return false; }
-            }
-            if (obj.HasMember("margin") && obj["margin"].IsNumber()) {
-                margin = (float)obj["margin"].GetDouble();
-                if (margin < 0.0f) { error = "set_camera_preset: margin must be >= 0"; return false; }
-            }
-            
-            m_camera.setCameraPreset(preset, m_scene, target, fov, margin);
-            
-            // Sync renderer now
-            m_renderer.setCamera(m_camera.getCameraState());
-            m_renderer.updateViewMatrix();
             return true;
         }
         else if (op == "add_light") {
@@ -347,6 +308,202 @@ bool JsonOpsExecutor::apply(const std::string& json, std::string& error)
             
             bool ok = m_renderer.renderToPNG(m_scene, m_lights, path, width, height);
             if (!ok) { error = std::string("render_image: failed to render to '") + path + "'"; return false; }
+            return true;
+        }
+        else if (op == "duplicate") {
+            if (!obj.HasMember("source") || !obj["source"].IsString()) { error = "duplicate: missing 'source'"; return false; }
+            if (!obj.HasMember("name") || !obj["name"].IsString()) { error = "duplicate: missing 'name'"; return false; }
+            
+            std::string sourceName = obj["source"].GetString();
+            std::string newName = obj["name"].GetString();
+            
+            // Check if source object exists
+            if (!m_scene.findObjectByName(sourceName)) {
+                error = "duplicate: source object '" + sourceName + "' not found";
+                return false;
+            }
+            
+            // Optional position offset
+            glm::vec3 deltaPos(0.0f);
+            if (obj.HasMember("position") && obj["position"].IsArray()) {
+                if (!getVec3(obj["position"], deltaPos)) { error = "duplicate: bad 'position'"; return false; }
+            }
+            
+            // Optional scale offset
+            glm::vec3* deltaScale = nullptr;
+            glm::vec3 scaleVal(0.0f);
+            if (obj.HasMember("scale") && obj["scale"].IsArray()) {
+                if (!getVec3(obj["scale"], scaleVal)) { error = "duplicate: bad 'scale'"; return false; }
+                deltaScale = &scaleVal;
+            }
+            
+            // Optional rotation offset (in degrees)
+            glm::vec3* deltaRot = nullptr;
+            glm::vec3 rotVal(0.0f);
+            if (obj.HasMember("rotation") && obj["rotation"].IsArray()) {
+                if (!getVec3(obj["rotation"], rotVal)) { error = "duplicate: bad 'rotation'"; return false; }
+                deltaRot = &rotVal;
+            }
+            
+            bool success = m_scene.duplicateObject(sourceName, newName, &deltaPos, deltaScale, deltaRot);
+            if (!success) { error = "duplicate: failed to duplicate '" + sourceName + "'"; return false; }
+            return true;
+        }
+        else if (op == "remove") {
+            if (!obj.HasMember("name") || !obj["name"].IsString()) { error = "remove: missing 'name'"; return false; }
+            std::string name = obj["name"].GetString();
+            bool success = m_scene.deleteObject(name);
+            if (!success) { error = "remove: object '" + name + "' not found"; return false; }
+            return true;
+        }
+        else if (op == "orbit_camera") {
+            float deltaYaw = 0.0f, deltaPitch = 0.0f;
+            if (obj.HasMember("yaw") && obj["yaw"].IsNumber()) deltaYaw = (float)obj["yaw"].GetDouble();
+            if (obj.HasMember("pitch") && obj["pitch"].IsNumber()) deltaPitch = (float)obj["pitch"].GetDouble();
+            
+            // Optional target center (defaults to current target/scene center)
+            glm::vec3 center(0.0f);
+            if (obj.HasMember("center") && obj["center"].IsArray()) {
+                if (!getVec3(obj["center"], center)) { error = "orbit_camera: bad 'center'"; return false; }
+            }
+            
+            // Get current camera state
+            CameraState cs = m_camera.getCameraState();
+            
+            // Calculate current distance from center
+            float distance = glm::length(cs.position - center);
+            
+            // Apply yaw and pitch rotation around center
+            cs.yaw += deltaYaw;
+            cs.pitch += deltaPitch;
+            
+            // Clamp pitch to avoid gimbal lock
+            if (cs.pitch > 89.0f) cs.pitch = 89.0f;
+            if (cs.pitch < -89.0f) cs.pitch = -89.0f;
+            
+            // Calculate new position based on spherical coordinates
+            float yawRad = glm::radians(cs.yaw);
+            float pitchRad = glm::radians(cs.pitch);
+            
+            cs.position.x = center.x + distance * cos(pitchRad) * cos(yawRad);
+            cs.position.y = center.y + distance * sin(pitchRad);
+            cs.position.z = center.z + distance * cos(pitchRad) * sin(yawRad);
+            
+            // Update front vector to look at center
+            cs.front = glm::normalize(center - cs.position);
+            
+            m_camera.setCameraState(cs);
+            
+            // Sync renderer
+            m_renderer.setCamera(m_camera.getCameraState());
+            m_renderer.updateViewMatrix();
+            return true;
+        }
+        else if (op == "frame_object") {
+            if (!obj.HasMember("name") || !obj["name"].IsString()) { error = "frame_object: missing 'name'"; return false; }
+            std::string name = obj["name"].GetString();
+
+            auto* targetObj = m_scene.findObjectByName(name);
+            if (!targetObj) { error = std::string("frame_object: object '") + name + "' not found"; return false; }
+
+            // Optional margin parameter
+            float margin = 0.25f;
+            if (obj.HasMember("margin") && obj["margin"].IsNumber()) {
+                margin = (float)obj["margin"].GetDouble();
+                if (margin < 0.0f) { error = "frame_object: margin must be >= 0"; return false; }
+            }
+
+            // Compute world-space AABB of the object (transform 8 corners)
+            glm::vec3 aabbMin = targetObj->objLoader.getMinBounds();
+            glm::vec3 aabbMax = targetObj->objLoader.getMaxBounds();
+            glm::vec3 worldMin(std::numeric_limits<float>::max());
+            glm::vec3 worldMax(std::numeric_limits<float>::lowest());
+            for (int j = 0; j < 8; ++j) {
+                glm::vec3 v((j & 1) ? aabbMax.x : aabbMin.x,
+                            (j & 2) ? aabbMax.y : aabbMin.y,
+                            (j & 4) ? aabbMax.z : aabbMin.z);
+                glm::vec3 w = glm::vec3(targetObj->modelMatrix * glm::vec4(v, 1.0f));
+                worldMin = glm::min(worldMin, w);
+                worldMax = glm::max(worldMax, w);
+            }
+
+            glm::vec3 center = (worldMin + worldMax) * 0.5f;
+            glm::vec3 size = worldMax - worldMin;
+            float radius = glm::length(size) * 0.5f; // bounding sphere
+
+            // Compute required distance from center using vertical FOV
+            CameraState cs = m_camera.getCameraState();
+            float fovRad = glm::radians(cs.fov);
+            float dist = (radius * (1.0f + margin)) / std::max(0.0001f, std::tan(fovRad * 0.5f));
+
+            // Place camera along its current view direction to look at center
+            glm::vec3 dir = (glm::length(cs.front) > 0.0f) ? glm::normalize(cs.front) : glm::vec3(0, 0, -1);
+            glm::vec3 up = (glm::length(cs.up) > 0.0f) ? glm::normalize(cs.up) : glm::vec3(0, 1, 0);
+            glm::vec3 newPos = center - dir * dist;
+            m_camera.setTarget(newPos, center, up);
+
+            // Sync renderer
+            m_renderer.setCamera(m_camera.getCameraState());
+            m_renderer.updateViewMatrix();
+            return true;
+        }
+        else if (op == "select") {
+            if (!obj.HasMember("name") || !obj["name"].IsString()) { error = "select: missing 'name'"; return false; }
+            std::string name = obj["name"].GetString();
+            
+            int index = m_scene.findObjectIndex(name);
+            if (index == -1) { error = "select: object '" + name + "' not found"; return false; }
+            
+            m_scene.setSelectedObjectIndex(index);
+            return true;
+        }
+        else if (op == "set_background") {
+            // Support both color and skybox types
+            if (obj.HasMember("color") && obj["color"].IsArray()) {
+                glm::vec3 color;
+                if (!getVec3(obj["color"], color)) { error = "set_background: bad 'color'"; return false; }
+                m_renderer.setBackgroundColor(color);
+                return true;
+            }
+            else if (obj.HasMember("skybox") && obj["skybox"].IsString()) {
+                std::string skyboxPath = obj["skybox"].GetString();
+                bool okSky = m_renderer.loadSkybox(skyboxPath);
+                if (!okSky) { error = std::string("set_background: failed to load skybox '") + skyboxPath + "'"; return false; }
+                return true;
+            }
+            else {
+                error = "set_background: missing 'color' or 'skybox'";
+                return false;
+            }
+        }
+        else if (op == "exposure") {
+            if (!obj.HasMember("value") || !obj["value"].IsNumber()) { error = "exposure: missing 'value'"; return false; }
+            float exposureValue = (float)obj["value"].GetDouble();
+            m_renderer.setExposure(exposureValue);
+            return true;
+        }
+        else if (op == "tone_map") {
+            if (!obj.HasMember("type") || !obj["type"].IsString()) { error = "tone_map: missing 'type'"; return false; }
+            std::string toneMapType = obj["type"].GetString();
+
+            // Validate tone mapping type and map to enum
+            RenderToneMapMode mode;
+            std::string lowerType = toneMapType; std::transform(lowerType.begin(), lowerType.end(), lowerType.begin(), [](unsigned char c){ return (char)std::tolower(c); });
+            if (lowerType == "linear") mode = RenderToneMapMode::Linear;
+            else if (lowerType == "reinhard") mode = RenderToneMapMode::Reinhard;
+            else if (lowerType == "filmic") mode = RenderToneMapMode::Filmic;
+            else if (lowerType == "aces") mode = RenderToneMapMode::ACES;
+            else { error = std::string("tone_map: invalid type '") + toneMapType + "' (must be 'linear', 'reinhard', 'filmic', or 'aces')"; return false; }
+
+            // Optional parameters
+            float gamma = 2.2f;
+            if (obj.HasMember("gamma") && obj["gamma"].IsNumber()) {
+                gamma = (float)obj["gamma"].GetDouble();
+                if (gamma <= 0.0f) { error = "tone_map: gamma must be > 0"; return false; }
+            }
+
+            m_renderer.setToneMapping(mode);
+            m_renderer.setGamma(gamma);
             return true;
         }
 

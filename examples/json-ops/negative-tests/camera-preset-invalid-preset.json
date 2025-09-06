@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "ops": [
+    {
+      "op": "set_camera_preset",
+      "preset": "invalid_preset_name",
+      "target": [0, 0, 0]
+    }
+  ]
+}

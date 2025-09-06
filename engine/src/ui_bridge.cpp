@@ -39,8 +39,18 @@ bool UIBridge::initUI(int windowWidth, int windowHeight)
     
     bool ok = m_ui->init(windowWidth, windowHeight);
     if (ok) {
-        addConsoleMessage("Welcome to Glint3D!");
-        addConsoleMessage("Type 'help' for a list of console commands.");
+        // ASCII art welcome banner
+        addConsoleMessage("   _____ _      _____ _   _ _______ ____  _____");
+        addConsoleMessage("  / ____| |    |_   _| \\ | |__   __|___ \\|  __ \\");
+        addConsoleMessage(" | |  __| |      | | |  \\| |  | |    __) | |  | |");
+        addConsoleMessage(" | | |_ | |      | | | . ` |  | |   |__ <| |  | |");
+        addConsoleMessage(" | |__| | |____ _| |_| |\\  |  | |   ___) | |__| |");
+        addConsoleMessage("  \\_____|______|_____|_| \\_|  |_|  |____/|_____/");
+        addConsoleMessage("");
+        addConsoleMessage("             3D Engine v0.3.0");
+        addConsoleMessage("");
+        addConsoleMessage("Welcome to Glint3D! Type 'help' for console commands and JSON ops.");
+        addConsoleMessage("See Help menu (top bar) for interactive guides and controls.");
     }
     return ok;
 }
@@ -464,7 +474,9 @@ void UIBridge::handleConsoleCommand(const UICommandData& cmd)
     std::string command = cmd.stringParam;
     
     if (command == "help") {
-        addConsoleMessage("Available commands:");
+        addConsoleMessage("=== GLINT3D HELP ===");
+        addConsoleMessage("");
+        addConsoleMessage("Available console commands:");
         addConsoleMessage("  help             - Show this help");
         addConsoleMessage("  clear            - Clear the console");
         addConsoleMessage("  load <path>      - Load a model (e.g., assets/models/cube.obj)");
@@ -472,7 +484,49 @@ void UIBridge::handleConsoleCommand(const UICommandData& cmd)
         addConsoleMessage("  save_png [<out.png>] [W H] - Alias for render");
         addConsoleMessage("  list             - List scene objects with indices");
         addConsoleMessage("  select <name|index> - Select an object by name or index");
+        addConsoleMessage("  json_ops         - Show detailed JSON Operations help");
+        addConsoleMessage("");
+        addConsoleMessage("JSON Operations v1.3 - Quick Reference:");
+        addConsoleMessage("--- Object Management ---");
+        addConsoleMessage("  load, duplicate, remove/delete, select, transform");
+        addConsoleMessage("--- Camera Control ---");
+        addConsoleMessage("  set_camera, set_camera_preset, orbit_camera, frame_object");
+        addConsoleMessage("--- Lighting ---");
+        addConsoleMessage("  add_light (point/directional/spot types)");
+        addConsoleMessage("--- Materials & Appearance ---");
+        addConsoleMessage("  set_material, set_background, exposure, tone_map");
+        addConsoleMessage("--- Rendering ---");
+        addConsoleMessage("  render_image");
+        addConsoleMessage("");
+        addConsoleMessage("Type 'json_ops' for detailed operation syntax and examples.");
+        addConsoleMessage("See Help menu (top menu bar) for interactive guides and controls.");
         addConsoleMessage("Tips: Use Up/Down arrows to navigate command history.");
+    }
+    else if (command == "json_ops") {
+        addConsoleMessage("JSON Operations v1.3 - Available Operations:");
+        addConsoleMessage("--- Object Management ---");
+        addConsoleMessage("  load             - Load models from file with transform");
+        addConsoleMessage("  duplicate        - Create copies of objects with offsets");
+        addConsoleMessage("  remove/delete    - Remove objects from scene (aliases)");
+        addConsoleMessage("  select           - Select objects for editing");
+        addConsoleMessage("  transform        - Apply transforms to objects");
+        addConsoleMessage("--- Camera Control ---");
+        addConsoleMessage("  set_camera       - Set camera position, target, lens");
+        addConsoleMessage("  set_camera_preset - Apply presets (front,back,left,right,top,bottom,iso_fl,iso_br)");
+        addConsoleMessage("  orbit_camera     - Orbit camera around center by yaw/pitch");
+        addConsoleMessage("  frame_object     - Frame specific object in viewport");
+        addConsoleMessage("--- Lighting ---");
+        addConsoleMessage("  add_light        - Add point/directional/spot lights");
+        addConsoleMessage("--- Materials & Appearance ---");
+        addConsoleMessage("  set_material     - Modify object material properties");
+        addConsoleMessage("  set_background   - Set background color or skybox");
+        addConsoleMessage("  exposure         - Adjust scene exposure");
+        addConsoleMessage("  tone_map         - Configure tone mapping (linear/reinhard/filmic/aces)");
+        addConsoleMessage("--- Rendering ---");
+        addConsoleMessage("  render_image     - Render scene to PNG file");
+        addConsoleMessage("");
+        addConsoleMessage("See examples/json-ops/ for detailed examples and schemas/json_ops_v1.json for validation.");
+        addConsoleMessage("Check Help > JSON Operations (menu bar) for interactive reference with examples.");
     }
     else if (command == "clear") {
         clearConsoleLog();

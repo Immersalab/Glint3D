@@ -104,6 +104,7 @@ ui/pnpm-lock.yaml
 # Large and frequently changing cache directories
 .claude/
 .claude/settings.local.json
+CLAUDE.md
 
 # Test scripts and temporary outputs
 test_golden_comparison.sh

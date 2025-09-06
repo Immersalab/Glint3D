@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Glint JSON Ops v1",
+  "title": "Glint JSON Ops v1.3",
   "type": ["object", "array"],
   "definitions": {
     "vec3": {
@@ -137,6 +137,120 @@
       },
       "additionalProperties": false
     },
+    "opDuplicate": {
+      "type": "object",
+      "required": ["op", "source", "name"],
+      "properties": {
+        "op": { "const": "duplicate" },
+        "source": { "type": "string" },
+        "name": { "type": "string" },
+        "position": { "$ref": "#/definitions/vec3" },
+        "scale": { "$ref": "#/definitions/vec3" },
+        "rotation": { "$ref": "#/definitions/vec3" }
+      },
+      "additionalProperties": false
+    },
+    "opRemove": {
+      "type": "object",
+      "required": ["op", "name"],
+      "properties": {
+        "op": { "const": "remove" },
+        "name": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "opSetCameraPreset": {
+      "type": "object",
+      "required": ["op", "preset"],
+      "properties": {
+        "op": { "const": "set_camera_preset" },
+        "preset": { 
+          "type": "string", 
+          "enum": ["front", "back", "left", "right", "top", "bottom", "iso_fl", "iso-fl", "iso_br", "iso-br"] 
+        },
+        "target": { "$ref": "#/definitions/vec3" },
+        "fov": { "type": "number", "minimum": 0.1, "maximum": 179.9 },
+        "margin": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "opOrbitCamera": {
+      "type": "object",
+      "required": ["op"],
+      "properties": {
+        "op": { "const": "orbit_camera" },
+        "yaw": { "type": "number" },
+        "pitch": { "type": "number" },
+        "center": { "$ref": "#/definitions/vec3" }
+      },
+      "additionalProperties": false
+    },
+    "opFrameObject": {
+      "type": "object",
+      "required": ["op", "name"],
+      "properties": {
+        "op": { "const": "frame_object" },
+        "name": { "type": "string" },
+        "margin": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "opSelect": {
+      "type": "object",
+      "required": ["op", "name"],
+      "properties": {
+        "op": { "const": "select" },
+        "name": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "opSetBackground": {
+      "type": "object",
+      "required": ["op"],
+      "properties": {
+        "op": { "const": "set_background" },
+        "color": { "$ref": "#/definitions/vec3" },
+        "skybox": { "type": "string" }
+      },
+      "additionalProperties": false,
+      "anyOf": [
+        { "required": ["color"] },
+        { "required": ["skybox"] }
+      ]
+    },
+    "opExposure": {
+      "type": "object",
+      "required": ["op", "value"],
+      "properties": {
+        "op": { "const": "exposure" },
+        "value": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "opToneMap": {
+      "type": "object",
+      "required": ["op", "type"],
+      "properties": {
+        "op": { "const": "tone_map" },
+        "type": { 
+          "type": "string", 
+          "enum": ["linear", "reinhard", "filmic", "aces"] 
+        },
+        "gamma": { "type": "number", "minimum": 0.1 }
+      },
+      "additionalProperties": false
+    },
+    "opRenderImage": {
+      "type": "object",
+      "required": ["op", "path"],
+      "properties": {
+        "op": { "const": "render_image" },
+        "path": { "type": "string" },
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": false
+    },
     "op": {
       "oneOf": [
         { "$ref": "#/definitions/opLoad" },
@@ -144,7 +258,17 @@
         { "$ref": "#/definitions/opAddLight" },
         { "$ref": "#/definitions/opSetMaterial" },
         { "$ref": "#/definitions/opTransform" },
-        { "$ref": "#/definitions/opDelete" }
+        { "$ref": "#/definitions/opDelete" },
+        { "$ref": "#/definitions/opDuplicate" },
+        { "$ref": "#/definitions/opRemove" },
+        { "$ref": "#/definitions/opSetCameraPreset" },
+        { "$ref": "#/definitions/opOrbitCamera" },
+        { "$ref": "#/definitions/opFrameObject" },
+        { "$ref": "#/definitions/opSelect" },
+        { "$ref": "#/definitions/opSetBackground" },
+        { "$ref": "#/definitions/opExposure" },
+        { "$ref": "#/definitions/opToneMap" },
+        { "$ref": "#/definitions/opRenderImage" }
       ]
     }
   },

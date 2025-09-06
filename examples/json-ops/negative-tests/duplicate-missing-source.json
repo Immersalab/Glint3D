@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "ops": [
+    {
+      "op": "duplicate",
+      "name": "NewObject",
+      "position": [1, 0, 0]
+    }
+  ]
+}

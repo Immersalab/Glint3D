@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "ops": [
+    {
+      "op": "tone_map",
+      "type": "invalid_tone_mapping",
+      "gamma": 2.2
+    }
+  ]
+}

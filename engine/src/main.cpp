@@ -78,7 +78,15 @@ static const char* GLINT_VERSION = "0.3.0";
 
 static void print_help()
 {
-    printf("glint %s\n", GLINT_VERSION);
+    printf("   _____ _      _____ _   _ _______ ____  _____\n");
+    printf("  / ____| |    |_   _| \\ | |__   __|___ \\|  __ \\\n");
+    printf(" | |  __| |      | | |  \\| |  | |    __) | |  | |\n");
+    printf(" | | |_ | |      | | | . ` |  | |   |__ <| |  | |\n");
+    printf(" | |__| | |____ _| |_| |\\  |  | |   ___) | |__| |\n");
+    printf("  \\_____|______|_____|_| \\_|  |_|  |____/|_____/\n");
+    printf("\n");
+    printf("             3D Engine v%s\n", GLINT_VERSION);
+    printf("\n");
     printf("Usage:\n");
     printf("  glint                          # Launch UI\n");
     printf("  glint --ops <file>             # Apply JSON ops headlessly\n");
@@ -86,12 +94,24 @@ static void print_help()
     printf("\nOptions:\n");
     printf("  --help            Show this help\n");
     printf("  --version         Print version\n");
-    printf("  --ops <file>      JSON ops file to apply (v1)\n");
+    printf("  --ops <file>      JSON ops file to apply (v1.3)\n");
     printf("  --render [<png>]  Output PNG path for headless render (defaults to renders/ folder)\n");
     printf("  --w <int>         Output image width (default 1024)\n");
     printf("  --h <int>         Output image height (default 1024)\n");
     printf("  --denoise         Enable denoiser if available\n");
     printf("  --raytrace        Force raytracing mode for rendering\n");
+    printf("\nJSON Operations v1.3 (Core Operations):\n");
+    printf("  Object:     load, duplicate, remove/delete, select, transform\n");
+    printf("  Camera:     set_camera, set_camera_preset, orbit_camera, frame_object\n");
+    printf("  Lighting:   add_light (point/directional/spot)\n");
+    printf("  Materials:  set_material, set_background, exposure, tone_map\n");
+    printf("  Rendering:  render_image\n");
+    printf("\nExamples:\n");
+    printf("  glint --ops examples/json-ops/duplicate-test.json --render output.png\n");
+    printf("  glint --ops examples/json-ops/camera-preset-test.json --render --w 800 --h 600\n");
+    printf("\nDocumentation:\n");
+    printf("  See examples/README.md for operation details and examples/json-ops/ for samples\n");
+    printf("  Schema validation: schemas/json_ops_v1.json\n");
 }
 
 int main(int argc, char** argv)

@@ -244,6 +244,12 @@ else()
 
     if (WIN32)
         target_link_libraries(glint PRIVATE gdi32 user32 shell32)
+        
+        # Add Windows resource file for application icon and version info
+        if (MSVC)
+            target_sources(glint PRIVATE engine/resources/glint3d.rc)
+            set_property(SOURCE engine/resources/glint3d.rc PROPERTY LANGUAGE RC)
+        endif()
     endif()
 
     # ---- Assimp on desktop only ----

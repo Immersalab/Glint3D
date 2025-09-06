@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "ops": [
+    {
+      "op": "load",
+      "path": "engine/assets/models/cube.obj",
+      "name": "TestCube",
+      "position": [0, 0, 0]
+    },
+    {
+      "op": "set_camera",
+      "position": [0, 2, 5],
+      "target": [0, 0, 0]
+    },
+    {
+      "op": "add_light",
+      "type": "directional",
+      "direction": [-1, -1, -1],
+      "intensity": 2.0
+    },
+    {
+      "op": "exposure",
+      "value": -1.0
+    }
+  ]
+}
