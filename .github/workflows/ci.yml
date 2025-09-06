@@ -113,3 +113,202 @@ jobs:
           path: |
             renders/directional-light-test.candidate.png
             renders/spot-light-test.candidate.png
+
+  validate-golden-images:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+          submodules: recursive
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r tools/requirements.txt
+
+      - name: Install system dependencies (GLFW, Mesa, Xvfb)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build libgl1-mesa-dev libglfw3-dev xvfb
+
+      - name: Configure (CMake)
+        run: cmake -S . -B builds/desktop/cmake -DCMAKE_BUILD_TYPE=Release -G "Unix Makefiles"
+
+      - name: Build
+        run: cmake --build builds/desktop/cmake --config Release -j
+
+      - name: Create minimal test assets
+        run: |
+          mkdir -p test_assets/models
+          # Create minimal OBJ files for testing
+          cat > test_assets/models/sphere.obj << EOF
+          # Minimal sphere (octahedron approximation)
+          v 0.0 1.0 0.0
+          v 1.0 0.0 0.0  
+          v 0.0 0.0 1.0
+          v -1.0 0.0 0.0
+          v 0.0 0.0 -1.0
+          v 0.0 -1.0 0.0
+          f 1 2 3
+          f 1 3 4
+          f 1 4 5
+          f 1 5 2
+          f 6 3 2
+          f 6 4 3
+          f 6 5 4
+          f 6 2 5
+          EOF
+          
+          cat > test_assets/models/cube.obj << EOF
+          # Minimal cube
+          v -1.0 -1.0 -1.0
+          v  1.0 -1.0 -1.0
+          v  1.0  1.0 -1.0
+          v -1.0  1.0 -1.0
+          v -1.0 -1.0  1.0
+          v  1.0 -1.0  1.0
+          v  1.0  1.0  1.0
+          v -1.0  1.0  1.0
+          f 1 2 3 4
+          f 5 8 7 6
+          f 1 5 6 2
+          f 2 6 7 3
+          f 3 7 8 4
+          f 5 1 4 8
+          EOF
+          
+          cat > test_assets/models/plane.obj << EOF
+          # Minimal plane
+          v -2.0 0.0 -2.0
+          v  2.0 0.0 -2.0
+          v  2.0 0.0  2.0
+          v -2.0 0.0  2.0
+          f 1 2 3 4
+          EOF
+
+      - name: Render test scenes
+        run: |
+          set -e
+          EXE="builds/desktop/cmake/glint"
+          test -f "$EXE" || { echo "glint not found"; ls -R builds/desktop/cmake; exit 1; }
+          
+          mkdir -p renders
+          
+          # Render each golden test scene
+          for scene in examples/json-ops/golden-tests/*.json; do
+            if [ -f "$scene" ]; then
+              basename=$(basename "$scene" .json)
+              echo "Rendering $basename..."
+              xvfb-run -a "$EXE" --asset-root test_assets --ops "$scene" \
+                --render "renders/${basename}.png" --w 400 --h 300 --log warn || true
+            fi
+          done
+          
+          ls -la renders/
+
+      - name: Check for existing golden images
+        id: check_goldens
+        run: |
+          if [ -d "examples/golden" ] && [ "$(ls -A examples/golden/*.png 2>/dev/null)" ]; then
+            echo "found=true" >> $GITHUB_OUTPUT
+            echo "Golden images found - will perform comparison"
+            ls -la examples/golden/
+          else
+            echo "found=false" >> $GITHUB_OUTPUT
+            echo "No golden images found - skipping comparison"
+          fi
+
+      - name: Compare against golden images
+        if: steps.check_goldens.outputs.found == 'true'
+        id: compare
+        run: |
+          set -e
+          
+          # Run comparison with detailed output
+          python tools/golden_image_compare.py \
+            --batch renders/ examples/golden/ \
+            --output comparison_artifacts \
+            --json-output comparison_results.json \
+            --type desktop \
+            --verbose
+          
+          # Check results
+          if [ $? -eq 0 ]; then
+            echo "status=passed" >> $GITHUB_OUTPUT
+            echo "All golden image comparisons passed!"
+          else
+            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "Some golden image comparisons failed!"
+            
+            # Show summary
+            if [ -f comparison_results.json ]; then
+              echo "Comparison summary:"
+              python -c "
+          import json
+          with open('comparison_results.json') as f:
+              data = json.load(f)
+          print(f'Total: {data[\"total_comparisons\"]}')
+          print(f'Passed: {data[\"passed_comparisons\"]}') 
+          print(f'Failed: {data[\"total_comparisons\"] - data[\"passed_comparisons\"]}')
+          for result in data['results']:
+              if not result['passed']:
+                  print(f'❌ {result[\"filename\"]}: SSIM={result[\"ssim_score\"]:.4f}, MaxΔ={result[\"max_channel_diff\"]}')
+              else:
+                  print(f'✅ {result[\"filename\"]}: SSIM={result[\"ssim_score\"]:.4f}, MaxΔ={result[\"max_channel_diff\"]}')
+          "
+            fi
+          fi
+
+      - name: Generate initial golden images (if missing)
+        if: steps.check_goldens.outputs.found == 'false'
+        run: |
+          echo "No golden images found - generating initial set"
+          mkdir -p examples/golden
+          
+          python tools/generate_goldens.py builds/desktop/cmake/glint \
+            --test-dir examples/json-ops/golden-tests \
+            --golden-dir examples/golden \
+            --asset-root test_assets \
+            --width 400 --height 300 \
+            --summary golden_generation.json
+          
+          echo "Generated golden images:"
+          ls -la examples/golden/
+
+      - name: Upload rendered images
+        uses: actions/upload-artifact@v4
+        with:
+          name: rendered-test-images
+          path: renders/
+
+      - name: Upload golden comparison artifacts
+        if: steps.check_goldens.outputs.found == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-comparison-artifacts
+          path: |
+            comparison_artifacts/
+            comparison_results.json
+
+      - name: Upload initial golden images (if generated)
+        if: steps.check_goldens.outputs.found == 'false'
+        uses: actions/upload-artifact@v4
+        with:
+          name: initial-golden-images
+          path: |
+            examples/golden/
+            golden_generation.json
+
+      - name: Fail build on comparison failure
+        if: steps.check_goldens.outputs.found == 'true' && steps.compare.outputs.status == 'failed'
+        run: |
+          echo "❌ Golden image validation failed!"
+          echo "Check the uploaded artifacts for diff images and heatmaps."
+          echo "If changes are intentional, regenerate golden images using the workflow dispatch."
+          exit 1

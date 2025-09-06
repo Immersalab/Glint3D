@@ -1,0 +1,52 @@
+{
+  "description": "Tone mapping test - exposure and tone mapping controls",
+  "ops": [
+    {
+      "op": "load",
+      "path": "models/sphere.obj",
+      "name": "BrightSphere",
+      "position": [-1.5, 0, 0],
+      "scale": [1, 1, 1]
+    },
+    {
+      "op": "load",
+      "path": "models/sphere.obj", 
+      "name": "DarkSphere",
+      "position": [1.5, 0, 0],
+      "scale": [1, 1, 1]
+    },
+    {
+      "op": "add_light",
+      "type": "point",
+      "position": [0, 2, 4],
+      "color": [1, 1, 1],
+      "intensity": 3.0
+    },
+    {
+      "op": "add_light",
+      "type": "directional",
+      "direction": [0, -1, -0.5],
+      "color": [0.8, 0.9, 1.0],
+      "intensity": 0.5
+    },
+    {
+      "op": "set_camera",
+      "position": [0, 1, 5],
+      "target": [0, 0, 0],
+      "fov": 50
+    },
+    {
+      "op": "exposure",
+      "value": 1.2
+    },
+    {
+      "op": "tone_map",
+      "type": "aces",
+      "gamma": 2.2
+    },
+    {
+      "op": "set_background",
+      "color": [0.1, 0.15, 0.2]
+    }
+  ]
+}

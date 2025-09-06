@@ -1,0 +1,39 @@
+{
+  "description": "Spot lighting test - focused cone light with falloff",
+  "ops": [
+    {
+      "op": "load",
+      "path": "models/plane.obj", 
+      "name": "TestPlane",
+      "position": [0, -1, 0],
+      "scale": [4, 1, 4]
+    },
+    {
+      "op": "load",
+      "path": "models/sphere.obj",
+      "name": "TestSphere", 
+      "position": [0, 0.5, 0],
+      "scale": [0.8, 0.8, 0.8]
+    },
+    {
+      "op": "add_light",
+      "type": "spot",
+      "position": [2, 4, 2],
+      "direction": [-0.3, -1, -0.3],
+      "color": [1, 0.9, 0.7],
+      "intensity": 2.0,
+      "inner_deg": 15,
+      "outer_deg": 30
+    },
+    {
+      "op": "set_camera",
+      "position": [4, 3, 4], 
+      "target": [0, 0, 0],
+      "fov": 45
+    },
+    {
+      "op": "set_background",
+      "color": [0.1, 0.1, 0.15]
+    }
+  ]
+}
