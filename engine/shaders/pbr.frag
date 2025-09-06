@@ -101,18 +101,24 @@ vec3 acesToneMapping(vec3 color) {
 }
 
 vec3 applyToneMapping(vec3 color) {
-    // Apply exposure first
-    color *= pow(2.0, exposure);
+    // Apply exposure first - use exp2 for better performance
+    color *= exp2(exposure);
     
-    // Apply tone mapping
-    if (toneMappingMode == 1) {
-        color = reinhardToneMapping(color);
-    } else if (toneMappingMode == 2) {
-        color = filmicToneMapping(color);
-    } else if (toneMappingMode == 3) {
-        color = acesToneMapping(color);
-    }
-    // Mode 0 (Linear) doesn't apply tone mapping
+    // Optimized tone mapping with fewer branches
+    vec3 reinhard = color / (1.0 + color);
+    vec3 x = max(vec3(0.0), color - 0.004);
+    vec3 filmic = (x * (6.2 * x + 0.5)) / (x * (6.2 * x + 1.7) + 0.06);
+    const float a = 2.51, b = 0.03, c = 2.43, d = 0.59, e = 0.14;
+    vec3 aces = clamp((color * (a * color + b)) / (color * (c * color + d) + e), 0.0, 1.0);
+    
+    // Use step functions instead of branches for better GPU performance
+    float useReinhard = step(0.5, float(toneMappingMode == 1));
+    float useFilmic = step(0.5, float(toneMappingMode == 2));
+    float useAces = step(0.5, float(toneMappingMode == 3));
+    
+    color = mix(color, reinhard, useReinhard);
+    color = mix(color, filmic, useFilmic);
+    color = mix(color, aces, useAces);
     
     return color;
 }

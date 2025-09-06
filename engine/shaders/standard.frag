@@ -144,26 +144,27 @@ uniform float exposure;
 uniform float gamma;
 uniform int toneMappingMode; // 0=Linear, 1=Reinhard, 2=Filmic, 3=ACES
 
-// Tone mapping functions
-vec3 reinhardToneMapping(vec3 color) {
-    return color / (1.0 + color);
-}
-
-vec3 filmicToneMapping(vec3 color) {
-    vec3 x = max(vec3(0.0), color - 0.004);
-    return (x * (6.2 * x + 0.5)) / (x * (6.2 * x + 1.7) + 0.06);
-}
-
-vec3 acesToneMapping(vec3 color) {
-    const float a = 2.51; const float b = 0.03; const float c = 2.43; const float d = 0.59; const float e = 0.14;
-    return clamp((color * (a * color + b)) / (color * (c * color + d) + e), 0.0, 1.0);
-}
-
+// Optimized tone mapping with fewer branches
 vec3 applyToneMapping(vec3 color) {
-    color *= pow(2.0, exposure);
-    if (toneMappingMode == 1)      color = reinhardToneMapping(color);
-    else if (toneMappingMode == 2) color = filmicToneMapping(color);
-    else if (toneMappingMode == 3) color = acesToneMapping(color);
+    // Apply exposure first
+    color *= exp2(exposure); // More efficient than pow(2.0, exposure)
+    
+    // Optimized tone mapping selection using mix to reduce branches
+    vec3 reinhard = color / (1.0 + color);
+    vec3 x = max(vec3(0.0), color - 0.004);
+    vec3 filmic = (x * (6.2 * x + 0.5)) / (x * (6.2 * x + 1.7) + 0.06);
+    const float a = 2.51, b = 0.03, c = 2.43, d = 0.59, e = 0.14;
+    vec3 aces = clamp((color * (a * color + b)) / (color * (c * color + d) + e), 0.0, 1.0);
+    
+    // Use step functions instead of branches for better GPU performance
+    float useReinhard = step(0.5, float(toneMappingMode == 1));
+    float useFilmic = step(0.5, float(toneMappingMode == 2));
+    float useAces = step(0.5, float(toneMappingMode == 3));
+    
+    color = mix(color, reinhard, useReinhard);
+    color = mix(color, filmic, useFilmic);
+    color = mix(color, aces, useAces);
+    
     return color;
 }
     finalColor = pow(finalColor, vec3(1.0 / gamma));

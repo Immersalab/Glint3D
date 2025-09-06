@@ -128,8 +128,13 @@ void RenderSystem::render(const SceneManager& scene, const Light& lights)
 {
     // Reset per-frame stats counters
     m_stats = {};
-    // Clear buffers with current background color
-    glClearColor(m_backgroundColor.r, m_backgroundColor.g, m_backgroundColor.b, 1.0f);
+    
+    // Optimize clear operations - only clear if background changed
+    static glm::vec3 lastBgColor{-1.0f};
+    if (lastBgColor != m_backgroundColor) {
+        glClearColor(m_backgroundColor.r, m_backgroundColor.g, m_backgroundColor.b, 1.0f);
+        lastBgColor = m_backgroundColor;
+    }
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
     // Choose render path based on mode
@@ -142,22 +147,8 @@ void RenderSystem::render(const SceneManager& scene, const Light& lights)
             break;
     }
     
-    // Render debug elements
-    if (m_showGrid && m_grid) {
-        m_grid->render(m_viewMatrix, m_projectionMatrix);
-        // Approximate draw call for grid
-        m_stats.drawCalls += 1;
-    }
-    if (m_showAxes && m_axisRenderer) {
-        glm::mat4 I(1.0f);
-        m_axisRenderer->render(I, m_viewMatrix, m_projectionMatrix);
-        // Approximate draw call for axes
-        m_stats.drawCalls += 1;
-    }
-    // Light indicators
-    lights.renderIndicators(m_viewMatrix, m_projectionMatrix, m_selectedLightIndex);
-    // Approximate draw call for light indicators
-    m_stats.drawCalls += 1;
+    // Batch debug element rendering for fewer state changes
+    renderDebugElements(scene, lights);
 
     // Selection outline for currently selected object (wireframe overlay)
     {
@@ -605,16 +596,11 @@ void RenderSystem::renderRasterized(const SceneManager& scene, const Light& ligh
     // Render skybox first as background
     if (m_showSkybox && m_skybox) {
         m_skybox->render(m_viewMatrix, m_projectionMatrix);
-        // Approximate draw call for skybox
         m_stats.drawCalls += 1;
     }
     
-    // Render all scene objects using OpenGL
-    const auto& objects = scene.getObjects();
-    
-    for (const auto& obj : objects) {
-        renderObject(obj, lights);
-    }
+    // Optimized object rendering with batching by material/shader
+    renderObjectsBatched(scene, lights);
 }
 
 void RenderSystem::renderRaytraced(const SceneManager& scene, const Light& lights)
@@ -713,15 +699,23 @@ void RenderSystem::renderRaytraced(const SceneManager& scene, const Light& light
 
 void RenderSystem::renderObject(const SceneObject& obj, const Light& lights)
 {
-    // Basic object rendering
+    // Basic object rendering - optimized for minimal state changes
     if (obj.VAO == 0) return;
 
     // Choose shader path
     bool usePBR = (obj.baseColorTex || obj.mrTex || obj.normalTex);
     Shader* s = usePBR && m_pbrShader ? m_pbrShader.get() : m_basicShader.get();
     if (!s) return;
-
-    s->use();
+    
+    // Cache shader state to avoid redundant use() calls
+    static Shader* lastShader = nullptr;
+    if (s != lastShader) {
+        s->use();
+        lastShader = s;
+        
+        // Set common uniforms once per shader switch
+        setupCommonUniforms(s);
+    }
 
     // Matrices
     s->setMat4("model", obj.modelMatrix);
@@ -788,29 +782,29 @@ void RenderSystem::renderObject(const SceneObject& obj, const Light& lights)
 
     glBindVertexArray(obj.VAO);
 
-    // Set render mode
-    switch (m_renderMode) {
-        case RenderMode::Points:
-            glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
-            break;
-        case RenderMode::Wireframe:
-            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-            break;
-        default:
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-            break;
+    // Optimized render mode handling - cache state
+    static RenderMode lastRenderMode = static_cast<RenderMode>(-1);
+    if (m_renderMode != lastRenderMode) {
+        switch (m_renderMode) {
+            case RenderMode::Points:
+                glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
+                break;
+            case RenderMode::Wireframe:
+                glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                break;
+            default:
+                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+                break;
+        }
+        lastRenderMode = m_renderMode;
     }
-    // Draw the object
+    
+    // Optimized draw call
     if (obj.EBO != 0) {
         glDrawElements(GL_TRIANGLES, obj.objLoader.getIndexCount(), GL_UNSIGNED_INT, 0);
     } else {
         glDrawArrays(GL_TRIANGLES, 0, obj.objLoader.getVertCount());
     }
-    
-    glBindVertexArray(0);
-    
-    // Reset polygon mode
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     // Count one draw call for this object
     m_stats.drawCalls += 1;
@@ -962,6 +956,237 @@ void RenderSystem::initRaytraceTexture()
     glBindTexture(GL_TEXTURE_2D, 0);
     
     std::cout << "[RenderSystem] Raytracing texture initialized (" << m_raytraceWidth << "x" << m_raytraceHeight << ")\n";
+}
+
+void RenderSystem::renderDebugElements(const SceneManager& scene, const Light& lights)
+{
+    // Batch debug element rendering to minimize state changes
+    if (m_showGrid && m_grid) {
+        m_grid->render(m_viewMatrix, m_projectionMatrix);
+        m_stats.drawCalls += 1;
+    }
+    if (m_showAxes && m_axisRenderer) {
+        glm::mat4 I(1.0f);
+        m_axisRenderer->render(I, m_viewMatrix, m_projectionMatrix);
+        m_stats.drawCalls += 1;
+    }
+    
+    // Light indicators
+    lights.renderIndicators(m_viewMatrix, m_projectionMatrix, m_selectedLightIndex);
+    m_stats.drawCalls += 1;
+
+    // Selection outline for currently selected object (wireframe overlay)
+    renderSelectionOutline(scene);
+    
+    // Draw gizmo at selected object's or light's center
+    renderGizmo(scene, lights);
+}
+
+void RenderSystem::renderSelectionOutline(const SceneManager& scene)
+{
+    int selObj = scene.getSelectedObjectIndex();
+    const auto& objs = scene.getObjects();
+    if (selObj >= 0 && selObj < (int)objs.size() && m_basicShader) {
+        const auto& obj = objs[selObj];
+        if (obj.VAO != 0) {
+            Shader* s = m_basicShader.get();
+            s->use();
+            // Post-processing uniforms for standard shader (selection overlay respects gamma/exposure)
+            s->setFloat("exposure", m_exposure);
+            s->setFloat("gamma", m_gamma);
+            s->setInt("toneMappingMode", static_cast<int>(m_tonemap));
+            // Matrices
+            s->setMat4("model", obj.modelMatrix);
+            s->setMat4("view", m_viewMatrix);
+            s->setMat4("projection", m_projectionMatrix);
+            // Solid highlight color via ambient-only lighting
+            s->setInt("shadingMode", 0); // flat path
+            s->setBool("useTexture", false);
+            s->setVec3("objectColor", glm::vec3(0.2f, 0.7f, 1.0f)); // cyan-ish
+            s->setVec3("viewPos", m_camera.position);
+            // Force bright ambient and no direct lights
+            glActiveTexture(GL_TEXTURE0 + 7);
+            glBindTexture(GL_TEXTURE_2D, m_dummyShadowTex);
+            s->setInt("shadowMap", 7);
+            s->setMat4("lightSpaceMatrix", glm::mat4(1.0f));
+            // Material ambient = 1, other params not used in flat ambient-only path
+            s->setVec3("material.ambient", glm::vec3(1.0f));
+            s->setInt("numLights", 0);
+            s->setVec4("globalAmbient", glm::vec4(1.0f));
+
+            // Draw as wireframe overlay with slight depth bias to reduce z-fighting
+#ifndef __EMSCRIPTEN__
+            GLint prevPolyMode[2];
+            glGetIntegerv(GL_POLYGON_MODE, prevPolyMode);
+            glEnable(GL_POLYGON_OFFSET_LINE);
+            glPolygonOffset(-1.0f, -1.0f);
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            glLineWidth(1.5f);
+#endif
+            glBindVertexArray(obj.VAO);
+            if (obj.EBO != 0) {
+                glDrawElements(GL_TRIANGLES, obj.objLoader.getIndexCount(), GL_UNSIGNED_INT, 0);
+            } else {
+                glDrawArrays(GL_TRIANGLES, 0, obj.objLoader.getVertCount());
+            }
+            glBindVertexArray(0);
+            // Selection overlay adds an extra draw call
+            m_stats.drawCalls += 1;
+#ifndef __EMSCRIPTEN__
+            glPolygonMode(GL_FRONT_AND_BACK, prevPolyMode[0]);
+            glDisable(GL_POLYGON_OFFSET_LINE);
+#endif
+        }
+    }
+}
+
+void RenderSystem::renderGizmo(const SceneManager& scene, const Light& lights)
+{
+    if (m_gizmo) {
+        int selObj = -1;
+        const auto& objs = scene.getObjects();
+        // Use SceneManager selection if available
+        selObj = scene.getSelectedObjectIndex();
+        bool haveObj = (selObj >= 0 && selObj < (int)objs.size());
+        bool haveLight = (m_selectedLightIndex >= 0 && m_selectedLightIndex < (int)lights.m_lights.size());
+        if (haveObj || haveLight) {
+            glm::vec3 center(0.0f);
+            glm::mat3 R(1.0f);
+            if (haveObj) {
+                const auto& obj = objs[selObj];
+                center = glm::vec3(obj.modelMatrix[3]);
+                if (m_gizmoLocal) {
+                    glm::mat3 M3(obj.modelMatrix);
+                    R[0] = glm::normalize(glm::vec3(M3[0]));
+                    R[1] = glm::normalize(glm::vec3(M3[1]));
+                    R[2] = glm::normalize(glm::vec3(M3[2]));
+                }
+            } else {
+                center = lights.m_lights[(size_t)m_selectedLightIndex].position;
+                R = glm::mat3(1.0f); // lights are treated as world-aligned
+            }
+            float dist = glm::length(m_camera.position - center);
+            float gscale = glm::clamp(dist * 0.15f, 0.5f, 10.0f);
+            m_gizmo->render(m_viewMatrix, m_projectionMatrix, center, R, gscale, m_gizmoAxis, m_gizmoMode);
+            // Approximate draw call for gizmo
+            m_stats.drawCalls += 1;
+        }
+    }
+}
+
+void RenderSystem::renderObjectsBatched(const SceneManager& scene, const Light& lights)
+{
+    const auto& objects = scene.getObjects();
+    if (objects.empty()) return;
+    
+    // Group objects by shader type to minimize state changes
+    std::vector<const SceneObject*> basicShaderObjects;
+    std::vector<const SceneObject*> pbrShaderObjects;
+    
+    for (const auto& obj : objects) {
+        if (obj.VAO == 0) continue;
+        
+        bool usePBR = (obj.baseColorTex || obj.mrTex || obj.normalTex);
+        if (usePBR && m_pbrShader) {
+            pbrShaderObjects.push_back(&obj);
+        } else {
+            basicShaderObjects.push_back(&obj);
+        }
+    }
+    
+    // Render basic shader objects in batch
+    if (!basicShaderObjects.empty() && m_basicShader) {
+        m_basicShader->use();
+        setupCommonUniforms(m_basicShader.get());
+        // Apply lighting for this shader
+        lights.applyLights(m_basicShader->getID());
+        for (const auto* obj : basicShaderObjects) {
+            renderObjectFast(*obj, lights, m_basicShader.get());
+        }
+    }
+    
+    // Render PBR shader objects in batch
+    if (!pbrShaderObjects.empty() && m_pbrShader) {
+        m_pbrShader->use();
+        setupCommonUniforms(m_pbrShader.get());
+        // Apply lighting for this shader
+        lights.applyLights(m_pbrShader->getID());
+        for (const auto* obj : pbrShaderObjects) {
+            renderObjectFast(*obj, lights, m_pbrShader.get());
+        }
+    }
+    
+    // Reset VAO binding once at the end
+    glBindVertexArray(0);
+}
+
+void RenderSystem::setupCommonUniforms(Shader* shader)
+{
+    // Set common uniforms that don't change per object
+    shader->setMat4("view", m_viewMatrix);
+    shader->setMat4("projection", m_projectionMatrix);
+    shader->setVec3("viewPos", m_camera.position);
+    shader->setInt("shadingMode", (int)m_shadingMode);
+    shader->setFloat("exposure", m_exposure);
+    shader->setFloat("gamma", m_gamma);
+    shader->setInt("toneMappingMode", static_cast<int>(m_tonemap));
+    
+    // Bind dummy shadow map
+    glActiveTexture(GL_TEXTURE0 + 7);
+    glBindTexture(GL_TEXTURE_2D, m_dummyShadowTex);
+    shader->setInt("shadowMap", 7);
+    shader->setMat4("lightSpaceMatrix", glm::mat4(1.0f));
+}
+
+void RenderSystem::renderObjectFast(const SceneObject& obj, const Light& lights, Shader* shader)
+{
+    // Fast object rendering with minimal per-object state changes
+    shader->setMat4("model", obj.modelMatrix);
+    
+    if (shader == m_basicShader.get()) {
+        // Standard shader material uniforms
+        shader->setVec3("material.diffuse",  obj.material.diffuse);
+        shader->setVec3("material.specular", obj.material.specular);
+        shader->setVec3("material.ambient",  obj.material.ambient);
+        shader->setFloat("material.shininess", obj.material.shininess);
+        shader->setFloat("material.roughness", obj.material.roughness);
+        shader->setFloat("material.metallic",  obj.material.metallic);
+        
+        // Texturing
+        if (obj.texture) {
+            obj.texture->bind(0);
+            shader->setBool("useTexture", true);
+            shader->setInt("cowTexture", 0);
+        } else {
+            shader->setBool("useTexture", false);
+            shader->setVec3("objectColor", obj.color);
+        }
+    } else {
+        // PBR shader uniforms
+        shader->setVec4("baseColorFactor", obj.baseColorFactor);
+        shader->setFloat("metallicFactor", obj.metallicFactor);
+        shader->setFloat("roughnessFactor", obj.roughnessFactor);
+        shader->setBool("hasBaseColorMap", obj.baseColorTex != nullptr);
+        shader->setBool("hasNormalMap", obj.normalTex != nullptr && obj.VBO_tangents != 0);
+        shader->setBool("hasMRMap", obj.mrTex != nullptr);
+        shader->setBool("hasTangents", obj.VBO_tangents != 0);
+        
+        int unit = 0;
+        if (obj.baseColorTex) { obj.baseColorTex->bind(unit); shader->setInt("baseColorTex", unit++); }
+        if (obj.normalTex && obj.VBO_tangents != 0) { obj.normalTex->bind(unit); shader->setInt("normalTex", unit++); }
+        if (obj.mrTex) { obj.mrTex->bind(unit); shader->setInt("mrTex", unit++); }
+    }
+    
+    glBindVertexArray(obj.VAO);
+    
+    // Draw call
+    if (obj.EBO != 0) {
+        glDrawElements(GL_TRIANGLES, obj.objLoader.getIndexCount(), GL_UNSIGNED_INT, 0);
+    } else {
+        glDrawArrays(GL_TRIANGLES, 0, obj.objLoader.getVertCount());
+    }
+    
+    m_stats.drawCalls += 1;
 }
 
 void RenderSystem::cleanupRaytracing()

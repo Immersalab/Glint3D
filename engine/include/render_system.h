@@ -212,6 +212,14 @@ private:
     void renderObject(const SceneObject& obj, const Light& lights);
     void updateRenderStats(const SceneManager& scene);
     
+    // Optimized rendering methods
+    void renderDebugElements(const SceneManager& scene, const Light& lights);
+    void renderSelectionOutline(const SceneManager& scene);
+    void renderGizmo(const SceneManager& scene, const Light& lights);
+    void renderObjectsBatched(const SceneManager& scene, const Light& lights);
+    void setupCommonUniforms(Shader* shader);
+    void renderObjectFast(const SceneObject& obj, const Light& lights, Shader* shader);
+    
     // Raytracing support methods
     void initScreenQuad();
     void initRaytraceTexture();
