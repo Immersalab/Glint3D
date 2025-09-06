@@ -408,9 +408,35 @@ CI Integration (proposed)
 
 ---
 
+## KNOWN ISSUES
+
+### Golden Image Testing (CI)
+**Status**: TEMPORARILY DISABLED  
+**Priority**: Medium  
+**GitHub Issue**: [Link to be created]
+
+**Problem**: Golden image regression testing in CI pipeline was failing due to:
+- Platform rendering differences between Windows development and Linux CI
+- ImageMagick dependency installation inconsistencies  
+- Overly strict comparison thresholds (SSIM ≥0.995, RMSE ≤0.004)
+- Limited test coverage (only directional/spot lighting)
+
+**Current Workaround**: Golden image comparison steps commented out in `.github/workflows/ci.yml`
+
+**Impact**: Visual regressions may not be caught automatically during CI
+
+**Planned Resolution**:
+1. Implement robust platform-independent rendering comparison
+2. Add configurable tolerance thresholds for acceptable visual differences
+3. Expand test coverage beyond basic lighting scenarios
+4. Create workflow for updating golden images when changes are intentional
+
+---
+
 ## RISKS AND MITIGATIONS
 
 - Platform drift (GL versions, WebGL2 limits): maintain shader compatibility paths and automated smoke tests on Linux + Emscripten.
 - Visual test flakiness: use tolerance windows and seed control; keep reference scenes minimal and deterministic.
 - Asset path variability: introduce --asset-root and normalize relative paths in examples; document required assets.
 - Performance regressions: track HUD metrics across builds; consider simple timing logs in headless mode.
+- **Golden image testing gap**: Manual visual verification required until automated golden image testing is restored.

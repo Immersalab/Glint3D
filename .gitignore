@@ -41,13 +41,19 @@ build-temp/
 x64/
 out/
 
-# Shader compilation artifacts (if any)
+# Shader compilation artifacts and logs
 *.spv
 *.shaderbin
+shader_log.txt
+*shader_log.txt
 
-# Temporary files
+# Temporary files and test outputs
 *.tmp
 *.temp
+metric.txt
+*diff.png
+test_*.png
+*test_output*
 
 # Ignore Visual Studio folders and files
 .vs/
@@ -97,5 +103,12 @@ ui/pnpm-lock.yaml
 
 # Large and frequently changing cache directories
 .claude/
+.claude/settings.local.json
+
+# Test scripts and temporary outputs
+test_golden_comparison.sh
+*comparison*.sh
+render_*.png
+out.png
 
 # ... any other build or large files you don't want ...
