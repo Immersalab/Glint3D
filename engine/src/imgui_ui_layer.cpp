@@ -313,10 +313,48 @@ void ImGuiUILayer::renderMainMenuBar(const UIState& state)
             ImGui::EndMenu();
         }
         
-        // Show engine info on the right side
-        ImGui::SetCursorPosX(ImGui::GetWindowWidth() - 200);
-        ImGui::TextDisabled("Glint3D Engine v0.3.0");
-        
+        // Top-right camera preset quick buttons
+        {
+            ImGuiStyle& style = ImGui::GetStyle();
+            struct Btn { const char* label; const char* tip; CameraPreset preset; };
+            Btn buttons[] = {
+                {"F",  "Front View (1)",            CameraPreset::Front},
+                {"B",  "Back View (2)",             CameraPreset::Back},
+                {"L",  "Left View (3)",             CameraPreset::Left},
+                {"R",  "Right View (4)",            CameraPreset::Right},
+                {"T",  "Top View (5)",              CameraPreset::Top},
+                {"D",  "Bottom/Down View (6)",      CameraPreset::Bottom},
+                {"FL", "Isometric Front-Left (7)",  CameraPreset::IsoFL},
+                {"BR", "Isometric Back-Right (8)",  CameraPreset::IsoBR},
+            };
+
+            // Compute total width to right-align the toolbar
+            float total_w = 0.0f;
+            for (int i = 0; i < (int)(sizeof(buttons)/sizeof(buttons[0])); ++i) {
+                ImVec2 ts = ImGui::CalcTextSize(buttons[i].label);
+                float bw = ts.x + style.FramePadding.x * 2.0f; // approximate SmallButton width
+                total_w += bw;
+                if (i != 7) total_w += style.ItemSpacing.x;
+            }
+            float right_margin = 8.0f;
+            ImGui::SameLine(ImGui::GetWindowWidth() - total_w - right_margin);
+
+            for (int i = 0; i < (int)(sizeof(buttons)/sizeof(buttons[0])); ++i) {
+                if (ImGui::SmallButton(buttons[i].label)) {
+                    UICommandData cmd; 
+                    cmd.command = UICommand::SetCameraPreset; 
+                    cmd.intParam = static_cast<int>(buttons[i].preset);
+                    if (onCommand) onCommand(cmd);
+                }
+                if (ImGui::IsItemHovered()) {
+                    ImGui::BeginTooltip();
+                    ImGui::TextUnformatted(buttons[i].tip);
+                    ImGui::EndTooltip();
+                }
+                if (i != 7) ImGui::SameLine();
+            }
+        }
+
         ImGui::EndMainMenuBar();
     }
 #endif
@@ -446,77 +484,7 @@ void ImGuiUILayer::renderSettingsPanel(const UIState& state)
             ImGui::Spacing();
         }
         
-        // Camera Presets Section
-        if (ImGui::CollapsingHeader("Camera Presets", ImGuiTreeNodeFlags_DefaultOpen)) {
-            ImGui::Spacing();
-            ImGui::Text("Quick camera angles (Hotkeys 1-8):");
-            ImGui::Spacing();
-            
-            // Create a 4x2 grid of preset buttons
-            const float buttonWidth = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
-            
-            // Row 1: Front, Back
-            if (ImGui::Button("1-Front", ImVec2(buttonWidth, 0))) {
-                UICommandData cmd;
-                cmd.command = UICommand::SetCameraPreset;
-                cmd.intParam = static_cast<int>(CameraPreset::Front);
-                if (onCommand) onCommand(cmd);
-            }
-            ImGui::SameLine();
-            if (ImGui::Button("2-Back", ImVec2(buttonWidth, 0))) {
-                UICommandData cmd;
-                cmd.command = UICommand::SetCameraPreset;
-                cmd.intParam = static_cast<int>(CameraPreset::Back);
-                if (onCommand) onCommand(cmd);
-            }
-            
-            // Row 2: Left, Right
-            if (ImGui::Button("3-Left", ImVec2(buttonWidth, 0))) {
-                UICommandData cmd;
-                cmd.command = UICommand::SetCameraPreset;
-                cmd.intParam = static_cast<int>(CameraPreset::Left);
-                if (onCommand) onCommand(cmd);
-            }
-            ImGui::SameLine();
-            if (ImGui::Button("4-Right", ImVec2(buttonWidth, 0))) {
-                UICommandData cmd;
-                cmd.command = UICommand::SetCameraPreset;
-                cmd.intParam = static_cast<int>(CameraPreset::Right);
-                if (onCommand) onCommand(cmd);
-            }
-            
-            // Row 3: Top, Bottom
-            if (ImGui::Button("5-Top", ImVec2(buttonWidth, 0))) {
-                UICommandData cmd;
-                cmd.command = UICommand::SetCameraPreset;
-                cmd.intParam = static_cast<int>(CameraPreset::Top);
-                if (onCommand) onCommand(cmd);
-            }
-            ImGui::SameLine();
-            if (ImGui::Button("6-Bottom", ImVec2(buttonWidth, 0))) {
-                UICommandData cmd;
-                cmd.command = UICommand::SetCameraPreset;
-                cmd.intParam = static_cast<int>(CameraPreset::Bottom);
-                if (onCommand) onCommand(cmd);
-            }
-            
-            // Row 4: Isometric views
-            if (ImGui::Button("7-Iso FL", ImVec2(buttonWidth, 0))) {
-                UICommandData cmd;
-                cmd.command = UICommand::SetCameraPreset;
-                cmd.intParam = static_cast<int>(CameraPreset::IsoFL);
-                if (onCommand) onCommand(cmd);
-            }
-            ImGui::SameLine();
-            if (ImGui::Button("8-Iso BR", ImVec2(buttonWidth, 0))) {
-                UICommandData cmd;
-                cmd.command = UICommand::SetCameraPreset;
-                cmd.intParam = static_cast<int>(CameraPreset::IsoBR);
-                if (onCommand) onCommand(cmd);
-            }
-            
-            ImGui::Spacing();
-        }
+        // Camera Presets moved to top-right toolbar in the main menu
         
         // Scene Information Section
         if (ImGui::CollapsingHeader("Scene Information", ImGuiTreeNodeFlags_DefaultOpen)) {
