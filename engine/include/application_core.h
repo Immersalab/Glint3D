@@ -3,6 +3,7 @@
 #include <memory>
 #include <glm/glm.hpp>
 #include "gizmo.h"
+#include "render_settings.h"
 
 // Forward declarations
 struct GLFWwindow;
@@ -46,11 +47,16 @@ public:
     void setStrictSchema(bool enabled, const std::string& version = "v1.3");
     bool isStrictSchemaEnabled() const;
     
+    // Render settings support
+    void setRenderSettings(const RenderSettings& settings);
+    const RenderSettings& getRenderSettings() const;
+    
     // Input callbacks (called by GLFW)
     void handleMouseMove(double xpos, double ypos);
     void handleMouseButton(int button, int action, int mods);
     void handleFramebufferResize(int width, int height);
     void handleKey(int key, int scancode, int action, int mods);
+    void handleFileDrop(int count, const char** paths);
 
     // Getters for external access (UserInput, etc.)
     int getWindowWidth() const { return m_windowWidth; }
@@ -89,6 +95,9 @@ private:
 
     // Selection
     int m_selectedLightIndex = -1;
+    
+    // Render settings
+    RenderSettings m_renderSettings;
 
     // Gizmo state
     GizmoMode m_gizmoMode = GizmoMode::Translate;
@@ -114,6 +123,7 @@ private:
     static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
     static void framebufferSizeCallback(GLFWwindow* window, int width, int height);
     static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+    static void dropCallback(GLFWwindow* window, int count, const char** paths);
     
     // Cleanup
     void cleanupGL();

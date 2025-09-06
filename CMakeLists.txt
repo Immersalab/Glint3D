@@ -20,6 +20,7 @@ set(APP_SOURCES
     ${SRC_DIR}/ui_bridge.cpp
     ${SRC_DIR}/json_ops.cpp
     ${SRC_DIR}/cli_parser.cpp
+    ${SRC_DIR}/render_settings.cpp
     ${SRC_DIR}/schema_validator.cpp
     ${SRC_DIR}/path_security.cpp
     ${SRC_DIR}/imgui_ui_layer.cpp

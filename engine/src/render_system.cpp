@@ -168,6 +168,10 @@ void RenderSystem::render(const SceneManager& scene, const Light& lights)
             if (obj.VAO != 0) {
                 Shader* s = m_basicShader.get();
                 s->use();
+                // Post-processing uniforms for standard shader (selection overlay respects gamma/exposure)
+                s->setFloat("exposure", m_exposure);
+                s->setFloat("gamma", m_gamma);
+                s->setInt("toneMappingMode", static_cast<int>(m_tonemap));
                 // Matrices
                 s->setMat4("model", obj.modelMatrix);
                 s->setMat4("view", m_viewMatrix);
@@ -633,6 +637,9 @@ void RenderSystem::renderRaytraced(const SceneManager& scene, const Light& light
     // Clear existing raytracer data and load all scene objects
     m_raytracer = std::make_unique<Raytracer>();
     
+    // Set the seed for deterministic rendering
+    m_raytracer->setSeed(m_seed);
+    
     const auto& objects = scene.getObjects();
     std::cout << "[RenderSystem] Loading " << objects.size() << " objects into raytracer\n";
     
@@ -654,6 +661,9 @@ void RenderSystem::renderRaytraced(const SceneManager& scene, const Light& light
     std::cout << "[RenderSystem] Raytracing " << m_raytraceWidth << "x" << m_raytraceHeight << " image...\n";
     
     // Render the image using the raytracer
+    if (m_raytracer) {
+        m_raytracer->setSeed(m_seed);
+    }
     m_raytracer->renderImage(raytraceBuffer, m_raytraceWidth, m_raytraceHeight,
                             m_camera.position, m_camera.front, m_camera.up, 
                             m_camera.fov, lights);
@@ -678,6 +688,11 @@ void RenderSystem::renderRaytraced(const SceneManager& scene, const Light& light
     
     // Render the raytraced result using screen quad
     m_screenQuadShader->use();
+    
+    // Set post-processing uniforms
+    m_screenQuadShader->setFloat("exposure", m_exposure);
+    m_screenQuadShader->setFloat("gamma", m_gamma);
+    m_screenQuadShader->setInt("toneMappingMode", static_cast<int>(m_tonemap));
     
     // Bind the raytraced texture
     glActiveTexture(GL_TEXTURE0);
@@ -718,6 +733,10 @@ void RenderSystem::renderObject(const SceneObject& obj, const Light& lights)
     s->setInt("shadingMode", (int)m_shadingMode);
 
     if (s == m_basicShader.get()) {
+        // Post-processing uniforms for standard shader
+        s->setFloat("exposure", m_exposure);
+        s->setFloat("gamma", m_gamma);
+        s->setInt("toneMappingMode", static_cast<int>(m_tonemap));
         // Material for standard shader
         s->setVec3("material.diffuse",  obj.material.diffuse);
         s->setVec3("material.specular", obj.material.specular);
@@ -734,6 +753,12 @@ void RenderSystem::renderObject(const SceneObject& obj, const Light& lights)
         s->setBool("hasNormalMap", obj.normalTex != nullptr && obj.VBO_tangents != 0);
         s->setBool("hasMRMap", obj.mrTex != nullptr);
         s->setBool("hasTangents", obj.VBO_tangents != 0);
+        
+        // Set post-processing uniforms for PBR shader
+        s->setFloat("exposure", m_exposure);
+        s->setFloat("gamma", m_gamma);
+        s->setInt("toneMappingMode", static_cast<int>(m_tonemap));
+        
         int unit = 0;
         if (obj.baseColorTex) { obj.baseColorTex->bind(unit); s->setInt("baseColorTex", unit++); }
         if (obj.normalTex && obj.VBO_tangents != 0) { obj.normalTex->bind(unit); s->setInt("normalTex", unit++); }

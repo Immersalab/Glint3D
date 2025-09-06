@@ -155,9 +155,7 @@ glm::vec3 Raytracer::traceRay(const Ray& ray, const Light& lights, int depth) co
         color = glm::mix(color, reflectedColor, hitObject->reflectivity);
     }
 
-    // Gamma correction (makes colors less washed out)
-    color = glm::pow(color, glm::vec3(1.0f / 2.2f));
-
+    // Leave color in linear space; screen shader applies tone mapping and gamma
     return glm::clamp(color, 0.0f, 1.0f);
 }
 

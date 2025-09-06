@@ -222,6 +222,33 @@ bool ApplicationCore::isStrictSchemaEnabled() const
     return false;
 }
 
+void ApplicationCore::setRenderSettings(const RenderSettings& settings)
+{
+    m_renderSettings = settings;
+    
+    // Apply settings to renderer immediately
+    if (m_renderer) {
+        // Map ToneMappingMode to RenderToneMapMode
+        RenderToneMapMode renderToneMode;
+        switch (settings.toneMapping) {
+            case ToneMappingMode::Linear: renderToneMode = RenderToneMapMode::Linear; break;
+            case ToneMappingMode::Reinhard: renderToneMode = RenderToneMapMode::Reinhard; break;
+            case ToneMappingMode::ACES: renderToneMode = RenderToneMapMode::ACES; break;
+            case ToneMappingMode::Filmic: renderToneMode = RenderToneMapMode::Filmic; break;
+        }
+        
+        m_renderer->setToneMapping(renderToneMode);
+        m_renderer->setExposure(settings.exposure);
+        m_renderer->setGamma(settings.gamma);
+        m_renderer->setSeed(settings.seed);
+    }
+}
+
+const RenderSettings& ApplicationCore::getRenderSettings() const
+{
+    return m_renderSettings;
+}
+
 std::string ApplicationCore::buildShareLink() const
 {
     return m_uiBridge->buildShareLink();
@@ -544,6 +571,7 @@ void ApplicationCore::initCallbacks()
     glfwSetMouseButtonCallback(m_window, mouseButtonCallback);
     glfwSetFramebufferSizeCallback(m_window, framebufferSizeCallback);
     glfwSetKeyCallback(m_window, keyCallback);
+    glfwSetDropCallback(m_window, dropCallback);
 }
 
 void ApplicationCore::createDefaultScene()
@@ -641,5 +669,24 @@ void ApplicationCore::keyCallback(GLFWwindow* window, int key, int scancode, int
     ApplicationCore* app = static_cast<ApplicationCore*>(glfwGetWindowUserPointer(window));
     if (app) {
         app->handleKey(key, scancode, action, mods);
+    }
+}
+
+void ApplicationCore::dropCallback(GLFWwindow* window, int count, const char** paths)
+{
+    ApplicationCore* app = static_cast<ApplicationCore*>(glfwGetWindowUserPointer(window));
+    if (app) {
+        app->handleFileDrop(count, paths);
+    }
+}
+
+void ApplicationCore::handleFileDrop(int count, const char** paths)
+{
+    if (!m_uiBridge) return;
+    for (int i = 0; i < count; ++i) {
+        const char* p = paths[i];
+        if (!p) continue;
+        UICommandData cmd; cmd.command = UICommand::OpenFile; cmd.stringParam = std::string(p);
+        m_uiBridge->handleUICommand(cmd);
     }
 }

@@ -132,6 +132,9 @@ int main(int argc, char** argv)
         Logger::debug("Enabling strict schema validation for " + parseResult.options.schemaVersion);
         app->setStrictSchema(true, parseResult.options.schemaVersion);
     }
+    
+    // Configure render settings
+    app->setRenderSettings(parseResult.options.renderSettings);
 
 #ifdef __EMSCRIPTEN__
     // Assign global for JS bridge
@@ -241,6 +244,13 @@ int main(int argc, char** argv)
             Logger::info("Rendering to: " + outputPath + 
                         " (" + std::to_string(parseResult.options.outputWidth) + 
                         "x" + std::to_string(parseResult.options.outputHeight) + ")");
+            
+            // Log render settings
+            const auto& rs = parseResult.options.renderSettings;
+            Logger::info("Render settings: seed=" + std::to_string(rs.seed) + 
+                        ", tone=" + RenderSettings::toneMappingToString(rs.toneMapping) + 
+                        ", exposure=" + std::to_string(rs.exposure) + 
+                        ", gamma=" + std::to_string(rs.gamma));
             
             if (!app->renderToPNG(outputPath, parseResult.options.outputWidth, parseResult.options.outputHeight)) {
                 Logger::error("Render failed");

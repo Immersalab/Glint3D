@@ -505,6 +505,9 @@ void UIBridge::handleLoadObject(const UICommandData& cmd)
     bool success = m_scene.loadObject(cmd.stringParam, cmd.stringParam, cmd.vec3Param);
     if (success) {
         addConsoleMessage("Loaded object: " + cmd.stringParam);
+        // Select newly added object (assume appended)
+        int newIndex = (int)m_scene.getObjects().size() - 1;
+        if (newIndex >= 0) m_scene.setSelectedObjectIndex(newIndex);
         addRecentFile(cmd.stringParam);
     } else {
         addConsoleMessage("Failed to load object: " + cmd.stringParam);
@@ -776,7 +779,9 @@ bool UIBridge::openFilePath(const std::string& path)
     if (path.empty()) return false;
     std::string low = toLowerStr(path);
     bool ok = false;
-    if (low.size() >= 5 && low.substr(low.size()-5) == ".json") {
+    auto extPos = low.find_last_of('.');
+    std::string ext = (extPos == std::string::npos) ? std::string() : low.substr(extPos);
+    if (ext == ".json") {
         // Load JSON ops or scene
         std::ifstream in(path, std::ios::in | std::ios::binary);
         if (!in) { addConsoleMessage("Cannot open: " + path); return false; }
@@ -785,7 +790,8 @@ bool UIBridge::openFilePath(const std::string& path)
         ok = applyJsonOps(data, err);
         if (!ok && !err.empty()) addConsoleMessage("JSON open error: " + err);
         if (ok) addConsoleMessage("Applied JSON ops from: " + path);
-    } else {
+    }
+    else if (ext == ".obj") {
         // Treat as model
         UICommandData loadCmd;
         // Name as basename
@@ -794,6 +800,9 @@ bool UIBridge::openFilePath(const std::string& path)
         loadCmd.vec3Param = glm::vec3(0.0f, 0.0f, -2.0f);
         handleLoadObject(loadCmd);
         ok = true; // handleLoadObject logs failure too
+    } else {
+        addConsoleMessage("Unsupported file type: " + ext + ". Supported: .obj, .json");
+        ok = false;
     }
     if (ok) addRecentFile(path);
     return ok;

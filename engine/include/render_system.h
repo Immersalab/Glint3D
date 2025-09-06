@@ -110,6 +110,10 @@ public:
     RenderToneMapMode getToneMapping() const { return m_tonemap; }
     void setGamma(float g) { m_gamma = g; }
     float getGamma() const { return m_gamma; }
+    
+    // Random seed for deterministic rendering
+    void setSeed(uint32_t seed) { m_seed = seed; }
+    uint32_t getSeed() const { return m_seed; }
 
     // Debug/utility rendering
     void setShowGrid(bool show) { m_showGrid = show; }
@@ -165,6 +169,7 @@ private:
     float m_exposure = 0.0f;
     float m_gamma = 2.2f;
     RenderToneMapMode m_tonemap = RenderToneMapMode::Linear;
+    uint32_t m_seed = 0;
     
     // Debug rendering
     bool m_showGrid = true;

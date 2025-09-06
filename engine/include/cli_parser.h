@@ -4,6 +4,7 @@
 #include <vector>
 #include <map>
 #include <memory>
+#include "render_settings.h"
 
 enum class CLIExitCode : int {
     Success = 0,
@@ -36,6 +37,9 @@ struct CLIOptions {
     
     int outputWidth = 1024;
     int outputHeight = 1024;
+    
+    // Render settings
+    RenderSettings renderSettings;
 };
 
 struct CLIParseResult {
@@ -55,7 +59,13 @@ private:
     static bool isValidFlag(const std::string& flag);
     static bool isValidLogLevel(const std::string& level);
     static bool isValidSchemaVersion(const std::string& version);
+    static bool isValidSeed(const std::string& seed);
+    static bool isValidExposure(const std::string& exposure);
+    static bool isValidGamma(const std::string& gamma);
     static LogLevel parseLogLevel(const std::string& level);
+    static uint32_t parseSeed(const std::string& seed);
+    static float parseExposure(const std::string& exposure);
+    static float parseGamma(const std::string& gamma);
     static std::vector<std::string> getValidFlags();
 };
 

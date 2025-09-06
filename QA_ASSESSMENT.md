@@ -40,8 +40,8 @@ Background - COMPLETE (HDR/IBL pending)
 Offscreen - PARTIAL
 - Status: Headless render to PNG works. MSAA resolve is not implemented.
 
-Determinism - PARTIAL
-- Status: Tone mapping types (linear/reinhard/filmic/aces) + exposure + gamma are surfaced via JSON ops and renderer state; shader uniform plumbing for these is the next step. Seed not yet present.
+Determinism - PARTIAL (plumbing complete)
+- Status: CLI flags --tone/--exposure/--gamma fully plumbed to shaders (PBR, standard, rayscreen). --seed flows into RenderSystem and Raytracer state (reserved for stochastic features). Visual impact verified via shader uniforms; seed reserved for future sampling.
 
 ---
 
@@ -137,6 +137,17 @@ Plan
 ---
 
 ## IMPLEMENTATION HISTORY
+
+2025-09-06 - Scene Hierarchy Panel + MRU
+- Added: Scene Hierarchy panel listing objects and lights with selection, rename, delete, duplicate
+- Added: Lights shown with type tags [P]=Point, [D]=Directional, [S]=Spot, selectable and deletable via context menu
+- Added: File > Recent Files menu with persistent MRU (max 10) stored in `.glint_recent`; opens JSON ops or model paths
+- Improved: Replaced non-portable unicode bullet with ASCII marker to avoid missing glyphs
+
+2025-09-06 - Drag-and-Drop Import
+- Added: OS-level drag-and-drop into the GLFW window (viewport or hierarchy) to import files
+- Behavior: `.obj` files are loaded as models and auto-selected; `.json` files are applied as JSON Ops
+- Errors: Unsupported extensions show actionable message in console with supported list (.obj, .json)
 
 2025-09-06 - Test Organization Refactor
 - Reorganized: Complete test structure reorganization into hierarchical `tests/` directory
@@ -266,18 +277,34 @@ Exit Codes (for CI robustness)
 ## DESKTOP UI (IMGUI)
 
 Core Requirements
-- [ ] Drag-drop models; file menu; recent files
-- [ ] Scene tree; selection highlights; transform gizmo (translate/rotate/scale; snap)
-- [ ] Camera presets; orbit/fly controls
-- [ ] Light editor (type, intensity, color, position/direction)
+- [ ] Drag-drop models; file menu
+- [x] Recent files (MRU) menu with persistence
+- [x] Scene tree; selection highlights; transform gizmo (translate/rotate/scale)
+- [x] Camera presets; orbit/fly controls
+- [x] Light editor (type, intensity, color, position/direction)
 - [ ] Perf HUD: draw calls, triangles, materials, textures, VRAM estimate
 
 Implementation Status
-- Status: Partial
+- Status: Improved (Scene Hierarchy + MRU added)
 - Location: engine/src/imgui_ui_layer.cpp
-- Implemented: File menu (Import/Export), free-fly camera with speed/sensitivity, light list with add/select/delete; per-light enable/disable and intensity; edits for directional (direction), point (position), spot (position/direction/inner/outer cones); directional indicator arrow; settings panel, modern theme, View toggles (Grid/Axes/Skybox), Performance HUD, selection highlight, transform gizmo (translate/rotate/scale rendering and picking via Gizmo)
-- Missing: Drag-drop models, recent files, scene tree panel, snap controls, camera preset buttons, more detailed HUD metrics
-- Implementation Priority: HIGH (8-12 hours)
+- Implemented: File menu (Import/Export, Recent Files MRU), free-fly camera with speed/sensitivity, Scene Hierarchy panel (objects + lights) with select/rename/delete/duplicate and context menu, selection highlight, transform gizmo (translate/rotate/scale rendering and picking via Gizmo), camera preset quick buttons (toolbar), light editor (add/select/delete; enable/disable, intensity; edits per type: position/direction/cones), settings panel with modern theme, View toggles (Grid/Axes/Skybox), Performance HUD.
+- Missing: Snap controls UI, more detailed HUD metrics
+- Implementation Priority: MEDIUM for remaining items
+
+Acceptance & QA Scenarios: Scene Hierarchy + MRU
+- Scene reflects live state:
+  - Load a model via console `load assets/models/cube.obj`; object appears in Scene Hierarchy with “*  cube.obj” (or basename).
+  - Duplicate via context menu; new entry appears with unique name; selecting either updates `selectedObjectIndex` and Inspector.
+  - Delete via context menu; entry disappears; selection updates appropriately.
+- Rename behavior:
+  - Right-click object → Rename; inline editor appears; Enter commits; duplicate name is rejected (console logs error).
+- Lights integration:
+  - Add lights (Tools > Add Light or Settings > Lighting); lights appear under Lights section as `[P]/[D]/[S] Light N`; select/delete from context menu.
+  - Selection syncs with light property editor.
+- MRU persistence and open:
+  - Open JSON ops or model, then restart app; File > Recent Files lists the item(s) (max 10, newest first). Backed by `.glint_recent`.
+  - Selecting an MRU item opens it: `.json` applies ops; other paths load as model.
+  - MRU de-duplicates and promotes on repeat open.
 
 ---
 
@@ -285,12 +312,11 @@ Implementation Status
 
 High Priority
 1. Shader plumbing for tone mapping/exposure/gamma; CI goldens for these
-2. Scene tree and selection panel (foundational UX)
 
 Medium Priority
 5. MSAA offscreen pipeline (and sample-count UI)
 6. CLI enhancements (--asset-root, --seed, --strict-schema, exit codes, logging)
-7. Drag-and-drop model import and recent files
+7. Drag-and-drop model import
 8. Performance HUD details (draw calls, tris, VRAM estimate)
 
 Low Priority

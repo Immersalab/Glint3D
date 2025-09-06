@@ -43,6 +43,10 @@ static inline void print_cli_help()
     std::printf("  --strict-schema       Validate operations against schema strictly\n");
     std::printf("  --schema-version <v>  Schema version to validate against (default v1.3)\n");
     std::printf("  --log <level>         Set log level: quiet, warn, info, debug (default info)\n");
+    std::printf("  --seed <int>          Random seed for deterministic rendering (default 0)\n");
+    std::printf("  --tone <mode>         Tone mapping: linear, reinhard, aces, filmic (default linear)\n");
+    std::printf("  --exposure <float>    Exposure adjustment in EV stops (default 0.0)\n");
+    std::printf("  --gamma <float>       Gamma correction value (default 2.2)\n");
     std::printf("\nJSON Operations v1.3 (Core Operations):\n");
     std::printf("  Object:     load, duplicate, remove/delete, select, transform\n");
     std::printf("  Camera:     set_camera, set_camera_preset, orbit_camera, frame_object\n");
@@ -59,6 +63,7 @@ static inline void print_cli_help()
     std::printf("  glint --ops examples/json-ops/duplicate-test.json --render output.png\n");
     std::printf("  glint --ops examples/json-ops/camera-preset-test.json --render --w 800 --h 600\n");
     std::printf("  glint --ops test.json --strict-schema --log debug --render result.png\n");
+    std::printf("  glint --ops scene.json --render --tone reinhard --exposure 1.5 --gamma 2.4\n");
     std::printf("  glint --asset-root ./assets --ops scene.json --render secure_output.png\n");
     std::printf("\nDocumentation:\n");
     std::printf("  See examples/README.md for operation details and examples/json-ops/ for samples\n");

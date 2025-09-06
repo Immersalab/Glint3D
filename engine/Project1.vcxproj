@@ -194,6 +194,7 @@ if exist "D:\Graphics\vcpkg\installed\x64-windows\bin\brotli*.dll" xcopy /y /d "
     <ClCompile Include="src\application_core.cpp" />
     <ClCompile Include="src\assimp_loader.cpp" />
     <ClCompile Include="src\camera_controller.cpp" />
+    <ClCompile Include="src\render_settings.cpp" />
     <ClCompile Include="src\imgui_ui_layer.cpp" />
     <ClCompile Include="src\importer_registry.cpp" />
     <ClCompile Include="src\importers\obj_importer.cpp" />
@@ -262,6 +263,7 @@ if exist "D:\Graphics\vcpkg\installed\x64-windows\bin\brotli*.dll" xcopy /y /d "
     <ClInclude Include="include\cli_parser.h" />
     <ClInclude Include="include\schema_validator.h" />
     <ClInclude Include="include\path_security.h" />
+    <ClInclude Include="include\render_settings.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\ai_bridge.h" />

@@ -22,10 +22,15 @@ public:
         glm::vec3 camFront,
         glm::vec3 camUp,
         float fovDeg,
-        const Light& lights);  
+        const Light& lights);
+    
+    // Seed support for deterministic random sampling
+    void setSeed(uint32_t seed) { m_seed = seed; }
+    uint32_t getSeed() const { return m_seed; }  
 
 private:
     std::vector<Triangle> triangles;
     glm::vec3 lightPos, lightColor;
     BVHNode* bvhRoot;
+    uint32_t m_seed = 0;
 };

@@ -68,6 +68,12 @@ CLIParseResult CLIParser::parse(int argc, char** argv)
     result.options.assetRoot = getValue("--asset-root");
     result.options.outputWidth = getIntValue("--w", 1024);
     result.options.outputHeight = getIntValue("--h", 1024);
+    
+    // Parse render settings
+    std::string seedStr = getValue("--seed", "0");
+    std::string toneStr = getValue("--tone", "linear");
+    std::string exposureStr = getValue("--exposure", "0.0");
+    std::string gammaStr = getValue("--gamma", "2.2");
 
     // Validate presence of values for flags that require them
     if (hasFlag("--ops") && result.options.opsFile.empty()) {
@@ -109,6 +115,100 @@ CLIParseResult CLIParser::parse(int argc, char** argv)
         return result;
     }
     result.options.logLevel = parseLogLevel(logLevelStr);
+
+    // Render settings: validate and assign when provided
+    if (hasFlag("--seed")) {
+        if (seedStr.empty() || !isValidSeed(seedStr)) {
+            result.exitCode = CLIExitCode::UnknownFlag;
+            result.errorMessage = "Invalid seed value: " + seedStr + " (must be a non-negative integer)";
+            return result;
+        }
+        result.options.renderSettings.seed = parseSeed(seedStr);
+    }
+
+    if (hasFlag("--tone")) {
+        if (toneStr.empty() || !RenderSettings::isValidToneMapping(toneStr)) {
+            result.exitCode = CLIExitCode::UnknownFlag;
+            result.errorMessage = "Invalid tone mapping: " + toneStr + " (supported: linear, reinhard, aces, filmic)";
+            return result;
+        }
+        result.options.renderSettings.toneMapping = RenderSettings::parseToneMapping(toneStr);
+    }
+
+    if (hasFlag("--exposure")) {
+        if (exposureStr.empty() || !isValidExposure(exposureStr)) {
+            result.exitCode = CLIExitCode::UnknownFlag;
+            result.errorMessage = "Invalid exposure value: " + exposureStr + " (must be a valid float)";
+            return result;
+        }
+        result.options.renderSettings.exposure = parseExposure(exposureStr);
+    }
+
+    if (hasFlag("--gamma")) {
+        if (gammaStr.empty() || !isValidGamma(gammaStr)) {
+            result.exitCode = CLIExitCode::UnknownFlag;
+            result.errorMessage = "Invalid gamma value: " + gammaStr + " (must be a positive float)";
+            return result;
+        }
+        result.options.renderSettings.gamma = parseGamma(gammaStr);
+    }
+    
+    // Validate render settings
+    if (hasFlag("--seed")) {
+        if (seedStr.empty()) {
+            result.exitCode = CLIExitCode::UnknownFlag;
+            result.errorMessage = "Missing value for --seed (expected a non-negative integer)";
+            return result;
+        }
+        if (!isValidSeed(seedStr)) {
+            result.exitCode = CLIExitCode::UnknownFlag;
+            result.errorMessage = "Invalid seed value: " + seedStr + " (must be a non-negative integer)";
+            return result;
+        }
+        result.options.renderSettings.seed = parseSeed(seedStr);
+    }
+    
+    if (hasFlag("--tone")) {
+        if (toneStr.empty()) {
+            result.exitCode = CLIExitCode::UnknownFlag;
+            result.errorMessage = "Missing value for --tone (expected linear|reinhard|aces|filmic)";
+            return result;
+        }
+        if (!RenderSettings::isValidToneMapping(toneStr)) {
+            result.exitCode = CLIExitCode::UnknownFlag;
+            result.errorMessage = "Invalid tone mapping: " + toneStr + " (supported: linear, reinhard, aces, filmic)";
+            return result;
+        }
+        result.options.renderSettings.toneMapping = RenderSettings::parseToneMapping(toneStr);
+    }
+    
+    if (hasFlag("--exposure")) {
+        if (exposureStr.empty()) {
+            result.exitCode = CLIExitCode::UnknownFlag;
+            result.errorMessage = "Missing value for --exposure (expected a float value)";
+            return result;
+        }
+        if (!isValidExposure(exposureStr)) {
+            result.exitCode = CLIExitCode::UnknownFlag;
+            result.errorMessage = "Invalid exposure value: " + exposureStr + " (must be a valid float)";
+            return result;
+        }
+        result.options.renderSettings.exposure = parseExposure(exposureStr);
+    }
+    
+    if (hasFlag("--gamma")) {
+        if (gammaStr.empty()) {
+            result.exitCode = CLIExitCode::UnknownFlag;
+            result.errorMessage = "Missing value for --gamma (expected a positive float value)";
+            return result;
+        }
+        if (!isValidGamma(gammaStr)) {
+            result.exitCode = CLIExitCode::UnknownFlag;
+            result.errorMessage = "Invalid gamma value: " + gammaStr + " (must be a positive float)";
+            return result;
+        }
+        result.options.renderSettings.gamma = parseGamma(gammaStr);
+    }
     
     // Determine headless mode
     result.options.headlessMode = hasFlag("--ops") || hasFlag("--render");
@@ -207,8 +307,74 @@ std::vector<std::string> CLIParser::getValidFlags()
         "--raytrace",
         "--strict-schema",
         "--schema-version",
-        "--log"
+        "--log",
+        "--seed",
+        "--tone",
+        "--exposure",
+        "--gamma"
     };
+}
+
+bool CLIParser::isValidSeed(const std::string& seed)
+{
+    if (seed.empty()) return false;
+    try {
+        uint32_t val = std::stoul(seed);
+        (void)val; // suppress unused variable warning
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
+
+bool CLIParser::isValidExposure(const std::string& exposure)
+{
+    if (exposure.empty()) return false;
+    try {
+        float val = std::stof(exposure);
+        (void)val; // suppress unused variable warning
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
+
+bool CLIParser::isValidGamma(const std::string& gamma)
+{
+    if (gamma.empty()) return false;
+    try {
+        float val = std::stof(gamma);
+        return val > 0.0f; // gamma must be positive
+    } catch (...) {
+        return false;
+    }
+}
+
+uint32_t CLIParser::parseSeed(const std::string& seed)
+{
+    try {
+        return std::stoul(seed);
+    } catch (...) {
+        return 0;
+    }
+}
+
+float CLIParser::parseExposure(const std::string& exposure)
+{
+    try {
+        return std::stof(exposure);
+    } catch (...) {
+        return 0.0f;
+    }
+}
+
+float CLIParser::parseGamma(const std::string& gamma)
+{
+    try {
+        return std::stof(gamma);
+    } catch (...) {
+        return 2.2f;
+    }
 }
 
 // Logger implementation
