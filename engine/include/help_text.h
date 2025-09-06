@@ -9,12 +9,14 @@
 static inline void for_each_glint_ascii(const std::function<void(const std::string&)>& emit)
 {
     static const char* kGlintAscii[] = {
-        "   _____ _      _____ _   _ _______ ____  _____",
-        "  / ____| |    |_   _| \\ | |__   __|___ \\|  __ \\",
-        " | |  __| |      | | |  \\| |  | |    __) | |  | |",
-        " | | |_ | |      | | | . ` |  | |   |__ <| |  | |",
-        " | |__| | |____ _| |_| |\\  |  | |   ___) | |__| |",
-        "  \\_____|______|_____|_| \\_|  |_|  |____/|_____/"
+        "Welcome to...",
+        "  _____ _      _____ _   _ _______ ____  _____",
+        " / ____| |    |_   _| \\ | |__   __|___ \\|  __ \\",
+        "| |  __| |      | | |  \\| |  | |    __) | |  | |",
+        "| | |_ | |      | | | . ` |  | |   |__ <| |  | |",
+        "| |__| | |____ _| |_| |\\  |  | |   ___) | |__| |",
+        " \\_____|______|_____|_| \\_|  |_|  |____/|_____/",
+        ""
     };
     for (const char* line : kGlintAscii) emit(std::string(line));
 }
@@ -63,8 +65,6 @@ static inline void print_cli_help()
 
 static inline void emit_welcome_lines(const std::function<void(const std::string&)>& emit)
 {
-    emit("Glint 3D Engine v0.3.0");
-    emit("");
-    emit("Welcome to Glint3D! Type 'help' for console commands and JSON ops.");
+    emit("Type 'help' for console commands and JSON ops.");
     emit("See Help menu (top bar) for interactive guides and controls.");
 }

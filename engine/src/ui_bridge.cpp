@@ -42,9 +42,6 @@ bool UIBridge::initUI(int windowWidth, int windowHeight)
     if (ok) {
         // Show GLINT3D ASCII banner, version, then welcome lines
         for_each_glint_ascii([this](const std::string& line){ this->addConsoleMessage(line); });
-        addConsoleMessage("");
-        addConsoleMessage("             3D Engine v0.3.0");
-        addConsoleMessage("");
         emit_welcome_lines([this](const std::string& line){ this->addConsoleMessage(line); });
     }
     return ok;
