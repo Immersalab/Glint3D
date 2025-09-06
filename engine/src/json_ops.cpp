@@ -437,42 +437,49 @@ bool JsonOpsExecutor::apply(const std::string& json, std::string& error)
             return true;
         }
         else if (op == "orbit_camera") {
+            // Required parameters
             float deltaYaw = 0.0f, deltaPitch = 0.0f;
             if (obj.HasMember("yaw") && obj["yaw"].IsNumber()) deltaYaw = (float)obj["yaw"].GetDouble();
             if (obj.HasMember("pitch") && obj["pitch"].IsNumber()) deltaPitch = (float)obj["pitch"].GetDouble();
             
-            // Optional target center (defaults to current target/scene center)
-            glm::vec3 center(0.0f);
+            // Optional target center - if not provided, use scene center or current orbit target
+            glm::vec3 center = m_camera.getOrbitTarget();
             if (obj.HasMember("center") && obj["center"].IsArray()) {
                 if (!getVec3(obj["center"], center)) { error = "orbit_camera: bad 'center'"; return false; }
+            } else if (glm::length(center) < 0.001f) {
+                // Auto-detect orbit center from scene if not set
+                const auto& objects = m_scene.getObjects();
+                if (!objects.empty()) {
+                    // Use center of all objects or selected object
+                    int sel = m_scene.getSelectedObjectIndex();
+                    if (sel >= 0 && sel < (int)objects.size()) {
+                        center = glm::vec3(objects[(size_t)sel].modelMatrix[3]);
+                    } else {
+                        // Calculate scene center
+                        glm::vec3 sum(0.0f);
+                        for (const auto& obj : objects) {
+                            sum += glm::vec3(obj.modelMatrix[3]);
+                        }
+                        center = sum / static_cast<float>(objects.size());
+                    }
+                }
             }
             
-            // Get current camera state
-            CameraState cs = m_camera.getCameraState();
+            // Optional parameters for orbit configuration
+            if (obj.HasMember("damping") && obj["damping"].IsNumber()) {
+                float damping = (float)obj["damping"].GetDouble();
+                damping = std::clamp(damping, 0.0f, 1.0f);
+                m_camera.setOrbitDamping(damping);
+            }
             
-            // Calculate current distance from center
-            float distance = glm::length(cs.position - center);
+            if (obj.HasMember("distance") && obj["distance"].IsNumber()) {
+                float distance = (float)obj["distance"].GetDouble();
+                distance = std::max(0.1f, distance);
+                m_camera.setOrbitDistance(distance);
+            }
             
-            // Apply yaw and pitch rotation around center
-            cs.yaw += deltaYaw;
-            cs.pitch += deltaPitch;
-            
-            // Clamp pitch to avoid gimbal lock
-            if (cs.pitch > 89.0f) cs.pitch = 89.0f;
-            if (cs.pitch < -89.0f) cs.pitch = -89.0f;
-            
-            // Calculate new position based on spherical coordinates
-            float yawRad = glm::radians(cs.yaw);
-            float pitchRad = glm::radians(cs.pitch);
-            
-            cs.position.x = center.x + distance * cos(pitchRad) * cos(yawRad);
-            cs.position.y = center.y + distance * sin(pitchRad);
-            cs.position.z = center.z + distance * cos(pitchRad) * sin(yawRad);
-            
-            // Update front vector to look at center
-            cs.front = glm::normalize(center - cs.position);
-            
-            m_camera.setCameraState(cs);
+            // Apply smooth orbit movement with the new system
+            m_camera.orbitAroundTarget(deltaYaw, deltaPitch, center);
             
             // Sync renderer
             m_renderer.setCamera(m_camera.getCameraState());

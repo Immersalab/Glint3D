@@ -127,6 +127,10 @@ public:
     // Statistics
     const RenderStats& getLastFrameStats() const { return m_stats; }
 
+    // MSAA sample control
+    void setSampleCount(int samples) { m_samples = samples < 1 ? 1 : samples; m_recreateTargets = true; }
+    int  getSampleCount() const { return m_samples; }
+
     // Raytracing
     void setDenoiseEnabled(bool enabled) { m_denoiseEnabled = enabled; }
     bool isDenoiseEnabled() const { return m_denoiseEnabled; }
@@ -231,4 +235,17 @@ private:
     bool m_gizmoLocal = true;
     bool m_snapEnabled = false;
     int  m_selectedLightIndex = -1;
+
+    // MSAA offscreen pipeline for onscreen rendering
+    int   m_samples = 1;
+    bool  m_recreateTargets = false;
+    int   m_fbWidth = 0;
+    int   m_fbHeight = 0;
+    GLuint m_msaaFBO = 0;
+    GLuint m_msaaColorRBO = 0;
+    GLuint m_msaaDepthRBO = 0;
+
+    // Internal helpers
+    void createOrResizeTargets(int width, int height);
+    void destroyTargets();
 };

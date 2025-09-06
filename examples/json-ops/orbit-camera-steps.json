@@ -1,0 +1,13 @@
+[
+  {"op": "load", "path": "assets/models/cube.obj", "name": "OrbitCube", "transform": {"position": [0, 0, 0], "scale": [1.5, 1.5, 1.5]}},
+  {"op": "add_light", "type": "point", "position": [2, 3, 2], "color": [1.0, 0.95, 0.9], "intensity": 1.5},
+  {"op": "add_light", "type": "point", "position": [-1, 1, -1], "color": [0.8, 0.9, 1.0], "intensity": 0.8},
+  {"op": "set_camera", "position": [4, 2, 4], "target": [0, 0, 0], "fov_deg": 50},
+  {"op": "render_image", "path": "renders/orbit-step-0-initial.png", "width": 600, "height": 600},
+  {"op": "orbit_camera", "yaw": 45, "pitch": 0, "center": [0, 0, 0], "damping": 0.9},
+  {"op": "render_image", "path": "renders/orbit-step-1-yaw45.png", "width": 600, "height": 600},
+  {"op": "orbit_camera", "yaw": 0, "pitch": 20, "center": [0, 0, 0]},
+  {"op": "render_image", "path": "renders/orbit-step-2-pitch20.png", "width": 600, "height": 600},
+  {"op": "orbit_camera", "yaw": -90, "pitch": -15, "center": [0, 0, 0]},
+  {"op": "render_image", "path": "renders/orbit-step-3-final.png", "width": 600, "height": 600}
+]

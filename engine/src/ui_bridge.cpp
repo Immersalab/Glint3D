@@ -90,6 +90,7 @@ UIState UIBridge::buildUIState() const
     state.shadingMode = m_renderer.getShadingMode();
     state.framebufferSRGBEnabled = m_renderer.isFramebufferSRGBEnabled();
     state.denoiseEnabled = m_renderer.isDenoiseEnabled();
+    state.msaaSamples = m_renderer.getSampleCount();
     state.showGrid = m_renderer.isShowGrid();
     state.showAxes = m_renderer.isShowAxes();
     state.showSkybox = m_renderer.isShowSkybox();
@@ -265,6 +266,13 @@ void UIBridge::handleUICommand(const UICommandData& command)
                 } else {
                     addConsoleMessage("Render to PNG failed");
                 }
+            }
+            break;
+        case UICommand::SetMSAASamples:
+            {
+                int s = std::max(1, command.intParam);
+                m_renderer.setSampleCount(s);
+                addConsoleMessage("MSAA samples set to " + std::to_string(s));
             }
             break;
         case UICommand::SetUseAI:

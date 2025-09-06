@@ -21,6 +21,9 @@ struct RenderSettings {
     
     // Gamma correction
     float gamma = 2.2f;
+
+    // Multisample anti-aliasing sample count (1 = off)
+    int samples = 1;
     
     // Helper functions
     static ToneMappingMode parseToneMapping(const std::string& str);

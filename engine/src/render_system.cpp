@@ -108,6 +108,11 @@ bool RenderSystem::init(int windowWidth, int windowHeight)
     updateProjectionMatrix(windowWidth, windowHeight);
     updateViewMatrix();
 
+    // Initialize MSAA targets for onscreen rendering if enabled
+    m_fbWidth = windowWidth;
+    m_fbHeight = windowHeight;
+    createOrResizeTargets(windowWidth, windowHeight);
+
     return true;
 }
 
@@ -122,6 +127,7 @@ void RenderSystem::shutdown()
     m_pbrShader.reset();
     m_gridShader.reset();
     if (m_dummyShadowTex) { glDeleteTextures(1, &m_dummyShadowTex); m_dummyShadowTex = 0; }
+    destroyTargets();
 }
 
 void RenderSystem::render(const SceneManager& scene, const Light& lights)
@@ -134,6 +140,24 @@ void RenderSystem::render(const SceneManager& scene, const Light& lights)
     if (lastBgColor != m_backgroundColor) {
         glClearColor(m_backgroundColor.r, m_backgroundColor.g, m_backgroundColor.b, 1.0f);
         lastBgColor = m_backgroundColor;
+    }
+    // Recreate MSAA targets if viewport changed or flagged
+    GLint vp[4] = {0,0,0,0};
+    glGetIntegerv(GL_VIEWPORT, vp);
+    if (vp[2] != m_fbWidth || vp[3] != m_fbHeight) {
+        m_fbWidth = vp[2];
+        m_fbHeight = vp[3];
+        m_recreateTargets = true;
+    }
+    if (m_recreateTargets) {
+        createOrResizeTargets(m_fbWidth, m_fbHeight);
+        m_recreateTargets = false;
+    }
+    // Bind target for rendering
+    if (m_samples > 1 && m_msaaFBO != 0) {
+        glBindFramebuffer(GL_FRAMEBUFFER, m_msaaFBO);
+    } else {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
@@ -241,6 +265,16 @@ void RenderSystem::render(const SceneManager& scene, const Light& lights)
     }
     
     updateRenderStats(scene);
+
+    // Resolve MSAA render to default framebuffer if enabled
+    if (m_samples > 1 && m_msaaFBO != 0) {
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, m_msaaFBO);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glBlitFramebuffer(0, 0, m_fbWidth, m_fbHeight,
+                          0, 0, m_fbWidth, m_fbHeight,
+                          GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+    }
 }
 
 bool RenderSystem::loadSkybox(const std::string& path)
@@ -264,63 +298,148 @@ bool RenderSystem::renderToTexture(const SceneManager& scene, const Light& light
     GLint prevViewport[4] = {0, 0, 0, 0};
     glGetIntegerv(GL_VIEWPORT, prevViewport);
 
-    // Create FBO
-    GLuint fbo = 0;
-    glGenFramebuffers(1, &fbo);
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-
-    // Attach provided color texture
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureId, 0);
-#ifndef __EMSCRIPTEN__
-    const GLenum drawBufs[1] = { GL_COLOR_ATTACHMENT0 };
-    glDrawBuffers(1, drawBufs);
-#endif
-
-    // Create and attach depth (and stencil if available) renderbuffer
-    GLuint rboDepth = 0;
-    glGenRenderbuffers(1, &rboDepth);
-    glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
-#ifndef __EMSCRIPTEN__
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
-#else
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, width, height);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
-#endif
-
-    // Validate
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-        glBindFramebuffer(GL_FRAMEBUFFER, prevFBO);
-        if (rboDepth) glDeleteRenderbuffers(1, &rboDepth);
-        if (fbo) glDeleteFramebuffers(1, &fbo);
-        return false;
-    }
-
-    // Set viewport and clear
-    glViewport(0, 0, width, height);
-    glClearColor(0.10f, 0.11f, 0.12f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
     // Use offscreen aspect ratio; restore later
     glm::mat4 prevProj = m_projectionMatrix;
     updateProjectionMatrix(width, height);
 
-    // Render scene using current mode
-    if (m_renderMode == RenderMode::Raytrace) {
-        renderRaytraced(scene, lights);
+    if (m_samples > 1) {
+        // MSAA path: render into multisampled RBOs and resolve into provided texture
+        GLuint fboMSAA = 0, rboColorMSAA = 0, rboDepthMSAA = 0;
+        GLuint fboResolve = 0;
+
+        glGenFramebuffers(1, &fboMSAA);
+        glBindFramebuffer(GL_FRAMEBUFFER, fboMSAA);
+
+        glGenRenderbuffers(1, &rboColorMSAA);
+        glBindRenderbuffer(GL_RENDERBUFFER, rboColorMSAA);
+        glRenderbufferStorageMultisample(GL_RENDERBUFFER, m_samples, GL_RGBA8, width, height);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, rboColorMSAA);
+
+        glGenRenderbuffers(1, &rboDepthMSAA);
+        glBindRenderbuffer(GL_RENDERBUFFER, rboDepthMSAA);
+#ifndef __EMSCRIPTEN__
+        glRenderbufferStorageMultisample(GL_RENDERBUFFER, m_samples, GL_DEPTH24_STENCIL8, width, height);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rboDepthMSAA);
+#else
+        glRenderbufferStorageMultisample(GL_RENDERBUFFER, m_samples, GL_DEPTH_COMPONENT16, width, height);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepthMSAA);
+#endif
+
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+            glBindFramebuffer(GL_FRAMEBUFFER, prevFBO);
+            if (rboColorMSAA) glDeleteRenderbuffers(1, &rboColorMSAA);
+            if (rboDepthMSAA) glDeleteRenderbuffers(1, &rboDepthMSAA);
+            if (fboMSAA) glDeleteFramebuffers(1, &fboMSAA);
+            m_projectionMatrix = prevProj;
+            glViewport(prevViewport[0], prevViewport[1], prevViewport[2], prevViewport[3]);
+            return false;
+        }
+
+        // Render to MSAA framebuffer
+        glViewport(0, 0, width, height);
+        glClearColor(0.10f, 0.11f, 0.12f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        if (m_renderMode == RenderMode::Raytrace) {
+            renderRaytraced(scene, lights);
+        } else {
+            renderRasterized(scene, lights);
+        }
+
+        // Create resolve framebuffer with provided texture
+        glGenFramebuffers(1, &fboResolve);
+        glBindFramebuffer(GL_FRAMEBUFFER, fboResolve);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureId, 0);
+#ifndef __EMSCRIPTEN__
+        const GLenum drawBufsR[1] = { GL_COLOR_ATTACHMENT0 };
+        glDrawBuffers(1, drawBufsR);
+#endif
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+            glBindFramebuffer(GL_FRAMEBUFFER, prevFBO);
+            if (fboResolve) glDeleteFramebuffers(1, &fboResolve);
+            if (rboColorMSAA) glDeleteRenderbuffers(1, &rboColorMSAA);
+            if (rboDepthMSAA) glDeleteRenderbuffers(1, &rboDepthMSAA);
+            if (fboMSAA) glDeleteFramebuffers(1, &fboMSAA);
+            m_projectionMatrix = prevProj;
+            glViewport(prevViewport[0], prevViewport[1], prevViewport[2], prevViewport[3]);
+            return false;
+        }
+
+        // Resolve
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, fboMSAA);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fboResolve);
+        glBlitFramebuffer(0, 0, width, height,
+                          0, 0, width, height,
+                          GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+        // Cleanup and restore
+        glBindFramebuffer(GL_FRAMEBUFFER, prevFBO);
+        if (fboResolve) glDeleteFramebuffers(1, &fboResolve);
+        if (rboColorMSAA) glDeleteRenderbuffers(1, &rboColorMSAA);
+        if (rboDepthMSAA) glDeleteRenderbuffers(1, &rboDepthMSAA);
+        if (fboMSAA) glDeleteFramebuffers(1, &fboMSAA);
+
+        m_projectionMatrix = prevProj;
+        glViewport(prevViewport[0], prevViewport[1], prevViewport[2], prevViewport[3]);
+        return true;
     } else {
-        renderRasterized(scene, lights);
+        // Single-sample path (previous behavior)
+        // Create FBO
+        GLuint fbo = 0;
+        glGenFramebuffers(1, &fbo);
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+        // Attach provided color texture
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureId, 0);
+#ifndef __EMSCRIPTEN__
+        const GLenum drawBufs[1] = { GL_COLOR_ATTACHMENT0 };
+        glDrawBuffers(1, drawBufs);
+#endif
+
+        // Create and attach depth (and stencil if available) renderbuffer
+        GLuint rboDepth = 0;
+        glGenRenderbuffers(1, &rboDepth);
+        glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
+#ifndef __EMSCRIPTEN__
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
+#else
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, width, height);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
+#endif
+
+        // Validate
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+            glBindFramebuffer(GL_FRAMEBUFFER, prevFBO);
+            if (rboDepth) glDeleteRenderbuffers(1, &rboDepth);
+            if (fbo) glDeleteFramebuffers(1, &fbo);
+            m_projectionMatrix = prevProj;
+            glViewport(prevViewport[0], prevViewport[1], prevViewport[2], prevViewport[3]);
+            return false;
+        }
+
+        // Set viewport and clear
+        glViewport(0, 0, width, height);
+        glClearColor(0.10f, 0.11f, 0.12f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // Render scene using current mode
+        if (m_renderMode == RenderMode::Raytrace) {
+            renderRaytraced(scene, lights);
+        } else {
+            renderRasterized(scene, lights);
+        }
+
+        // Restore projection, framebuffer and viewport
+        m_projectionMatrix = prevProj;
+        glBindFramebuffer(GL_FRAMEBUFFER, prevFBO);
+        glViewport(prevViewport[0], prevViewport[1], prevViewport[2], prevViewport[3]);
+
+        // Cleanup
+        glDeleteRenderbuffers(1, &rboDepth);
+        glDeleteFramebuffers(1, &fbo);
+        return true;
     }
-
-    // Restore projection, framebuffer and viewport
-    m_projectionMatrix = prevProj;
-    glBindFramebuffer(GL_FRAMEBUFFER, prevFBO);
-    glViewport(prevViewport[0], prevViewport[1], prevViewport[2], prevViewport[3]);
-
-    // Cleanup
-    glDeleteRenderbuffers(1, &rboDepth);
-    glDeleteFramebuffers(1, &fbo);
-    return true;
 }
 
 bool RenderSystem::renderToPNG(const SceneManager& scene, const Light& lights,
@@ -1203,4 +1322,54 @@ void RenderSystem::cleanupRaytracing()
         glDeleteTextures(1, &m_raytraceTexture);
         m_raytraceTexture = 0;
     }
+}
+
+void RenderSystem::destroyTargets()
+{
+    if (m_msaaColorRBO) { glDeleteRenderbuffers(1, &m_msaaColorRBO); m_msaaColorRBO = 0; }
+    if (m_msaaDepthRBO) { glDeleteRenderbuffers(1, &m_msaaDepthRBO); m_msaaDepthRBO = 0; }
+    if (m_msaaFBO) { glDeleteFramebuffers(1, &m_msaaFBO); m_msaaFBO = 0; }
+}
+
+void RenderSystem::createOrResizeTargets(int width, int height)
+{
+    // Destroy existing
+    destroyTargets();
+
+    if (m_samples <= 1) {
+        // No offscreen MSAA path needed
+        return;
+    }
+
+    // Create MSAA FBO
+    glGenFramebuffers(1, &m_msaaFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, m_msaaFBO);
+
+    // Color RBO
+    glGenRenderbuffers(1, &m_msaaColorRBO);
+    glBindRenderbuffer(GL_RENDERBUFFER, m_msaaColorRBO);
+    glRenderbufferStorageMultisample(GL_RENDERBUFFER, m_samples, GL_RGBA8, width, height);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, m_msaaColorRBO);
+
+    // Depth/Stencil RBO
+    glGenRenderbuffers(1, &m_msaaDepthRBO);
+    glBindRenderbuffer(GL_RENDERBUFFER, m_msaaDepthRBO);
+#ifndef __EMSCRIPTEN__
+    glRenderbufferStorageMultisample(GL_RENDERBUFFER, m_samples, GL_DEPTH24_STENCIL8, width, height);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_msaaDepthRBO);
+#else
+    glRenderbufferStorageMultisample(GL_RENDERBUFFER, m_samples, GL_DEPTH_COMPONENT16, width, height);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_msaaDepthRBO);
+#endif
+
+    // Validate
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        // Cleanup and disable MSAA path on failure
+        destroyTargets();
+        m_samples = 1;
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        return;
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }

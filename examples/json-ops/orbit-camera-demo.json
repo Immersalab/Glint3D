@@ -1,0 +1,62 @@
+[
+  {
+    "comment": "Load a model to orbit around",
+    "op": "load",
+    "path": "assets/models/cow.obj",
+    "name": "Model",
+    "transform": {"position": [0, 0, 0], "scale": [1, 1, 1]}
+  },
+  {
+    "comment": "Set up lighting",
+    "op": "add_light",
+    "type": "point",
+    "position": [3, 4, 3],
+    "color": [1.0, 0.9, 0.8],
+    "intensity": 1.2
+  },
+  {
+    "comment": "Position initial camera",
+    "op": "set_camera",
+    "position": [5, 3, 5],
+    "target": [0, 0, 0],
+    "fov_deg": 45
+  },
+  {
+    "comment": "Demo 1: Basic orbit with high damping (smooth)",
+    "op": "orbit_camera",
+    "yaw": 60,
+    "pitch": 0,
+    "center": [0, 0, 0],
+    "damping": 0.9,
+    "distance": 6
+  },
+  {
+    "comment": "Demo 2: Orbit up and around",
+    "op": "orbit_camera",
+    "yaw": 45,
+    "pitch": 30,
+    "center": [0, 0, 0]
+  },
+  {
+    "comment": "Demo 3: Fast spin around with pitch clamping test",
+    "op": "orbit_camera",
+    "yaw": 180,
+    "pitch": -45,
+    "center": [0, 0, 0]
+  },
+  {
+    "comment": "Demo 4: Lower damping for snappier movement",
+    "op": "orbit_camera",
+    "yaw": -90,
+    "pitch": 15,
+    "center": [0, 0, 0],
+    "damping": 0.5
+  },
+  {
+    "comment": "Final render of the orbit result",
+    "op": "render_image",
+    "path": "renders/orbit-camera-demo.png",
+    "width": 800,
+    "height": 600
+  }
+]

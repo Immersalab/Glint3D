@@ -28,6 +28,7 @@ struct UIState {
     ShadingMode shadingMode = ShadingMode::Gouraud;
     bool framebufferSRGBEnabled = true;
     bool denoiseEnabled = false;
+    int msaaSamples = 1; // UI exposure of MSAA samples
     
     // Camera state
     CameraState camera;
@@ -112,6 +113,7 @@ enum class UICommand {
     ExecuteConsoleCommand,
     ApplyJsonOps,
     RenderToPNG,
+    SetMSAASamples,
     SetUseAI,
     SetAIEndpoint,
     SetRequireRMBToMove,

@@ -68,12 +68,23 @@ CLIParseResult CLIParser::parse(int argc, char** argv)
     result.options.assetRoot = getValue("--asset-root");
     result.options.outputWidth = getIntValue("--w", 1024);
     result.options.outputHeight = getIntValue("--h", 1024);
+    int samplesVal = getIntValue("--samples", 1);
     
     // Parse render settings
     std::string seedStr = getValue("--seed", "0");
     std::string toneStr = getValue("--tone", "linear");
     std::string exposureStr = getValue("--exposure", "0.0");
     std::string gammaStr = getValue("--gamma", "2.2");
+
+    // Validate samples when flag provided
+    if (hasFlag("--samples")) {
+        if (samplesVal < 1) {
+            result.exitCode = CLIExitCode::UnknownFlag;
+            result.errorMessage = "Invalid samples value: must be >= 1";
+            return result;
+        }
+        result.options.renderSettings.samples = samplesVal;
+    }
 
     // Validate presence of values for flags that require them
     if (hasFlag("--ops") && result.options.opsFile.empty()) {
@@ -303,6 +314,7 @@ std::vector<std::string> CLIParser::getValidFlags()
         "--asset-root",
         "--w",
         "--h",
+        "--samples",
         "--denoise",
         "--raytrace",
         "--strict-schema",

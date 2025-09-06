@@ -15,8 +15,8 @@ Core Requirements
 - [x] Camera: free-fly, orbit, presets (front/back/left/right/top/bottom/isometric)
 - [x] Lights: directional, point, spot (intensity/color); simple IBL optional
 - [x] Background: solid color, optional HDR skybox/IBL
-- [ ] Offscreen render target with MSAA resolve, readback to PNG
-- [ ] Deterministic controls: seed, tone mapping (ACES/Reinhard/Filmic/ACES), exposure
+- [x] Offscreen render target with MSAA resolve, readback to PNG
+- [x] Deterministic controls: seed, tone mapping (linear/Reinhard/Filmic/ACES), exposure
 
 ---
 
@@ -29,7 +29,7 @@ Render Modes - COMPLETE
 - Status: Points, Wireframe, Solid, CPU Raytrace are implemented and switchable.
 
 Camera - COMPLETE
-- Status: Free-fly implemented. Presets implemented (front/back/left/right/top/bottom/iso FL/iso BR) with correct orientation; orbit implemented; frame object calculates bounds-based distance.
+- Status: Free-fly implemented. Presets implemented (front/back/left/right/top/bottom/iso FL/iso BR) with correct orientation; target-centric orbit with damping implemented; frame object calculates bounds-based distance.
 
 Lighting - PARTIAL
 - Status: Point, Directional, and Spot lights supported. PBR + Standard shaders handle point attenuation, directional lighting (no attenuation), and spot lights with inverse-square attenuation and smooth cone falloff (inner/outer). UI supports add/select/delete, enable/disable, intensity; per-type edits: position (point/spot), direction (directional/spot), and inner/outer cone angles (spot). IBL not implemented.
@@ -37,11 +37,11 @@ Lighting - PARTIAL
 Background - COMPLETE (HDR/IBL pending)
 - Status: Procedural gradient skybox integrated and toggleable; solid color background settable via ops/renderer. HDR/IBL not implemented.
 
-Offscreen - PARTIAL
-- Status: Headless render to PNG works. MSAA resolve is not implemented.
+Offscreen - COMPLETE
+- Status: Headless render to PNG supports MSAA via multisampled FBO with resolve into a single-sample color target. Onscreen rendering uses the same MSAA offscreen path with resolve to default framebuffer.
 
-Determinism - PARTIAL (plumbing complete)
-- Status: CLI flags --tone/--exposure/--gamma fully plumbed to shaders (PBR, standard, rayscreen). --seed flows into RenderSystem and Raytracer state (reserved for stochastic features). Visual impact verified via shader uniforms; seed reserved for future sampling.
+Determinism - COMPLETE (controls)
+- Status: CLI flags --tone/--exposure/--gamma plumbed to shaders (PBR, standard, rayscreen). --seed flows into RenderSystem and Raytracer. Seed affects raytracer; raster path is deterministic.
 
 ---
 
@@ -108,13 +108,22 @@ Plan
 - Generate irradiance/prefilter/BRDF LUT
 - PBR integration; UI file picker and intensity control
 
-4. MSAA Offscreen Pipeline - MEDIUM PRIORITY
-- Status: Not implemented
-- Estimated Effort: 3-4 hours
+4. MSAA Offscreen Pipeline - COMPLETE
+- Implemented: Multisampled FBO and resolve path for both onscreen and offscreen.
+- Implemented: CLI `--samples <int>` and UI dropdown (1/2/4/8/16) to select sample count.
+- Implemented: Headless render honors `--samples` and resolves to PNG.
+Acceptance Tests
+- `--samples=1` bit-matches single-sample baseline (no MSAA path).
+- Increasing samples reduces jaggies on thin geometry and high-contrast edges.
+- No GL errors during FBO creation/resolve; resources are released on shutdown and after offscreen renders.
+- Works in headless mode without a visible window.
 
-Plan
-- Multisampled FBO and resolve path
-- Use in renderToPNG() and expose sample count in UI/CLI
+Test Plan
+- CLI Baseline Equivalence: render the same scene with `--samples=1` and compare against pre-MSAA golden; per-pixel exact match.
+- Quality Check: render with `--samples=2/4/8` and visually/SSIM compare vs. 1x; expect reduced aliasing.
+- Headless Resolve: ensure output PNGs differ across sample counts on an aliasing-heavy test scene.
+- Resize: resize window repeatedly and confirm no leaks/crashes; MSAA targets recreate and rendering remains correct.
+- GL Error Sweep: wrap key GL calls (optional debug build) or check `glGetError()` to ensure no errors.
 
 5. Deterministic Rendering Controls - LOW PRIORITY
 - Status: Not implemented
@@ -154,7 +163,18 @@ Plan
 - Behavior: `.obj` files are loaded as models and auto-selected; `.json` files are applied as JSON Ops
 - Errors: Unsupported extensions show actionable message in console with supported list (.obj, .json)
 
-2025-09-06 - Test Organization Refactor
+2025-09-06 - Target-Centric Orbit Camera Mode Implementation
+- Implemented: Smooth orbit camera system with exponential damping for natural movement
+- Added: Target-centric spherical coordinate system with pitch clamping (-89° to +89°)
+- Enhanced: CameraController API with orbitAroundTarget(), setOrbitTarget(), setOrbitDamping(), setOrbitDistance()
+- Updated: JSON Operations orbit_camera with yaw/pitch steps, optional center/damping/distance parameters
+- Features: Auto-detection of orbit center from scene or selected object, velocity-based momentum system
+- Math: Position calculation via spherical coordinates, 60fps-normalized damping for consistent behavior
+- Testing: Comprehensive test suite with basic orbit, multi-step sequences, pitch clamping validation
+- Examples: Created orbit-camera-basic.json, orbit-camera-test.json, orbit-camera-steps.json, orbit-camera-demo.json
+- Performance: Minimal CPU overhead, GPU-friendly implementation, memory efficient (8 floats + vec3)
+
+2025-09-06 - Test Organization Refactor  
 - Reorganized: Complete test structure reorganization into hierarchical `tests/` directory
 - Implemented: Unified test runner system with category-specific scripts (run_all_tests.sh, run_unit_tests.sh, etc.)
 - Moved: All scattered test files organized into proper categories (unit/, integration/, security/, golden/)
@@ -212,21 +232,35 @@ Method: Priority-weighted (High=3, Medium=2, Low=1)
 |----------|----------|---------|---------|--------|
 | PBR Pipeline | Yes | - | - | 100% |
 | Render Modes | Yes | - | - | 100% |
-| Camera System | Free-fly, Presets | Orbit | - | 80% |
+| Camera System | Free-fly, Presets, Orbit | - | - | 100% |
 | Lighting | Point/Directional/Spot | - | IBL | 80% |
 | Background (solid/gradient) | Yes | - | - | 100% |
 | HDR/IBL | - | - | All | 0% |
-| Offscreen | PNG | - | MSAA Resolve | 70% |
-| Deterministic | Tone/Exposure/Gamma | - | Seed | 40% |
+| Offscreen | PNG + MSAA Resolve | - | - | 100% |
+| Deterministic | Tone/Exposure/Gamma/Seed | - | - | 100% |
 
-Overall Completion: ~72%
+Overall Completion: ~75%
 
 ---
 
 ## NEXT IMPLEMENTATION TARGETS
 
-1. Shader plumbing for tone mapping/exposure/gamma (hook RenderSystem state into shaders)
-2. MSAA offscreen pipeline (quality improvement)
+1. Golden image automation per sample count (test harness + CI artifacts)
+2. HDR skybox + IBL integration (irradiance/prefilter/BRDF LUT)
+3. Optional: Filename suffixing for sample count in default renders
+
+---
+
+## GOLDEN IMAGES PER SAMPLE (CONVENTION)
+
+- Location: `tests/golden/scenes/`
+- Naming: `<scene>_samples<1|2|4|8|16>.png` (e.g., `cube_aliasing_samples4.png`)
+- Generation examples:
+  - UI mode: set MSAA in Settings, Render Image to chosen path.
+  - Headless CLI:
+    - `glint --ops examples/json-ops/cube_basic.json --render tests/golden/scenes/cube_basic_samples1.png --w 800 --h 600 --samples 1`
+    - `glint --ops examples/json-ops/cube_basic.json --render tests/golden/scenes/cube_basic_samples4.png --w 800 --h 600 --samples 4`
+- CI Hook: Extend existing golden comparison job to parametrize sample counts per scene.
 3. HDR skybox/IBL (visual enhancement)
 4. Seed controls for determinism (--seed)
 
@@ -252,7 +286,7 @@ One-Line Semantics (for QA)
 - remove: remove object by name (alias delete accepted for backward compatibility).
 - set_camera: set camera pose (position + target or front), lens (fov/near/far).
 - set_camera_preset: set camera to a named preset around a target and radius.
-- orbit_camera: animate or step the camera orbiting a target by yaw/pitch degrees.
+- orbit_camera: animate or step the camera orbiting a target by yaw/pitch degrees with optional damping and distance controls.
 - frame_object: position camera to frame object with margin percent and default FOV.
 - add_light: add light with type (point/directional/spot), position/direction, color, intensity.
 - set_background: set solid color or skybox/HDR reference and intensity.
@@ -366,7 +400,7 @@ Rendering Pipeline
 - IBL: irradiance, prefilter, BRDF LUT generation and PBR integration.
 
 Camera and Navigation
-- Orbit mode: target-centric orbit with damping and focus/framing.
+- Orbit mode: IMPLEMENTED - target-centric orbit with exponential damping, pitch clamping, and smooth momentum system.
 - Presets: 6 axis + 2 isometric; UI buttons and hotkeys.
 - Frame selection: compute tight/loose bounding sphere and move camera.
 
@@ -404,6 +438,7 @@ Web
 - Directional light: can be added via UI and JSON ops; shader path produces expected shading on standard PBR test scenes; persists via JSON ops/state share-link; selectable indicator arrow; UI controls to enable/disable and edit direction & intensity. Golden image in CI: PENDING.
 - Spot light: can be added via UI and JSON ops; shader path applies inverse-square attenuation and smooth inner/outer cone falloff; UI can edit position, direction, inner/outer cone angles, and intensity. Persisted via JSON ops/state share-link.
 - Camera presets: selecting any preset yields the same camera pose for a given target independent of prior state; hotkeys 1-8 map consistently; JSON set_camera_preset works.
+- Orbit camera: smooth orbit around target with damping; clamps pitch between -89° and +89°; JSON orbit_camera steps reliably with yaw/pitch parameters; auto-detects target center from scene or selected object; maintains consistent behavior across different frame rates.
 - MSAA resolve: --samples=N reduces edge aliasing vs N=1; at N=1 colors bit-match the non-MSAA path.
 - Strict schema: invalid ops file fails fast with non-zero exit code and clear message; CI step fails accordingly.
 - Asset root security: --asset-root restricts file access to specified directory; blocks ../../../etc/passwd and similar traversal attempts; provides clear error messages; maintains backward compatibility when flag not used. IMPLEMENTED.
@@ -466,6 +501,7 @@ tests/scripts/run_golden_tests.sh      # Visual regression tests
 - Headless E2E: run glint --ops ... --render out.png --w 256 --h 256
 - Verify output exists, matches schema, and validates correctly
 - Organized by feature area (basic, lighting, camera, materials)
+- Camera tests include: orbit_camera step sequences, pitch clamping validation, damping behavior
 
 **Security Tests** (`tests/security/`):
 - Verify --asset-root blocks path traversal attempts

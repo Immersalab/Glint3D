@@ -13,8 +13,29 @@ CameraController::CameraController()
 
 void CameraController::update(float deltaTime)
 {
-    // This can be used for smooth camera movements, momentum, etc.
-    // Currently just updates the vectors to ensure consistency
+    // Apply orbit camera damping if there's any velocity
+    if (std::abs(m_yawVelocity) > 0.001f || std::abs(m_pitchVelocity) > 0.001f) {
+        // Apply damping to smooth orbit movement
+        float dampingFactor = std::pow(m_orbitDamping, deltaTime * 60.0f); // 60fps reference
+        m_yawVelocity *= dampingFactor;
+        m_pitchVelocity *= dampingFactor;
+        
+        // Update target angles based on velocity
+        m_targetYaw += m_yawVelocity * deltaTime * 60.0f;
+        m_targetPitch += m_pitchVelocity * deltaTime * 60.0f;
+        
+        // Clamp pitch to avoid gimbal lock
+        m_targetPitch = std::clamp(m_targetPitch, -89.0f, 89.0f);
+        
+        // Update camera state with smoothed orbit position
+        updateOrbitPosition();
+        
+        // Stop very small velocities to avoid infinite movement
+        if (std::abs(m_yawVelocity) < 0.1f) m_yawVelocity = 0.0f;
+        if (std::abs(m_pitchVelocity) < 0.1f) m_pitchVelocity = 0.0f;
+    }
+    
+    // Update vectors to ensure consistency
     updateVectors();
 }
 
@@ -246,4 +267,72 @@ CameraPreset CameraController::presetFromHotkey(int key)
         case 8: return CameraPreset::IsoBR;
         default: return CameraPreset::Front; // Default fallback
     }
+}
+
+void CameraController::orbitAroundTarget(float deltaYaw, float deltaPitch, const glm::vec3& target)
+{
+    // Set orbit target if it changed
+    if (glm::length(target - m_orbitTarget) > 0.001f) {
+        setOrbitTarget(target);
+    }
+    
+    // Add velocity for smooth damped movement
+    m_yawVelocity += deltaYaw;
+    m_pitchVelocity += deltaPitch;
+    
+    // Immediately update position for responsive feel
+    m_targetYaw += deltaYaw * 0.3f; // Partial immediate response
+    m_targetPitch += deltaPitch * 0.3f;
+    
+    // Clamp pitch
+    m_targetPitch = std::clamp(m_targetPitch, -89.0f, 89.0f);
+    
+    updateOrbitPosition();
+}
+
+void CameraController::setOrbitTarget(const glm::vec3& target)
+{
+    m_orbitTarget = target;
+    
+    // Calculate current orbit distance and angles from current position
+    glm::vec3 offset = m_camera.position - m_orbitTarget;
+    m_orbitDistance = glm::length(offset);
+    
+    if (m_orbitDistance > 0.001f) {
+        // Calculate spherical coordinates
+        glm::vec3 normalized = offset / m_orbitDistance;
+        m_targetYaw = glm::degrees(atan2(normalized.z, normalized.x));
+        m_targetPitch = glm::degrees(asin(normalized.y));
+    } else {
+        // Fallback if camera is at target
+        m_orbitDistance = 5.0f;
+        m_targetYaw = 0.0f;
+        m_targetPitch = 0.0f;
+    }
+    
+    // Sync camera angles
+    m_camera.yaw = m_targetYaw;
+    m_camera.pitch = m_targetPitch;
+}
+
+void CameraController::updateOrbitPosition()
+{
+    // Convert spherical coordinates to cartesian
+    float yawRad = glm::radians(m_targetYaw);
+    float pitchRad = glm::radians(m_targetPitch);
+    
+    // Calculate new camera position around orbit target
+    glm::vec3 offset;
+    offset.x = m_orbitDistance * cos(pitchRad) * cos(yawRad);
+    offset.y = m_orbitDistance * sin(pitchRad);
+    offset.z = m_orbitDistance * cos(pitchRad) * sin(yawRad);
+    
+    m_camera.position = m_orbitTarget + offset;
+    
+    // Update camera angles to match orbit position
+    m_camera.yaw = m_targetYaw;
+    m_camera.pitch = m_targetPitch;
+    
+    // Calculate front vector to look at target
+    m_camera.front = glm::normalize(m_orbitTarget - m_camera.position);
 }

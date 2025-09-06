@@ -528,6 +528,19 @@ void ImGuiUILayer::renderSettingsPanel(const UIState& state)
             ImGui::Spacing();
             ImGui::Separator();
             ImGui::Spacing();
+
+            // MSAA sample count selection
+            ImGui::Text("MSAA Samples");
+            ImGui::SetNextItemWidth(-1);
+            int currentSamples = state.msaaSamples;
+            const char* items[] = { "1", "2", "4", "8", "16" };
+            int values[] = { 1, 2, 4, 8, 16 };
+            int idx = 0;
+            for (int i = 0; i < 5; ++i) { if (values[i] == currentSamples) { idx = i; break; } }
+            if (ImGui::Combo("##msaa_samples", &idx, items, IM_ARRAYSIZE(items))) {
+                UICommandData cmd; cmd.command = UICommand::SetMSAASamples; cmd.intParam = values[idx];
+                if (onCommand) onCommand(cmd);
+            }
             
             // Output path setting
             ImGui::Text("Output Path for Renders");

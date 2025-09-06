@@ -110,6 +110,9 @@ int main(int argc, char** argv)
     int windowWidth = parseResult.options.headlessMode ? parseResult.options.outputWidth : 800;
     int windowHeight = parseResult.options.headlessMode ? parseResult.options.outputHeight : 600;
     
+    // Configure render settings early so window hints (e.g., samples) can be applied
+    app->setRenderSettings(parseResult.options.renderSettings);
+
     if (!app->init("Glint 3D", windowWidth, windowHeight, parseResult.options.headlessMode)) {
         Logger::error("Failed to initialize application");
         delete app;
@@ -133,7 +136,7 @@ int main(int argc, char** argv)
         app->setStrictSchema(true, parseResult.options.schemaVersion);
     }
     
-    // Configure render settings
+    // Configure render settings again to apply shader-related values post-init
     app->setRenderSettings(parseResult.options.renderSettings);
 
 #ifdef __EMSCRIPTEN__
@@ -250,7 +253,8 @@ int main(int argc, char** argv)
             Logger::info("Render settings: seed=" + std::to_string(rs.seed) + 
                         ", tone=" + RenderSettings::toneMappingToString(rs.toneMapping) + 
                         ", exposure=" + std::to_string(rs.exposure) + 
-                        ", gamma=" + std::to_string(rs.gamma));
+                        ", gamma=" + std::to_string(rs.gamma) + 
+                        ", samples=" + std::to_string(rs.samples));
             
             if (!app->renderToPNG(outputPath, parseResult.options.outputWidth, parseResult.options.outputHeight)) {
                 Logger::error("Render failed");

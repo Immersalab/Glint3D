@@ -241,6 +241,7 @@ void ApplicationCore::setRenderSettings(const RenderSettings& settings)
         m_renderer->setExposure(settings.exposure);
         m_renderer->setGamma(settings.gamma);
         m_renderer->setSeed(settings.seed);
+        m_renderer->setSampleCount(settings.samples);
     }
 }
 
@@ -528,8 +529,8 @@ bool ApplicationCore::initGLFW(const std::string& windowTitle, int width, int he
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     
-    // Enable MSAA and sRGB
-    glfwWindowHint(GLFW_SAMPLES, 4);
+    // Default framebuffer samples: keep single-sample; MSAA is handled via offscreen FBO
+    glfwWindowHint(GLFW_SAMPLES, 1);
 #ifndef __EMSCRIPTEN__
     glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
 #endif
