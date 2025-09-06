@@ -96,6 +96,18 @@ UIState UIBridge::buildUIState() const
     // Light state  
     state.lightCount = (int)m_lights.getLightCount();
     state.selectedLightIndex = m_selectedLightIndex;
+    state.lights.clear();
+    state.lights.reserve(m_lights.m_lights.size());
+    for (const auto& l : m_lights.m_lights) {
+        UIState::LightUI lu;
+        lu.type = (int)l.type;
+        lu.position = l.position;
+        lu.direction = l.direction;
+        lu.color = l.color;
+        lu.intensity = l.intensity;
+        lu.enabled = l.enabled;
+        state.lights.push_back(lu);
+    }
     
     // Statistics
     state.renderStats = m_renderer.getLastFrameStats();
@@ -172,6 +184,95 @@ void UIBridge::handleUICommand(const UICommandData& command)
                 m_lights.addLight(pos, color, intensity);
                 addConsoleMessage("Light added at (" + std::to_string(pos.x) + ", " + 
                                 std::to_string(pos.y) + ", " + std::to_string(pos.z) + ")");
+            }
+            break;
+        case UICommand::AddPointLight:
+            {
+                // Add a point light in front of the camera
+                const CameraState& camState = m_camera.getCameraState();
+                glm::vec3 pos = camState.position + camState.front * 2.0f;  // In front of camera
+                glm::vec3 color(1.0f, 1.0f, 1.0f);  // Default white
+                float intensity = 1.0f;
+                m_lights.addLight(pos, color, intensity);
+                addConsoleMessage("Point light added at (" + std::to_string(pos.x) + ", " + 
+                                std::to_string(pos.y) + ", " + std::to_string(pos.z) + ")");
+            }
+            break;
+        case UICommand::AddDirectionalLight:
+            {
+                // Add a directional light pointing downward
+                glm::vec3 direction(0.0f, -1.0f, 0.0f);  // Point downward
+                glm::vec3 color(1.0f, 1.0f, 0.8f);  // Slightly warm white for sunlight
+                float intensity = 3.0f;  // Stronger for directional light
+                m_lights.addDirectionalLight(direction, color, intensity);
+                addConsoleMessage("Directional light added (direction: " + std::to_string(direction.x) + ", " + 
+                                std::to_string(direction.y) + ", " + std::to_string(direction.z) + ")");
+            }
+            break;
+        case UICommand::SelectLight:
+            {
+                int lightIndex = command.intParam;
+                if (lightIndex >= 0 && lightIndex < (int)m_lights.getLightCount()) {
+                    m_selectedLightIndex = lightIndex;
+                    addConsoleMessage("Selected light " + std::to_string(lightIndex + 1));
+                } else {
+                    addConsoleMessage("Invalid light index: " + std::to_string(lightIndex));
+                }
+            }
+            break;
+        case UICommand::DeleteLight:
+            {
+                int lightIndex = command.intParam;
+                if (m_lights.removeLightAt(lightIndex)) {
+                    addConsoleMessage("Deleted light " + std::to_string(lightIndex + 1));
+                    if (m_selectedLightIndex == lightIndex) {
+                        m_selectedLightIndex = -1;
+                    } else if (m_selectedLightIndex > lightIndex) {
+                        m_selectedLightIndex--;  // Adjust selection index
+                    }
+                } else {
+                    addConsoleMessage("Failed to delete light " + std::to_string(lightIndex + 1));
+                }
+            }
+            break;
+        case UICommand::SetLightEnabled:
+            {
+                int idx = command.intParam;
+                if (idx >= 0 && idx < (int)m_lights.m_lights.size()) {
+                    m_lights.m_lights[(size_t)idx].enabled = command.boolParam;
+                }
+            }
+            break;
+        case UICommand::SetLightIntensity:
+            {
+                int idx = command.intParam;
+                if (idx >= 0 && idx < (int)m_lights.m_lights.size()) {
+                    m_lights.m_lights[(size_t)idx].intensity = command.floatParam;
+                }
+            }
+            break;
+        case UICommand::SetLightDirection:
+            {
+                int idx = command.intParam;
+                if (idx >= 0 && idx < (int)m_lights.m_lights.size()) {
+                    auto& l = m_lights.m_lights[(size_t)idx];
+                    if (l.type == LightType::DIRECTIONAL) {
+                        glm::vec3 d = command.vec3Param;
+                        if (glm::length(d) > 1e-4f) d = glm::normalize(d);
+                        l.direction = d;
+                    }
+                }
+            }
+            break;
+        case UICommand::SetLightPosition:
+            {
+                int idx = command.intParam;
+                if (idx >= 0 && idx < (int)m_lights.m_lights.size()) {
+                    auto& l = m_lights.m_lights[(size_t)idx];
+                    if (l.type == LightType::POINT) {
+                        l.position = command.vec3Param;
+                    }
+                }
             }
             break;
         case UICommand::SetRequireRMBToMove:
@@ -562,11 +663,24 @@ std::string UIBridge::buildShareLink() const
         Value addLightOp(kObjectType);
         addLightOp.AddMember("op", "add_light", allocator);
         
-        Value lightPos(kArrayType);
-        lightPos.PushBack(light.position.x, allocator);
-        lightPos.PushBack(light.position.y, allocator);
-        lightPos.PushBack(light.position.z, allocator);
-        addLightOp.AddMember("position", lightPos, allocator);
+        // Add light type
+        if (light.type == LightType::POINT) {
+            addLightOp.AddMember("type", "point", allocator);
+            
+            Value lightPos(kArrayType);
+            lightPos.PushBack(light.position.x, allocator);
+            lightPos.PushBack(light.position.y, allocator);
+            lightPos.PushBack(light.position.z, allocator);
+            addLightOp.AddMember("position", lightPos, allocator);
+        } else if (light.type == LightType::DIRECTIONAL) {
+            addLightOp.AddMember("type", "directional", allocator);
+            
+            Value lightDir(kArrayType);
+            lightDir.PushBack(light.direction.x, allocator);
+            lightDir.PushBack(light.direction.y, allocator);
+            lightDir.PushBack(light.direction.z, allocator);
+            addLightOp.AddMember("direction", lightDir, allocator);
+        }
         
         Value lightColor(kArrayType);
         lightColor.PushBack(light.color.x, allocator);

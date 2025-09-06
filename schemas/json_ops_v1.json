@@ -50,11 +50,36 @@
       "required": ["op"],
       "properties": {
         "op": { "const": "add_light" },
+        "type": { 
+          "type": "string", 
+          "enum": ["point", "directional"] 
+        },
         "position": { "$ref": "#/definitions/vec3" },
+        "direction": { "$ref": "#/definitions/vec3" },
         "color": { "$ref": "#/definitions/vec3" },
         "intensity": { "type": "number" }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "anyOf": [
+        {
+          "properties": {
+            "type": { "const": "point" },
+            "position": { "$ref": "#/definitions/vec3" }
+          },
+          "not": { "required": ["direction"] }
+        },
+        {
+          "properties": {
+            "type": { "const": "directional" },
+            "direction": { "$ref": "#/definitions/vec3" }
+          },
+          "not": { "required": ["position"] }
+        },
+        {
+          "not": { "required": ["type"] },
+          "required": ["position"]
+        }
+      ]
     },
     "opSetMaterial": {
       "type": "object",

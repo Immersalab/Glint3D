@@ -13,7 +13,7 @@ Core Requirements
 - [x] PBR raster pipeline (BaseColor, Normal, Metallic/Roughness; sRGB-correct)
 - [x] Render modes: point, wireframe, solid, raytrace (CPU)
 - [ ] Camera: free-fly, orbit, presets (front/back/left/right/top/bottom/isometric)
-- [ ] Lights: directional, point, spot (intensity/color); simple IBL optional
+- [x] Lights: directional, point (intensity/color); spot pending; simple IBL optional
 - [ ] Background: solid color, optional HDR skybox/IBL
 - [ ] Offscreen render target with MSAA resolve, readback to PNG
 - [ ] Deterministic controls: seed, tone mapping (ACES/Reinhard), exposure
@@ -32,7 +32,7 @@ Camera - PARTIAL
 - Status: Free-fly implemented. Presets implemented (front/back/left/right/top/bottom/iso FL/iso BR) with correct orientation and framing. Orbit pending.
 
 Lighting - PARTIAL
-- Status: Point lights supported with indicators. Directional/Spot and IBL are not implemented.
+- Status: Point and Directional lights supported. PBR + Standard shaders handle directional lighting (no attenuation). UI supports add/select/delete and per-light enable/disable, intensity, and direction (for directional) or position (for point). Spot and IBL are not implemented.
 
 Background - PARTIAL
 - Status: Procedural gradient skybox integrated and toggleable; solid color background available. HDR/IBL not implemented.
@@ -204,8 +204,8 @@ Core Requirements
 Implementation Status
 - Status: Partial
 - Location: engine/src/json_ops.cpp
-- Implemented: load, set_camera, set_camera_preset, transform, remove (currently implemented as delete in code), render_image
-- Missing: add_light, duplicate, remove (formalize alias), orbit_camera, frame_object, select, set_background, exposure, tone_map
+- Implemented: load, set_camera, set_camera_preset, add_light (point/directional), transform, remove (currently implemented as delete in code), render_image
+- Missing: duplicate, remove (formalize alias), orbit_camera, frame_object, select, set_background, exposure, tone_map
 - Implementation Priority: HIGH (6-8 hours)
 
 One-Line Semantics (for QA)
@@ -254,8 +254,8 @@ Core Requirements
 Implementation Status
 - Status: Partial
 - Location: engine/src/imgui_ui_layer.cpp
-- Implemented: File menu (Import/Export), free-fly camera with speed/sensitivity, basic point-light controls, settings panel, modern theme, View toggles (Grid/Axes/Skybox), Performance HUD, selection highlight, transform gizmo (translate/rotate/scale rendering and picking via Gizmo)
-- Missing: Drag-drop models, recent files, scene tree panel, snap controls, camera preset buttons, advanced light-type UI (dir/spot), more detailed HUD metrics
+- Implemented: File menu (Import/Export), free-fly camera with speed/sensitivity, light list with add/select/delete, per-light enable/disable and intensity editing; directional light direction editing and indicator arrow; settings panel, modern theme, View toggles (Grid/Axes/Skybox), Performance HUD, selection highlight, transform gizmo (translate/rotate/scale rendering and picking via Gizmo)
+- Missing: Drag-drop models, recent files, scene tree panel, snap controls, camera preset buttons, spot-light UI, more detailed HUD metrics
 - Implementation Priority: HIGH (8-12 hours)
 
 ---
@@ -308,7 +308,7 @@ Known gaps (Web): No compute shaders; memory growth flags enabled; textures pref
 ## DETAILED BACKLOG BY AREA
 
 Rendering Pipeline
-- Directional lighting: shader path, light uniforms, UI controls, ops support.
+- Directional lighting: DONE (shader path, light uniforms, UI controls, ops support).
 - Spot lights: cone math (inner/outer), UI widgets, ops support.
 - MSAA FBO and resolve: both onscreen and offscreen; sample count in settings and CLI.
 - Tone mapping: Reinhard, ACES, Filmic implementations; exposure/gamma controls.
@@ -350,7 +350,7 @@ Web
 
 ## ACCEPTANCE CRITERIA (KEY ITEMS)
 
-- Directional light: can be added via UI and JSON ops; shader path produces expected shading on standard test scenes; persists to scene JSON; selectable indicator.
+- Directional light: can be added via UI and JSON ops; shader path produces expected shading on standard PBR test scenes; persists via JSON ops/state share-link; selectable indicator arrow; UI controls to enable/disable and edit direction & intensity. Golden image in CI: PENDING.
 - Camera presets: selecting any preset yields the same camera pose for a given target independent of prior state; hotkeys 1-8 map consistently; JSON set_camera_preset works.
 - MSAA resolve: --samples=N reduces edge aliasing vs N=1; at N=1 colors bit-match the non-MSAA path.
 - Strict schema: invalid ops file fails fast with non-zero exit code and clear message; CI step fails accordingly.

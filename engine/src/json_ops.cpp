@@ -190,12 +190,38 @@ bool JsonOpsExecutor::apply(const std::string& json, std::string& error)
             return true;
         }
         else if (op == "add_light") {
-            glm::vec3 pos(0.0f), color(1.0f);
+            // Default light type is point light for backward compatibility
+            std::string lightType = "point";
+            if (obj.HasMember("type") && obj["type"].IsString()) {
+                lightType = obj["type"].GetString();
+                if (lightType != "point" && lightType != "directional") {
+                    error = "add_light: invalid type '" + lightType + "' (must be 'point' or 'directional')";
+                    return false;
+                }
+            }
+            
+            glm::vec3 pos(0.0f), dir(0.0f, -1.0f, 0.0f), color(1.0f);
             double intensity = 1.0;
-            if (obj.HasMember("position") && obj["position"].IsArray()) { if (!getVec3(obj["position"], pos)) { error = "add_light: bad 'position'"; return false; } }
-            if (obj.HasMember("color") && obj["color"].IsArray()) { if (!getVec3(obj["color"], color)) { error = "add_light: bad 'color'"; return false; } }
-            if (obj.HasMember("intensity")) { if (!obj["intensity"].IsNumber()) { error = "add_light: bad 'intensity'"; return false; } intensity = obj["intensity"].GetDouble(); }
-            m_lights.addLight(pos, color, (float)intensity);
+            
+            if (obj.HasMember("color") && obj["color"].IsArray()) { 
+                if (!getVec3(obj["color"], color)) { error = "add_light: bad 'color'"; return false; } 
+            }
+            if (obj.HasMember("intensity")) { 
+                if (!obj["intensity"].IsNumber()) { error = "add_light: bad 'intensity'"; return false; } 
+                intensity = obj["intensity"].GetDouble(); 
+            }
+            
+            if (lightType == "point") {
+                if (obj.HasMember("position") && obj["position"].IsArray()) { 
+                    if (!getVec3(obj["position"], pos)) { error = "add_light: bad 'position'"; return false; } 
+                }
+                m_lights.addLight(pos, color, (float)intensity);
+            } else if (lightType == "directional") {
+                if (obj.HasMember("direction") && obj["direction"].IsArray()) { 
+                    if (!getVec3(obj["direction"], dir)) { error = "add_light: bad 'direction'"; return false; } 
+                }
+                m_lights.addDirectionalLight(dir, color, (float)intensity);
+            }
             return true;
         }
         else if (op == "set_material") {

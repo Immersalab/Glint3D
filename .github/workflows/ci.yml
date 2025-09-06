@@ -59,6 +59,58 @@ jobs:
           xvfb-run -a "$EXE" --ops examples/json-ops/cube_basic.json --render out.png --w 128 --h 128
           test -f renders/out.png
 
+      - name: Install ImageMagick for golden comparison
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y imagemagick
+
+      - name: Render directional light test (headless)
+        run: |
+          set -e
+          EXE="builds/desktop/cmake/glint"
+          test -f "$EXE" || { echo "glint not found"; ls -R builds/desktop/cmake; exit 1; }
+          mkdir -p renders
+          xvfb-run -a "$EXE" --ops examples/json-ops/directional-light-test.json --render renders/directional-light-test.png --w 256 --h 256
+          test -f renders/directional-light-test.png
+
+      - name: Compare against golden (if present)
+        id: compare
+        run: |
+          set -e
+          GOLDEN="examples/golden/directional-light-test.png"
+          OUTPUT="renders/directional-light-test.png"
+          DIFF="renders/directional-light-test.diff.png"
+          if [ ! -f "$GOLDEN" ]; then
+            echo "Golden image not found at $GOLDEN — skipping compare." >&2
+            echo "skipped=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          # Try SSIM metric first (if supported); fallback to RMSE.
+          if compare -metric SSIM "$OUTPUT" "$GOLDEN" "$DIFF" 2>metric.txt; then
+            METRIC=$(cat metric.txt | tr -d '\r' | tr -d '\n')
+            echo "SSIM=$METRIC"
+            # Expect SSIM close to 1; accept >= 0.995
+            SCORE=$(echo "$METRIC" | awk '{print $1}')
+            awk -v s="$SCORE" 'BEGIN{ exit (s>=0.995)?0:1 }' || { echo "SSIM below threshold: $SCORE"; exit 2; }
+          else
+            echo "SSIM compare not supported or failed; falling back to RMSE" >&2
+            # RMSE prints: <absolute> (<normalized>) — we threshold on normalized <= 0.004
+            compare -metric RMSE "$OUTPUT" "$GOLDEN" "$DIFF" 2>metric.txt || true
+            METRIC=$(cat metric.txt)
+            echo "RMSE=$METRIC"
+            NORM=$(echo "$METRIC" | sed -E 's/.*\(([^)]*)\).*/\1/')
+            awk -v n="$NORM" 'BEGIN{ exit (n<=0.004)?0:1 }' || { echo "RMSE normalized above threshold: $NORM"; exit 2; }
+          fi
+
+      - name: Upload golden compare artifacts (on failure or skip)
+        if: ${{ failure() || steps.compare.outputs.skipped == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-directional-artifacts
+          path: |
+            renders/directional-light-test.png
+            renders/directional-light-test.diff.png
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:

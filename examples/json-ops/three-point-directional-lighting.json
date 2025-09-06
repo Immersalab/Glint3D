@@ -1,0 +1,48 @@
+[
+  {
+    "op": "load",
+    "path": "engine/assets/models/sphere.obj",
+    "name": "TestSphere",
+    "transform": {
+      "position": [0, 0, 0],
+      "scale": [1.5, 1.5, 1.5]
+    }
+  },
+  {
+    "op": "set_material",
+    "target": "TestSphere",
+    "material": {
+      "color": [0.8, 0.8, 0.8],
+      "roughness": 0.2,
+      "metallic": 0.1
+    }
+  },
+  {
+    "op": "add_light",
+    "type": "directional",
+    "direction": [-0.5, -1.0, -0.3],
+    "color": [1.0, 0.95, 0.8],
+    "intensity": 3.5
+  },
+  {
+    "op": "add_light",
+    "type": "directional",
+    "direction": [0.8, -0.5, 0.6],
+    "color": [0.3, 0.5, 1.0],
+    "intensity": 2.0
+  },
+  {
+    "op": "add_light",
+    "type": "directional", 
+    "direction": [-0.2, -0.3, 0.9],
+    "color": [1.0, 0.4, 0.6],
+    "intensity": 1.5
+  },
+  {
+    "op": "set_camera",
+    "position": [4, 2, 3],
+    "target": [0, 0, 0],
+    "up": [0, 1, 0],
+    "fov_deg": 45
+  }
+]

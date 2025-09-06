@@ -147,7 +147,7 @@ private:
     // Debug rendering
     bool m_showGrid = true;
     bool m_showAxes = true;
-    bool m_showSkybox = true;
+    bool m_showSkybox = false;
     
     // Utility renderers
     std::unique_ptr<AxisRenderer> m_axisRenderer;

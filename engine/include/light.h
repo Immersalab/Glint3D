@@ -4,11 +4,21 @@
 #include <glm/glm.hpp>
 #include "gl_platform.h"
 
+enum class LightType {
+    POINT = 0,
+    DIRECTIONAL = 1
+};
+
 struct LightSource {
-    glm::vec3 position;
+    LightType type;
+    glm::vec3 position;      // For point lights
+    glm::vec3 direction;     // For directional lights (normalized)
     glm::vec3 color;
     float intensity;
     bool enabled;
+    
+    LightSource() : type(LightType::POINT), position(0.0f), direction(0.0f, -1.0f, 0.0f), 
+                    color(1.0f), intensity(1.0f), enabled(true) {}
 };
 
 class Light {
@@ -18,11 +28,12 @@ public:
 
     // Existing functions
     void addLight(const glm::vec3& position, const glm::vec3& color, float intensity);
+    void addDirectionalLight(const glm::vec3& direction, const glm::vec3& color, float intensity);
     void applyLights(GLuint shaderProgram) const;
     size_t getLightCount() const;
 
     // New functions for indicator visualization
-    void initIndicator();         // Create geometry (a small cube)
+    void initIndicator();         // Create geometry (cube for point lights, arrow for directional)
     bool initIndicatorShader();   // Compile and link the indicator shader
     void renderIndicators(const glm::mat4& view, const glm::mat4& projection, int selectedIndex) const;
 
@@ -34,9 +45,13 @@ public:
 
 private:
 
-    // Indicator geometry
+    // Indicator geometry for point lights (cube)
     GLuint m_indicatorVAO = 0;
     GLuint m_indicatorVBO = 0;
+
+    // Indicator geometry for directional lights (arrow)
+    GLuint m_arrowVAO = 0;
+    GLuint m_arrowVBO = 0;
 
     // Indicator shader program stored in the Light class
     GLuint m_indicatorShader = 0;

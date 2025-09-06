@@ -569,6 +569,115 @@ void ImGuiUILayer::renderSettingsPanel(const UIState& state)
             ImGui::Spacing();
         }
         
+        // Lighting Section
+        if (ImGui::CollapsingHeader("Lighting")) {
+            ImGui::Spacing();
+            
+            // Add Point Light button
+            if (ImGui::Button("Add Point Light", ImVec2(-1, 0))) {
+                UICommandData cmd;
+                cmd.command = UICommand::AddPointLight;
+                if (onCommand) onCommand(cmd);
+            }
+            
+            // Add Directional Light button
+            if (ImGui::Button("Add Directional Light", ImVec2(-1, 0))) {
+                UICommandData cmd;
+                cmd.command = UICommand::AddDirectionalLight;
+                if (onCommand) onCommand(cmd);
+            }
+            
+            ImGui::Separator();
+            
+            // Light controls (if any lights exist)
+            if (state.lightCount > 0) {
+                ImGui::Text("Lights (%d):", state.lightCount);
+
+                static int selectedLight = -1;
+                // keep selection in sync if list size shrinks
+                if (selectedLight >= state.lightCount) selectedLight = -1;
+                for (int i = 0; i < state.lightCount; i++) {
+                    ImGui::PushID(i);
+                    // Build display name with type
+                    const auto& L = (i < (int)state.lights.size()) ? state.lights[i] : UIState::LightUI{};
+                    const char* typeName = (L.type == 1) ? "Directional" : "Point";
+                    std::string lightName = std::string(typeName) + " Light " + std::to_string(i + 1);
+                    bool selected = (selectedLight == i);
+                    if (ImGui::Selectable(lightName.c_str(), selected)) {
+                        selectedLight = i;
+                        UICommandData cmd;
+                        cmd.command = UICommand::SelectLight;
+                        cmd.intParam = i;
+                        if (onCommand) onCommand(cmd);
+                    }
+                    
+                    // Context menu for light operations
+                    if (ImGui::BeginPopupContextItem()) {
+                        if (ImGui::MenuItem("Delete Light")) {
+                            UICommandData cmd;
+                            cmd.command = UICommand::DeleteLight;
+                            cmd.intParam = i;
+                            if (onCommand) onCommand(cmd);
+                            selectedLight = -1;
+                        }
+                        ImGui::EndPopup();
+                    }
+                    
+                    ImGui::PopID();
+                }
+                
+                // Light properties editing
+                if (selectedLight >= 0 && selectedLight < (int)state.lights.size()) {
+                    const auto& L = state.lights[selectedLight];
+                    ImGui::Separator();
+                    ImGui::Text("Light %d Properties:", selectedLight + 1);
+                    ImGui::Text("Type: %s", L.type == 1 ? "Directional" : "Point");
+
+                    bool enabled = L.enabled;
+                    if (ImGui::Checkbox("Enabled", &enabled)) {
+                        UICommandData cmd;
+                        cmd.command = UICommand::SetLightEnabled;
+                        cmd.intParam = selectedLight;
+                        cmd.boolParam = enabled;
+                        if (onCommand) onCommand(cmd);
+                    }
+
+                    float intensity = L.intensity;
+                    if (ImGui::SliderFloat("Intensity", &intensity, 0.0f, 10.0f, "%.2f")) {
+                        UICommandData cmd;
+                        cmd.command = UICommand::SetLightIntensity;
+                        cmd.intParam = selectedLight;
+                        cmd.floatParam = intensity;
+                        if (onCommand) onCommand(cmd);
+                    }
+
+                    if (L.type == 1) {
+                        // Directional
+                        glm::vec3 dir = L.direction;
+                        if (ImGui::InputFloat3("Direction", &dir.x)) {
+                            UICommandData cmd;
+                            cmd.command = UICommand::SetLightDirection;
+                            cmd.intParam = selectedLight;
+                            cmd.vec3Param = dir;
+                            if (onCommand) onCommand(cmd);
+                        }
+                    } else {
+                        // Point
+                        glm::vec3 pos = L.position;
+                        if (ImGui::InputFloat3("Position", &pos.x)) {
+                            UICommandData cmd;
+                            cmd.command = UICommand::SetLightPosition;
+                            cmd.intParam = selectedLight;
+                            cmd.vec3Param = pos;
+                            if (onCommand) onCommand(cmd);
+                        }
+                    }
+                }
+            }
+            
+            ImGui::Spacing();
+        }
+        
         // Diagnostic Options Section
         if (ImGui::CollapsingHeader("Diagnostics")) {
             ImGui::Spacing();

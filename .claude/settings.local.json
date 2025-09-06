@@ -265,7 +265,9 @@
       "Bash(../builds/desktop/cmake/Release/glint.exe --ops ../examples/json-ops/three-point-lighting.json --render test_from_engine_fixed.png --w 200 --h 200)",
       "Bash(desktop/cmake/Release/glint.exe:*)",
       "Bash(../builds/desktop/cmake/Release/glint.exe --ops ../examples/json-ops/three-point-lighting.json --render --w 200 --h 200)",
-      "Bash(builds/desktop/cmake/Debug/glint.exe --ops examples/json-ops/three-point-lighting.json --render renders/diagnostic_lighting.png --w 400 --h 300)"
+      "Bash(builds/desktop/cmake/Debug/glint.exe --ops examples/json-ops/three-point-lighting.json --render renders/diagnostic_lighting.png --w 400 --h 300)",
+      "Bash(./glint.exe:*)",
+      "Bash(./builds/desktop/cmake/Debug/glint.exe:*)"
     ],
     "deny": [],
     "ask": []

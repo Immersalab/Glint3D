@@ -20,9 +20,15 @@ uniform vec3 objectColor; // fallback if no texture
 // Global ambient
 uniform vec4 globalAmbient; // .a is often unused, so we just use .rgb
 
+// Light types
+#define LIGHT_POINT 0
+#define LIGHT_DIRECTIONAL 1
+
 // Light struct
 struct Light {
+    int type;
     vec3 position;
+    vec3 direction;
     vec3 color;
     float intensity; // If 0, treat as disabled
 };
@@ -89,7 +95,16 @@ void main()
 
         for (int i = 0; i < numLights; i++) {
             if (lights[i].intensity <= 0.0) continue;
-            vec3 L = normalize(lights[i].position - FragPos);
+            
+            vec3 L;
+            if (lights[i].type == LIGHT_POINT) {
+                L = normalize(lights[i].position - FragPos);
+            } else if (lights[i].type == LIGHT_DIRECTIONAL) {
+                L = normalize(-lights[i].direction);
+            } else {
+                continue;
+            }
+            
             float diff = max(dot(faceNormal, L), 0.0);
             totalLight += shadow * material.diffuse * diff * lights[i].color * lights[i].intensity;
         }

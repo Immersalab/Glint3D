@@ -1,5 +1,7 @@
 #include "light.h"
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/constants.hpp>
 #include <iostream>
 #include <sstream>
 #include <algorithm>
@@ -18,16 +20,31 @@ Light::~Light()
 {
     if (m_indicatorVAO) glDeleteVertexArrays(1, &m_indicatorVAO);
     if (m_indicatorVBO) glDeleteBuffers(1, &m_indicatorVBO);
+    if (m_arrowVAO) glDeleteVertexArrays(1, &m_arrowVAO);
+    if (m_arrowVBO) glDeleteBuffers(1, &m_arrowVBO);
     if (m_indicatorShader) glDeleteProgram(m_indicatorShader);
 }
 
 void Light::addLight(const glm::vec3& position, const glm::vec3& color, float intensity)
 {
     LightSource newLight;
+    newLight.type = LightType::POINT;
     newLight.position = position;
     newLight.color = color;
     newLight.intensity = intensity;
     newLight.enabled = true; // default on
+    m_lights.push_back(newLight);
+}
+
+void Light::addDirectionalLight(const glm::vec3& direction, const glm::vec3& color, float intensity)
+{
+    LightSource newLight;
+    newLight.type = LightType::DIRECTIONAL;
+    newLight.direction = glm::normalize(direction);
+    newLight.position = glm::vec3(0.0f); // Not used for directional lights
+    newLight.color = color;
+    newLight.intensity = intensity;
+    newLight.enabled = true;
     m_lights.push_back(newLight);
 }
 
@@ -51,13 +68,17 @@ void Light::applyLights(GLuint shaderProgram) const
     for (size_t i = 0; i < m_lights.size(); i++)
     {
         std::string baseName = "lights[" + std::to_string(i) + "]";
+        GLint lightTypeLoc = glGetUniformLocation(shaderProgram, (baseName + ".type").c_str());
         GLint lightPosLoc = glGetUniformLocation(shaderProgram, (baseName + ".position").c_str());
+        GLint lightDirLoc = glGetUniformLocation(shaderProgram, (baseName + ".direction").c_str());
         GLint lightColorLoc = glGetUniformLocation(shaderProgram, (baseName + ".color").c_str());
         GLint lightIntensityLoc = glGetUniformLocation(shaderProgram, (baseName + ".intensity").c_str());
 
         float intensity = (m_lights[i].enabled) ? m_lights[i].intensity : 0.0f;
 
+        if (lightTypeLoc != -1)      glUniform1i(lightTypeLoc, static_cast<int>(m_lights[i].type));
         if (lightPosLoc != -1)       glUniform3fv(lightPosLoc, 1, glm::value_ptr(m_lights[i].position));
+        if (lightDirLoc != -1)       glUniform3fv(lightDirLoc, 1, glm::value_ptr(m_lights[i].direction));
         if (lightColorLoc != -1)     glUniform3fv(lightColorLoc, 1, glm::value_ptr(m_lights[i].color));
         if (lightIntensityLoc != -1) glUniform1f(lightIntensityLoc, intensity);
     }
@@ -69,10 +90,11 @@ size_t Light::getLightCount() const
     return m_lights.size();
 }
 
-// Initialize indicator geometry (a small cube)
+// Initialize indicator geometry (cube for point lights, arrow for directional lights)
 void Light::initIndicator()
 {
-    float vertices[] = {
+    // Cube vertices for point lights
+    float cubeVertices[] = {
         // positions for 12 triangles (36 vertices)
         -0.1f, -0.1f, -0.1f,
          0.1f, -0.1f, -0.1f,
@@ -117,11 +139,32 @@ void Light::initIndicator()
         -0.1f,  0.1f, -0.1f
     };
 
+    // Initialize cube geometry for point lights
     glGenVertexArrays(1, &m_indicatorVAO);
     glGenBuffers(1, &m_indicatorVBO);
     glBindVertexArray(m_indicatorVAO);
     glBindBuffer(GL_ARRAY_BUFFER, m_indicatorVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), cubeVertices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
+    // Arrow vertices for directional lights (shaft + arrowhead)
+    float arrowVertices[] = {
+        // Arrow shaft (thin cylinder approximated with lines)
+        0.0f, 0.0f, 0.0f,    0.0f, 0.0f, -0.8f,  // Shaft line
+        0.0f, 0.0f, -0.8f,   0.2f, 0.0f, -0.6f,  // Right arrowhead line
+        0.0f, 0.0f, -0.8f,  -0.2f, 0.0f, -0.6f,  // Left arrowhead line
+        0.0f, 0.0f, -0.8f,   0.0f, 0.2f, -0.6f,  // Top arrowhead line
+        0.0f, 0.0f, -0.8f,   0.0f, -0.2f, -0.6f, // Bottom arrowhead line
+    };
+
+    // Initialize arrow geometry for directional lights
+    glGenVertexArrays(1, &m_arrowVAO);
+    glGenBuffers(1, &m_arrowVBO);
+    glBindVertexArray(m_arrowVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, m_arrowVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(arrowVertices), arrowVertices, GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
     glBindVertexArray(0);
@@ -235,38 +278,90 @@ void Light::renderIndicators(const glm::mat4& view, const glm::mat4& projection,
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
     glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
-    glBindVertexArray(m_indicatorVAO);
+    GLint modelLoc = glGetUniformLocation(m_indicatorShader, "model");
+    GLint colorLoc = glGetUniformLocation(m_indicatorShader, "indicatorColor");
+
     for (size_t i = 0; i < m_lights.size(); i++) {
-        glm::mat4 model = glm::translate(glm::mat4(1.0f), m_lights[i].position);
-        GLint modelLoc = glGetUniformLocation(m_indicatorShader, "model");
-        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-
-        GLint colorLoc = glGetUniformLocation(m_indicatorShader, "indicatorColor");
-        glUniform3fv(colorLoc, 1, glm::value_ptr(m_lights[i].color));
-
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        glm::mat4 model(1.0f);
+        
+        if (m_lights[i].type == LightType::POINT) {
+            // Render cube at light position
+            model = glm::translate(model, m_lights[i].position);
+            glBindVertexArray(m_indicatorVAO);
+            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+            glUniform3fv(colorLoc, 1, glm::value_ptr(m_lights[i].color));
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        } 
+        else if (m_lights[i].type == LightType::DIRECTIONAL) {
+            // Calculate transformation to orient arrow in light direction
+            glm::vec3 forward(0.0f, 0.0f, -1.0f); // Arrow points down -Z
+            glm::vec3 lightDir = glm::normalize(m_lights[i].direction);
+            
+            // Create rotation matrix to align arrow with light direction
+            glm::vec3 axis = glm::cross(forward, lightDir);
+            if (glm::length(axis) > 0.001f) {
+                axis = glm::normalize(axis);
+                float angle = acos(glm::clamp(glm::dot(forward, lightDir), -1.0f, 1.0f));
+                model = glm::rotate(model, angle, axis);
+            } else if (glm::dot(forward, lightDir) < 0) {
+                // 180 degree rotation needed
+                model = glm::rotate(model, glm::pi<float>(), glm::vec3(1.0f, 0.0f, 0.0f));
+            }
+            
+            // Position arrow at scene origin for directional lights (they're infinite)
+            // In the future, we could position them at the camera or scene bounds
+            
+            glBindVertexArray(m_arrowVAO);
+            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+            glUniform3fv(colorLoc, 1, glm::value_ptr(m_lights[i].color));
+            glLineWidth(3.0f);
+            glDrawArrays(GL_LINES, 0, 10); // 5 lines * 2 vertices = 10
+        }
     }
-    // Draw selected as a thin wireframe box overlay (modern highlight)
+    
+    // Draw selection highlight
     if (selectedIndex >= 0 && selectedIndex < (int)m_lights.size()) {
-        glm::mat4 model = glm::translate(glm::mat4(1.0f), m_lights[selectedIndex].position) * glm::scale(glm::mat4(1.0f), glm::vec3(1.3f));
-        GLint modelLoc = glGetUniformLocation(m_indicatorShader, "model");
-        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-        GLint colorLoc = glGetUniformLocation(m_indicatorShader, "indicatorColor");
         glm::vec3 selColor(0.2f, 0.7f, 1.0f);
         glUniform3fv(colorLoc, 1, glm::value_ptr(selColor));
-        // Render highlight overlay. On WebGL2 skip polygon mode (not available) and just draw filled overlay.
+        
+        if (m_lights[selectedIndex].type == LightType::POINT) {
+            glm::mat4 model = glm::translate(glm::mat4(1.0f), m_lights[selectedIndex].position) 
+                            * glm::scale(glm::mat4(1.0f), glm::vec3(1.3f));
+            glBindVertexArray(m_indicatorVAO);
+            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+            
 #ifndef __EMSCRIPTEN__
-        // Render as lines on desktop
-        GLint polyMode[2];
-        glGetIntegerv(GL_POLYGON_MODE, polyMode);
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        glLineWidth(2.0f);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        glPolygonMode(GL_FRONT_AND_BACK, polyMode[0]);
+            GLint polyMode[2];
+            glGetIntegerv(GL_POLYGON_MODE, polyMode);
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            glLineWidth(2.0f);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+            glPolygonMode(GL_FRONT_AND_BACK, polyMode[0]);
 #else
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
 #endif
+        } else if (m_lights[selectedIndex].type == LightType::DIRECTIONAL) {
+            // Highlight directional light with thicker lines
+            glm::mat4 model(1.0f);
+            glm::vec3 forward(0.0f, 0.0f, -1.0f);
+            glm::vec3 lightDir = glm::normalize(m_lights[selectedIndex].direction);
+            
+            glm::vec3 axis = glm::cross(forward, lightDir);
+            if (glm::length(axis) > 0.001f) {
+                axis = glm::normalize(axis);
+                float angle = acos(glm::clamp(glm::dot(forward, lightDir), -1.0f, 1.0f));
+                model = glm::rotate(model, angle, axis);
+            } else if (glm::dot(forward, lightDir) < 0) {
+                model = glm::rotate(model, glm::pi<float>(), glm::vec3(1.0f, 0.0f, 0.0f));
+            }
+            
+            glBindVertexArray(m_arrowVAO);
+            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+            glLineWidth(5.0f);
+            glDrawArrays(GL_LINES, 0, 10);
+        }
     }
+    
     glBindVertexArray(0);
 }
 

@@ -6,8 +6,18 @@ in vec3 vWorldPos;
 in vec2 vUV;
 in mat3 vTBN;
 
+// Light types
+#define LIGHT_POINT 0
+#define LIGHT_DIRECTIONAL 1
+
 // Lights
-struct Light { vec3 position; vec3 color; float intensity; };
+struct Light { 
+    int type;
+    vec3 position; 
+    vec3 direction; 
+    vec3 color; 
+    float intensity; 
+};
 #define MAX_LIGHTS 10
 uniform int numLights;
 uniform Light lights[MAX_LIGHTS];
@@ -89,11 +99,25 @@ void main() {
     float shadow = calculateShadow(lightSpaceMatrix * vec4(vWorldPos, 1.0));
     for (int i=0;i<numLights;i++) {
         if (lights[i].intensity <= 0.0) continue;
-        vec3 L = normalize(lights[i].position - vWorldPos);
+        
+        vec3 L;
+        vec3 radiance;
+        
+        if (lights[i].type == LIGHT_POINT) {
+            // Point light calculation
+            L = normalize(lights[i].position - vWorldPos);
+            float dist = length(lights[i].position - vWorldPos);
+            float atten = 1.0 / (dist*dist);
+            radiance = lights[i].color * lights[i].intensity * atten;
+        } else if (lights[i].type == LIGHT_DIRECTIONAL) {
+            // Directional light calculation
+            L = normalize(-lights[i].direction);  // Light direction points towards the surface
+            radiance = lights[i].color * lights[i].intensity;  // No attenuation for directional lights
+        } else {
+            continue; // Skip unknown light types
+        }
+        
         vec3 H = normalize(V + L);
-        float dist = length(lights[i].position - vWorldPos);
-        float atten = 1.0 / (dist*dist);
-        vec3 radiance = lights[i].color * lights[i].intensity * atten;
 
         float NDF = DistributionGGX(N, H, roughness);
         float G   = GeometrySmith(N, V, L, roughness);

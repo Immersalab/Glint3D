@@ -21,7 +21,7 @@ struct UIState {
     bool showPerfHUD = false;
     bool showGrid = true;
     bool showAxes = true;
-    bool showSkybox = true;
+    bool showSkybox = false;
     
     // Rendering state
     RenderMode renderMode = RenderMode::Solid;
@@ -41,6 +41,17 @@ struct UIState {
     int selectedLightIndex = -1;
     int objectCount = 0;
     int lightCount = 0;
+    
+    // Light details for UI editing
+    struct LightUI {
+        int type = 0;              // 0=point, 1=directional
+        glm::vec3 position{0.0f};  // point
+        glm::vec3 direction{0.0f, -1.0f, 0.0f}; // directional
+        glm::vec3 color{1.0f};
+        float intensity = 1.0f;
+        bool enabled = true;
+    };
+    std::vector<LightUI> lights;   // mirrors lights for editing
     
     // Gizmo state
     GizmoMode gizmoMode = GizmoMode::Translate;
@@ -73,7 +84,15 @@ enum class UICommand {
     SetCameraSpeed,
     SetMouseSensitivity,
     AddLight,
+    AddPointLight,
+    AddDirectionalLight,
     RemoveLight,
+    SelectLight,
+    DeleteLight,
+    SetLightEnabled,
+    SetLightIntensity,
+    SetLightDirection,
+    SetLightPosition,
     SetGizmoMode,
     ToggleGizmoSpace,
     ToggleSnap,

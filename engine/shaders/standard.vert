@@ -17,9 +17,15 @@ out vec3 Normal;
 out vec3 GouraudLight;
 out vec2 UV;
 
+// Light types
+#define LIGHT_POINT 0
+#define LIGHT_DIRECTIONAL 1
+
 // Lights
 struct Light {
+    int type;
     vec3 position;
+    vec3 direction;
     vec3 color;
     float intensity;
 };
@@ -62,7 +68,16 @@ void main()
         vec3 viewDir = normalize(viewPos - FragPos);
 
         for (int i = 0; i < numLights; i++) {
-            vec3 lightDir = normalize(lights[i].position - FragPos);
+            if (lights[i].intensity <= 0.0) continue;
+            
+            vec3 lightDir;
+            if (lights[i].type == LIGHT_POINT) {
+                lightDir = normalize(lights[i].position - FragPos);
+            } else if (lights[i].type == LIGHT_DIRECTIONAL) {
+                lightDir = normalize(-lights[i].direction);
+            } else {
+                continue;
+            }
 
             // Diffuse
             float diff = max(dot(normal, lightDir), 0.0);
