@@ -79,14 +79,16 @@ Operations
    - Purpose: Add a light to the scene.
    - Fields:
      - `op`: "add_light"
-     - `type`: "point" | "directional"
+     - `type`: "point" | "directional" | "spot"
      - If `type` = "point": `position`: vec3
      - If `type` = "directional": `direction`: vec3 (normalized or normalized during apply)
+     - If `type` = "spot": `position`: vec3, `direction`: vec3, `inner_deg`: number, `outer_deg`: number
      - `color`: color3 (default [1,1,1])
      - `intensity`: number (default 1.0, non-negative)
    - Examples:
      {"op":"add_light","type":"point","position":[0,5,0],"color":[1,1,1],"intensity":0.6}
      {"op":"add_light","type":"directional","direction":[-0.5,-1,0.1]}
+     {"op":"add_light","type":"spot","position":[2,3,1],"direction":[0,-1,0],"inner_deg":15,"outer_deg":25}
 
 6) set_camera
    - Purpose: Set camera parameters.

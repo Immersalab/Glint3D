@@ -194,8 +194,8 @@ bool JsonOpsExecutor::apply(const std::string& json, std::string& error)
             std::string lightType = "point";
             if (obj.HasMember("type") && obj["type"].IsString()) {
                 lightType = obj["type"].GetString();
-                if (lightType != "point" && lightType != "directional") {
-                    error = "add_light: invalid type '" + lightType + "' (must be 'point' or 'directional')";
+                if (lightType != "point" && lightType != "directional" && lightType != "spot") {
+                    error = "add_light: invalid type '" + lightType + "' (must be 'point', 'directional', or 'spot')";
                     return false;
                 }
             }
@@ -221,6 +221,24 @@ bool JsonOpsExecutor::apply(const std::string& json, std::string& error)
                     if (!getVec3(obj["direction"], dir)) { error = "add_light: bad 'direction'"; return false; } 
                 }
                 m_lights.addDirectionalLight(dir, color, (float)intensity);
+            } else if (lightType == "spot") {
+                if (obj.HasMember("position") && obj["position"].IsArray()) { 
+                    if (!getVec3(obj["position"], pos)) { error = "add_light: bad 'position'"; return false; } 
+                } else { error = "add_light: missing 'position' for spot"; return false; }
+                if (obj.HasMember("direction") && obj["direction"].IsArray()) { 
+                    if (!getVec3(obj["direction"], dir)) { error = "add_light: bad 'direction'"; return false; } 
+                } else { error = "add_light: missing 'direction' for spot"; return false; }
+                double innerDeg = 15.0, outerDeg = 25.0;
+                if (obj.HasMember("inner_deg")) { 
+                    if (!obj["inner_deg"].IsNumber()) { error = "add_light: bad 'inner_deg'"; return false; } 
+                    innerDeg = obj["inner_deg"].GetDouble(); 
+                }
+                if (obj.HasMember("outer_deg")) { 
+                    if (!obj["outer_deg"].IsNumber()) { error = "add_light: bad 'outer_deg'"; return false; } 
+                    outerDeg = obj["outer_deg"].GetDouble(); 
+                }
+                if (outerDeg < innerDeg) std::swap(outerDeg, innerDeg);
+                m_lights.addSpotLight(pos, dir, color, (float)intensity, (float)innerDeg, (float)outerDeg);
             }
             return true;
         }

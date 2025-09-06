@@ -13,7 +13,7 @@ Core Requirements
 - [x] PBR raster pipeline (BaseColor, Normal, Metallic/Roughness; sRGB-correct)
 - [x] Render modes: point, wireframe, solid, raytrace (CPU)
 - [ ] Camera: free-fly, orbit, presets (front/back/left/right/top/bottom/isometric)
-- [x] Lights: directional, point (intensity/color); spot pending; simple IBL optional
+- [x] Lights: directional, point, spot (intensity/color); simple IBL optional
 - [ ] Background: solid color, optional HDR skybox/IBL
 - [ ] Offscreen render target with MSAA resolve, readback to PNG
 - [ ] Deterministic controls: seed, tone mapping (ACES/Reinhard), exposure
@@ -32,7 +32,7 @@ Camera - PARTIAL
 - Status: Free-fly implemented. Presets implemented (front/back/left/right/top/bottom/iso FL/iso BR) with correct orientation and framing. Orbit pending.
 
 Lighting - PARTIAL
-- Status: Point and Directional lights supported. PBR + Standard shaders handle directional lighting (no attenuation). UI supports add/select/delete and per-light enable/disable, intensity, and direction (for directional) or position (for point). Spot and IBL are not implemented.
+- Status: Point, Directional, and Spot lights supported. PBR + Standard shaders handle point attenuation, directional lighting (no attenuation), and spot lights with inverse-square attenuation and smooth cone falloff (inner/outer). UI supports add/select/delete, enable/disable, intensity; per-type edits: position (point/spot), direction (directional/spot), and inner/outer cone angles (spot). IBL not implemented.
 
 Background - PARTIAL
 - Status: Procedural gradient skybox integrated and toggleable; solid color background available. HDR/IBL not implemented.
@@ -204,7 +204,7 @@ Core Requirements
 Implementation Status
 - Status: Partial
 - Location: engine/src/json_ops.cpp
-- Implemented: load, set_camera, set_camera_preset, add_light (point/directional), transform, remove (currently implemented as delete in code), render_image
+- Implemented: load, set_camera, set_camera_preset, add_light (point/directional/spot with inner_deg/outer_deg), transform, remove (currently implemented as delete in code), render_image
 - Missing: duplicate, remove (formalize alias), orbit_camera, frame_object, select, set_background, exposure, tone_map
 - Implementation Priority: HIGH (6-8 hours)
 
@@ -254,8 +254,8 @@ Core Requirements
 Implementation Status
 - Status: Partial
 - Location: engine/src/imgui_ui_layer.cpp
-- Implemented: File menu (Import/Export), free-fly camera with speed/sensitivity, light list with add/select/delete, per-light enable/disable and intensity editing; directional light direction editing and indicator arrow; settings panel, modern theme, View toggles (Grid/Axes/Skybox), Performance HUD, selection highlight, transform gizmo (translate/rotate/scale rendering and picking via Gizmo)
-- Missing: Drag-drop models, recent files, scene tree panel, snap controls, camera preset buttons, spot-light UI, more detailed HUD metrics
+- Implemented: File menu (Import/Export), free-fly camera with speed/sensitivity, light list with add/select/delete; per-light enable/disable and intensity; edits for directional (direction), point (position), spot (position/direction/inner/outer cones); directional indicator arrow; settings panel, modern theme, View toggles (Grid/Axes/Skybox), Performance HUD, selection highlight, transform gizmo (translate/rotate/scale rendering and picking via Gizmo)
+- Missing: Drag-drop models, recent files, scene tree panel, snap controls, camera preset buttons, more detailed HUD metrics
 - Implementation Priority: HIGH (8-12 hours)
 
 ---
@@ -309,7 +309,7 @@ Known gaps (Web): No compute shaders; memory growth flags enabled; textures pref
 
 Rendering Pipeline
 - Directional lighting: DONE (shader path, light uniforms, UI controls, ops support).
-- Spot lights: cone math (inner/outer), UI widgets, ops support.
+- Spot lights: DONE (attenuation, smooth cone falloff, UI, ops support).
 - MSAA FBO and resolve: both onscreen and offscreen; sample count in settings and CLI.
 - Tone mapping: Reinhard, ACES, Filmic implementations; exposure/gamma controls.
 - IBL: irradiance, prefilter, BRDF LUT generation and PBR integration.
@@ -351,6 +351,7 @@ Web
 ## ACCEPTANCE CRITERIA (KEY ITEMS)
 
 - Directional light: can be added via UI and JSON ops; shader path produces expected shading on standard PBR test scenes; persists via JSON ops/state share-link; selectable indicator arrow; UI controls to enable/disable and edit direction & intensity. Golden image in CI: PENDING.
+- Spot light: can be added via UI and JSON ops; shader path applies inverse-square attenuation and smooth inner/outer cone falloff; UI can edit position, direction, inner/outer cone angles, and intensity. Persisted via JSON ops/state share-link.
 - Camera presets: selecting any preset yields the same camera pose for a given target independent of prior state; hotkeys 1-8 map consistently; JSON set_camera_preset works.
 - MSAA resolve: --samples=N reduces edge aliasing vs N=1; at N=1 colors bit-match the non-MSAA path.
 - Strict schema: invalid ops file fails fast with non-zero exit code and clear message; CI step fails accordingly.

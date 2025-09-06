@@ -106,6 +106,8 @@ UIState UIBridge::buildUIState() const
         lu.color = l.color;
         lu.intensity = l.intensity;
         lu.enabled = l.enabled;
+        lu.innerConeDeg = l.innerConeDeg;
+        lu.outerConeDeg = l.outerConeDeg;
         state.lights.push_back(lu);
     }
     
@@ -209,6 +211,19 @@ void UIBridge::handleUICommand(const UICommandData& command)
                                 std::to_string(direction.y) + ", " + std::to_string(direction.z) + ")");
             }
             break;
+        case UICommand::AddSpotLight:
+            {
+                // Add a spot light in front of the camera pointing forward
+                const CameraState& cam = m_camera.getCameraState();
+                glm::vec3 pos = cam.position + cam.front * 2.0f;
+                glm::vec3 dir = cam.front;
+                glm::vec3 color(1.0f, 1.0f, 1.0f);
+                float intensity = 3.0f;
+                float innerDeg = 15.0f, outerDeg = 25.0f;
+                m_lights.addSpotLight(pos, dir, color, intensity, innerDeg, outerDeg);
+                addConsoleMessage("Spot light added");
+            }
+            break;
         case UICommand::SelectLight:
             {
                 int lightIndex = command.intParam;
@@ -256,7 +271,7 @@ void UIBridge::handleUICommand(const UICommandData& command)
                 int idx = command.intParam;
                 if (idx >= 0 && idx < (int)m_lights.m_lights.size()) {
                     auto& l = m_lights.m_lights[(size_t)idx];
-                    if (l.type == LightType::DIRECTIONAL) {
+                    if (l.type == LightType::DIRECTIONAL || l.type == LightType::SPOT) {
                         glm::vec3 d = command.vec3Param;
                         if (glm::length(d) > 1e-4f) d = glm::normalize(d);
                         l.direction = d;
@@ -269,9 +284,29 @@ void UIBridge::handleUICommand(const UICommandData& command)
                 int idx = command.intParam;
                 if (idx >= 0 && idx < (int)m_lights.m_lights.size()) {
                     auto& l = m_lights.m_lights[(size_t)idx];
-                    if (l.type == LightType::POINT) {
+                    if (l.type == LightType::POINT || l.type == LightType::SPOT) {
                         l.position = command.vec3Param;
                     }
+                }
+            }
+            break;
+        case UICommand::SetLightInnerCone:
+            {
+                int idx = command.intParam;
+                if (idx >= 0 && idx < (int)m_lights.m_lights.size()) {
+                    auto& l = m_lights.m_lights[(size_t)idx];
+                    l.innerConeDeg = command.floatParam;
+                    if (l.outerConeDeg < l.innerConeDeg) l.outerConeDeg = l.innerConeDeg;
+                }
+            }
+            break;
+        case UICommand::SetLightOuterCone:
+            {
+                int idx = command.intParam;
+                if (idx >= 0 && idx < (int)m_lights.m_lights.size()) {
+                    auto& l = m_lights.m_lights[(size_t)idx];
+                    l.outerConeDeg = command.floatParam;
+                    if (l.outerConeDeg < l.innerConeDeg) l.innerConeDeg = l.outerConeDeg;
                 }
             }
             break;
@@ -680,6 +715,22 @@ std::string UIBridge::buildShareLink() const
             lightDir.PushBack(light.direction.y, allocator);
             lightDir.PushBack(light.direction.z, allocator);
             addLightOp.AddMember("direction", lightDir, allocator);
+        } else if (light.type == LightType::SPOT) {
+            addLightOp.AddMember("type", "spot", allocator);
+
+            Value lightPos(kArrayType);
+            lightPos.PushBack(light.position.x, allocator);
+            lightPos.PushBack(light.position.y, allocator);
+            lightPos.PushBack(light.position.z, allocator);
+            addLightOp.AddMember("position", lightPos, allocator);
+
+            Value lightDir(kArrayType);
+            lightDir.PushBack(light.direction.x, allocator);
+            lightDir.PushBack(light.direction.y, allocator);
+            lightDir.PushBack(light.direction.z, allocator);
+            addLightOp.AddMember("direction", lightDir, allocator);
+            addLightOp.AddMember("inner_deg", light.innerConeDeg, allocator);
+            addLightOp.AddMember("outer_deg", light.outerConeDeg, allocator);
         }
         
         Value lightColor(kArrayType);

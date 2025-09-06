@@ -586,6 +586,12 @@ void ImGuiUILayer::renderSettingsPanel(const UIState& state)
                 cmd.command = UICommand::AddDirectionalLight;
                 if (onCommand) onCommand(cmd);
             }
+            // Add Spot Light button
+            if (ImGui::Button("Add Spot Light", ImVec2(-1, 0))) {
+                UICommandData cmd;
+                cmd.command = UICommand::AddSpotLight;
+                if (onCommand) onCommand(cmd);
+            }
             
             ImGui::Separator();
             
@@ -631,7 +637,8 @@ void ImGuiUILayer::renderSettingsPanel(const UIState& state)
                     const auto& L = state.lights[selectedLight];
                     ImGui::Separator();
                     ImGui::Text("Light %d Properties:", selectedLight + 1);
-                    ImGui::Text("Type: %s", L.type == 1 ? "Directional" : "Point");
+                    const char* typeLabel = (L.type == 2) ? "Spot" : (L.type == 1 ? "Directional" : "Point");
+                    ImGui::Text("Type: %s", typeLabel);
 
                     bool enabled = L.enabled;
                     if (ImGui::Checkbox("Enabled", &enabled)) {
@@ -661,7 +668,7 @@ void ImGuiUILayer::renderSettingsPanel(const UIState& state)
                             cmd.vec3Param = dir;
                             if (onCommand) onCommand(cmd);
                         }
-                    } else {
+                    } else if (L.type == 0) {
                         // Point
                         glm::vec3 pos = L.position;
                         if (ImGui::InputFloat3("Position", &pos.x)) {
@@ -669,6 +676,42 @@ void ImGuiUILayer::renderSettingsPanel(const UIState& state)
                             cmd.command = UICommand::SetLightPosition;
                             cmd.intParam = selectedLight;
                             cmd.vec3Param = pos;
+                            if (onCommand) onCommand(cmd);
+                        }
+                    } else if (L.type == 2) {
+                        // Spot
+                        glm::vec3 pos = L.position;
+                        if (ImGui::InputFloat3("Position", &pos.x)) {
+                            UICommandData cmd;
+                            cmd.command = UICommand::SetLightPosition;
+                            cmd.intParam = selectedLight;
+                            cmd.vec3Param = pos;
+                            if (onCommand) onCommand(cmd);
+                        }
+                        glm::vec3 dir = L.direction;
+                        if (ImGui::InputFloat3("Direction", &dir.x)) {
+                            UICommandData cmd;
+                            cmd.command = UICommand::SetLightDirection;
+                            cmd.intParam = selectedLight;
+                            cmd.vec3Param = dir;
+                            if (onCommand) onCommand(cmd);
+                        }
+                        float inner = L.innerConeDeg;
+                        float outer = L.outerConeDeg;
+                        if (ImGui::SliderFloat("Inner Cone (deg)", &inner, 0.0f, 89.0f, "%.1f") ) {
+                            if (inner > outer) inner = outer;
+                            UICommandData cmd;
+                            cmd.command = UICommand::SetLightInnerCone;
+                            cmd.intParam = selectedLight;
+                            cmd.floatParam = inner;
+                            if (onCommand) onCommand(cmd);
+                        }
+                        if (ImGui::SliderFloat("Outer Cone (deg)", &outer, 0.0f, 89.0f, "%.1f") ) {
+                            if (outer < inner) outer = inner;
+                            UICommandData cmd;
+                            cmd.command = UICommand::SetLightOuterCone;
+                            cmd.intParam = selectedLight;
+                            cmd.floatParam = outer;
                             if (onCommand) onCommand(cmd);
                         }
                     }

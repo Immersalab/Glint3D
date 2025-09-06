@@ -6,16 +6,20 @@
 
 enum class LightType {
     POINT = 0,
-    DIRECTIONAL = 1
+    DIRECTIONAL = 1,
+    SPOT = 2
 };
 
 struct LightSource {
     LightType type;
     glm::vec3 position;      // For point lights
-    glm::vec3 direction;     // For directional lights (normalized)
+    glm::vec3 direction;     // For directional/spot lights (normalized)
     glm::vec3 color;
     float intensity;
     bool enabled;
+    // Spot light cone angles (degrees)
+    float innerConeDeg = 15.0f;
+    float outerConeDeg = 25.0f;
     
     LightSource() : type(LightType::POINT), position(0.0f), direction(0.0f, -1.0f, 0.0f), 
                     color(1.0f), intensity(1.0f), enabled(true) {}
@@ -29,6 +33,9 @@ public:
     // Existing functions
     void addLight(const glm::vec3& position, const glm::vec3& color, float intensity);
     void addDirectionalLight(const glm::vec3& direction, const glm::vec3& color, float intensity);
+    void addSpotLight(const glm::vec3& position, const glm::vec3& direction,
+                      const glm::vec3& color, float intensity,
+                      float innerConeDeg, float outerConeDeg);
     void applyLights(GLuint shaderProgram) const;
     size_t getLightCount() const;
 
@@ -52,6 +59,10 @@ private:
     // Indicator geometry for directional lights (arrow)
     GLuint m_arrowVAO = 0;
     GLuint m_arrowVBO = 0;
+
+    // Indicator geometry for spot lights (cone outline)
+    GLuint m_spotVAO = 0;
+    GLuint m_spotVBO = 0;
 
     // Indicator shader program stored in the Light class
     GLuint m_indicatorShader = 0;

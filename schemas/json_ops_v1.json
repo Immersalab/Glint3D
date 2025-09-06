@@ -52,7 +52,7 @@
         "op": { "const": "add_light" },
         "type": { 
           "type": "string", 
-          "enum": ["point", "directional"] 
+          "enum": ["point", "directional", "spot"] 
         },
         "position": { "$ref": "#/definitions/vec3" },
         "direction": { "$ref": "#/definitions/vec3" },
@@ -74,6 +74,15 @@
             "direction": { "$ref": "#/definitions/vec3" }
           },
           "not": { "required": ["position"] }
+        },
+        {
+          "properties": {
+            "type": { "const": "spot" },
+            "position": { "$ref": "#/definitions/vec3" },
+            "direction": { "$ref": "#/definitions/vec3" },
+            "inner_deg": { "type": "number" },
+            "outer_deg": { "type": "number" }
+          }
         },
         {
           "not": { "required": ["type"] },
@@ -158,4 +167,3 @@
     }
   ]
 }
-

@@ -20,6 +20,7 @@ out vec2 UV;
 // Light types
 #define LIGHT_POINT 0
 #define LIGHT_DIRECTIONAL 1
+#define LIGHT_SPOT 2
 
 // Lights
 struct Light {
@@ -28,6 +29,8 @@ struct Light {
     vec3 direction;
     vec3 color;
     float intensity;
+    float innerCutoff; // cos(inner)
+    float outerCutoff; // cos(outer)
 };
 
 #define MAX_LIGHTS 10
@@ -75,18 +78,40 @@ void main()
                 lightDir = normalize(lights[i].position - FragPos);
             } else if (lights[i].type == LIGHT_DIRECTIONAL) {
                 lightDir = normalize(-lights[i].direction);
+            } else if (lights[i].type == LIGHT_SPOT) {
+                // Spot: direction points out from light; compare with vector to fragment
+                lightDir = normalize(lights[i].position - FragPos);
+            } else {
+                continue;
+            }
+
+            float spotFactor = 1.0;
+            float atten = 1.0;
+            if (lights[i].type == LIGHT_POINT) {
+                float dist = length(lights[i].position - FragPos);
+                atten = 1.0 / max(dist*dist, 1e-4);
+            } else if (lights[i].type == LIGHT_SPOT) {
+                // Attenuation + cone falloff
+                float dist = length(lights[i].position - FragPos);
+                atten = 1.0 / max(dist*dist, 1e-4);
+                float theta = dot(normalize(-lights[i].direction), lightDir);
+                float inner = lights[i].innerCutoff;
+                float outer = lights[i].outerCutoff;
+                float t = clamp((theta - outer) / max(inner - outer, 1e-4), 0.0, 1.0);
+                spotFactor = t;
             } else {
                 continue;
             }
 
             // Diffuse
             float diff = max(dot(normal, lightDir), 0.0);
-            vec3 diffuse = material.diffuse * diff * lights[i].color * lights[i].intensity;
+            vec3 radiance = lights[i].color * lights[i].intensity * atten * spotFactor;
+            vec3 diffuse = material.diffuse * diff * radiance;
 
             // Specular (Phong reflection model but computed at vertex)
             vec3 reflectDir = reflect(-lightDir, normal);
             float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
-            vec3 specular = material.specular * spec * lights[i].color * lights[i].intensity;
+            vec3 specular = material.specular * spec * radiance;
 
             GouraudLight += diffuse + specular;
         }

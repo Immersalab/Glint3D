@@ -50,6 +50,8 @@ struct UIState {
         glm::vec3 color{1.0f};
         float intensity = 1.0f;
         bool enabled = true;
+        float innerConeDeg = 15.0f;
+        float outerConeDeg = 25.0f;
     };
     std::vector<LightUI> lights;   // mirrors lights for editing
     
@@ -86,6 +88,7 @@ enum class UICommand {
     AddLight,
     AddPointLight,
     AddDirectionalLight,
+    AddSpotLight,
     RemoveLight,
     SelectLight,
     DeleteLight,
@@ -93,6 +96,8 @@ enum class UICommand {
     SetLightIntensity,
     SetLightDirection,
     SetLightPosition,
+    SetLightInnerCone,
+    SetLightOuterCone,
     SetGizmoMode,
     ToggleGizmoSpace,
     ToggleSnap,

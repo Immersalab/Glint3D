@@ -23,6 +23,7 @@ uniform vec4 globalAmbient; // .a is often unused, so we just use .rgb
 // Light types
 #define LIGHT_POINT 0
 #define LIGHT_DIRECTIONAL 1
+#define LIGHT_SPOT 2
 
 // Light struct
 struct Light {
@@ -31,6 +32,8 @@ struct Light {
     vec3 direction;
     vec3 color;
     float intensity; // If 0, treat as disabled
+    float innerCutoff; // cos(inner)
+    float outerCutoff; // cos(outer)
 };
 
 #define MAX_LIGHTS 10
@@ -101,12 +104,30 @@ void main()
                 L = normalize(lights[i].position - FragPos);
             } else if (lights[i].type == LIGHT_DIRECTIONAL) {
                 L = normalize(-lights[i].direction);
+            } else if (lights[i].type == LIGHT_SPOT) {
+                L = normalize(lights[i].position - FragPos);
             } else {
                 continue;
             }
             
             float diff = max(dot(faceNormal, L), 0.0);
-            totalLight += shadow * material.diffuse * diff * lights[i].color * lights[i].intensity;
+
+            float atten = 1.0;
+            float spotFactor = 1.0;
+            if (lights[i].type == LIGHT_POINT) {
+                float dist = length(lights[i].position - FragPos);
+                atten = 1.0 / max(dist*dist, 1e-4);
+            } else if (lights[i].type == LIGHT_SPOT) {
+                float dist = length(lights[i].position - FragPos);
+                atten = 1.0 / max(dist*dist, 1e-4);
+                float theta = dot(normalize(-lights[i].direction), L);
+                float inner = lights[i].innerCutoff;
+                float outer = lights[i].outerCutoff;
+                float t = clamp((theta - outer) / max(inner - outer, 1e-4), 0.0, 1.0);
+                spotFactor = t;
+            }
+            vec3 radiance = lights[i].color * lights[i].intensity * atten * spotFactor;
+            totalLight += shadow * material.diffuse * diff * radiance;
         }
     }
     else if (shadingMode == 1) {

@@ -5,6 +5,7 @@
 #include <iostream>
 #include <sstream>
 #include <algorithm>
+#include <vector>
 
 std::string intToString(int value) {
     std::ostringstream ss;
@@ -22,6 +23,8 @@ Light::~Light()
     if (m_indicatorVBO) glDeleteBuffers(1, &m_indicatorVBO);
     if (m_arrowVAO) glDeleteVertexArrays(1, &m_arrowVAO);
     if (m_arrowVBO) glDeleteBuffers(1, &m_arrowVBO);
+    if (m_spotVAO) glDeleteVertexArrays(1, &m_spotVAO);
+    if (m_spotVBO) glDeleteBuffers(1, &m_spotVBO);
     if (m_indicatorShader) glDeleteProgram(m_indicatorShader);
 }
 
@@ -46,6 +49,23 @@ void Light::addDirectionalLight(const glm::vec3& direction, const glm::vec3& col
     newLight.intensity = intensity;
     newLight.enabled = true;
     m_lights.push_back(newLight);
+}
+
+void Light::addSpotLight(const glm::vec3& position, const glm::vec3& direction,
+                         const glm::vec3& color, float intensity,
+                         float innerConeDeg, float outerConeDeg)
+{
+    LightSource s;
+    s.type = LightType::SPOT;
+    s.position = position;
+    s.direction = glm::length(direction) > 1e-4f ? glm::normalize(direction) : glm::vec3(0, -1, 0);
+    s.color = color;
+    s.intensity = intensity;
+    s.enabled = true;
+    s.innerConeDeg = innerConeDeg;
+    s.outerConeDeg = outerConeDeg;
+    if (s.outerConeDeg < s.innerConeDeg) std::swap(s.outerConeDeg, s.innerConeDeg);
+    m_lights.push_back(s);
 }
 
 void Light::applyLights(GLuint shaderProgram) const
@@ -73,6 +93,8 @@ void Light::applyLights(GLuint shaderProgram) const
         GLint lightDirLoc = glGetUniformLocation(shaderProgram, (baseName + ".direction").c_str());
         GLint lightColorLoc = glGetUniformLocation(shaderProgram, (baseName + ".color").c_str());
         GLint lightIntensityLoc = glGetUniformLocation(shaderProgram, (baseName + ".intensity").c_str());
+        GLint innerLoc = glGetUniformLocation(shaderProgram, (baseName + ".innerCutoff").c_str());
+        GLint outerLoc = glGetUniformLocation(shaderProgram, (baseName + ".outerCutoff").c_str());
 
         float intensity = (m_lights[i].enabled) ? m_lights[i].intensity : 0.0f;
 
@@ -81,6 +103,15 @@ void Light::applyLights(GLuint shaderProgram) const
         if (lightDirLoc != -1)       glUniform3fv(lightDirLoc, 1, glm::value_ptr(m_lights[i].direction));
         if (lightColorLoc != -1)     glUniform3fv(lightColorLoc, 1, glm::value_ptr(m_lights[i].color));
         if (lightIntensityLoc != -1) glUniform1f(lightIntensityLoc, intensity);
+        // Spot cone angles (pass cosines of radians)
+        if (innerLoc != -1) {
+            float innerRad = glm::radians(m_lights[i].innerConeDeg);
+            glUniform1f(innerLoc, cosf(innerRad));
+        }
+        if (outerLoc != -1) {
+            float outerRad = glm::radians(m_lights[i].outerConeDeg);
+            glUniform1f(outerLoc, cosf(outerRad));
+        }
     }
 }
 
@@ -90,7 +121,7 @@ size_t Light::getLightCount() const
     return m_lights.size();
 }
 
-// Initialize indicator geometry (cube for point lights, arrow for directional lights)
+// Initialize indicator geometry (cube for point lights, arrow for directional lights, cone for spot lights)
 void Light::initIndicator()
 {
     // Cube vertices for point lights
@@ -168,6 +199,36 @@ void Light::initIndicator()
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
     glBindVertexArray(0);
+
+    // Spot light cone outline (unit, pointing down -Z)
+    {
+        std::vector<float> verts;
+        auto push = [&](float x, float y, float z){ verts.push_back(x); verts.push_back(y); verts.push_back(z); };
+        // Axis line
+        push(0,0,0); push(0,0,-0.9f);
+        // Circle at z = -0.9
+        const int N = 24;
+        const float r = 0.3f;
+        for (int i=0;i<N;i++) {
+            float a0 = (float)i * 6.2831853f / N;
+            float a1 = (float)(i+1) * 6.2831853f / N;
+            push(r*cosf(a0), r*sinf(a0), -0.9f); push(r*cosf(a1), r*sinf(a1), -0.9f);
+        }
+        // Spokes from origin to circle (every 90deg)
+        for (int i=0;i<4;i++) {
+            float a = (float)i * 6.2831853f / 4;
+            push(0,0,0); push(r*cosf(a), r*sinf(a), -0.9f);
+        }
+
+        glGenVertexArrays(1, &m_spotVAO);
+        glGenBuffers(1, &m_spotVBO);
+        glBindVertexArray(m_spotVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, m_spotVBO);
+        glBufferData(GL_ARRAY_BUFFER, verts.size() * sizeof(float), verts.data(), GL_STATIC_DRAW);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(0);
+        glBindVertexArray(0);
+    }
 }
 
 // Initialize the indicator shader within the Light class
@@ -317,6 +378,26 @@ void Light::renderIndicators(const glm::mat4& view, const glm::mat4& projection,
             glLineWidth(3.0f);
             glDrawArrays(GL_LINES, 0, 10); // 5 lines * 2 vertices = 10
         }
+        else if (m_lights[i].type == LightType::SPOT) {
+            // Translate to light position, orient cone along light direction
+            model = glm::translate(model, m_lights[i].position);
+            glm::vec3 forward(0.0f, 0.0f, -1.0f);
+            glm::vec3 lightDir = glm::normalize(m_lights[i].direction);
+            glm::vec3 axis = glm::cross(forward, lightDir);
+            if (glm::length(axis) > 0.001f) {
+                axis = glm::normalize(axis);
+                float angle = acos(glm::clamp(glm::dot(forward, lightDir), -1.0f, 1.0f));
+                model = glm::rotate(model, angle, axis);
+            } else if (glm::dot(forward, lightDir) < 0) {
+                model = glm::rotate(model, glm::pi<float>(), glm::vec3(1.0f, 0.0f, 0.0f));
+            }
+            glBindVertexArray(m_spotVAO);
+            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+            glUniform3fv(colorLoc, 1, glm::value_ptr(m_lights[i].color));
+            glLineWidth(2.0f);
+            // Number of vertices: 2 (axis) + 2*N (circle) + 2*4 (spokes) where N=24 -> 2 + 48 + 8 = 58
+            glDrawArrays(GL_LINES, 0, 58);
+        }
     }
     
     // Draw selection highlight
@@ -359,6 +440,23 @@ void Light::renderIndicators(const glm::mat4& view, const glm::mat4& projection,
             glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
             glLineWidth(5.0f);
             glDrawArrays(GL_LINES, 0, 10);
+        } else if (m_lights[selectedIndex].type == LightType::SPOT) {
+            glm::mat4 model(1.0f);
+            model = glm::translate(model, m_lights[selectedIndex].position);
+            glm::vec3 forward(0.0f, 0.0f, -1.0f);
+            glm::vec3 lightDir = glm::normalize(m_lights[selectedIndex].direction);
+            glm::vec3 axis = glm::cross(forward, lightDir);
+            if (glm::length(axis) > 0.001f) {
+                axis = glm::normalize(axis);
+                float angle = acos(glm::clamp(glm::dot(forward, lightDir), -1.0f, 1.0f));
+                model = glm::rotate(model, angle, axis);
+            } else if (glm::dot(forward, lightDir) < 0) {
+                model = glm::rotate(model, glm::pi<float>(), glm::vec3(1.0f, 0.0f, 0.0f));
+            }
+            glBindVertexArray(m_spotVAO);
+            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+            glLineWidth(4.0f);
+            glDrawArrays(GL_LINES, 0, 58);
         }
     }
     

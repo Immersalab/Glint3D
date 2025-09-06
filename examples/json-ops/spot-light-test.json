@@ -5,30 +5,33 @@
     "name": "TestCube",
     "transform": {
       "position": [0, 0, 0],
-      "scale": [1.5, 1.5, 1.5]
+      "scale": [2, 2, 2]
     }
   },
   {
     "op": "set_material",
     "target": "TestCube",
     "material": {
-      "color": [0.8, 0.8, 0.8],
-      "roughness": 0.4,
-      "metallic": 0.0
+      "color": [0.7, 0.7, 0.7],
+      "roughness": 0.3,
+      "metallic": 0.1
     }
   },
   {
     "op": "add_light",
-    "type": "directional",
-    "direction": [-0.5, -1.0, -0.3],
-    "color": [1.0, 0.9, 0.8],
-    "intensity": 3.0
+    "type": "spot",
+    "position": [2.0, 3.0, 2.0],
+    "direction": [-0.6, -1.0, -0.6],
+    "inner_deg": 15.0,
+    "outer_deg": 25.0,
+    "color": [1.0, 0.95, 0.85],
+    "intensity": 6.0
   },
   {
     "op": "set_camera",
-    "position": [3, 2, 4],
+    "position": [4, 3, 6],
     "target": [0, 0, 0],
     "up": [0, 1, 0],
-    "fov_deg": 45
+    "fov_deg": 50
   }
 ]

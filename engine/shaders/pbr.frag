@@ -9,6 +9,7 @@ in mat3 vTBN;
 // Light types
 #define LIGHT_POINT 0
 #define LIGHT_DIRECTIONAL 1
+#define LIGHT_SPOT 2
 
 // Lights
 struct Light { 
@@ -17,6 +18,8 @@ struct Light {
     vec3 direction; 
     vec3 color; 
     float intensity; 
+    float innerCutoff; // cos(inner)
+    float outerCutoff; // cos(outer)
 };
 #define MAX_LIGHTS 10
 uniform int numLights;
@@ -113,6 +116,16 @@ void main() {
             // Directional light calculation
             L = normalize(-lights[i].direction);  // Light direction points towards the surface
             radiance = lights[i].color * lights[i].intensity;  // No attenuation for directional lights
+        } else if (lights[i].type == LIGHT_SPOT) {
+            // Spot light calculation
+            L = normalize(lights[i].position - vWorldPos);
+            float dist = length(lights[i].position - vWorldPos);
+            float atten = 1.0 / (dist*dist);
+            float theta = dot(normalize(-lights[i].direction), L);
+            float inner = lights[i].innerCutoff;
+            float outer = lights[i].outerCutoff;
+            float t = clamp((theta - outer) / max(inner - outer, 1e-4), 0.0, 1.0);
+            radiance = lights[i].color * lights[i].intensity * atten * t;
         } else {
             continue; // Skip unknown light types
         }
@@ -141,4 +154,3 @@ void main() {
     color = pow(color, vec3(1.0/2.2));
     FragColor = vec4(color, baseColorFactor.a);
 }
-
