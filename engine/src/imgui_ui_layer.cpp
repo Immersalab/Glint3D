@@ -738,18 +738,39 @@ void ImGuiUILayer::renderPerformanceHUD(const UIState& state)
         // Create a table-like layout with consistent spacing
         ImGui::BeginGroup();
         {
+            const int dc = state.renderStats.drawCalls;
+            const size_t tris = state.renderStats.totalTriangles;
+            const float vram = state.renderStats.vramMB;
+            const float texMB = state.renderStats.texturesMB;
+
+            // Thresholds (tuned conservatively)
+            const int   DC_WARN = 500, DC_DANGER = 1000;
+            const size_t TRI_WARN = 2000000ull, TRI_DANGER = 5000000ull;
+
             ImGui::Text("Draw Calls:");
             ImGui::SameLine(100);
-            ImGui::Text("%d", state.renderStats.drawCalls);
+            if (dc > DC_DANGER) {
+                ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.2f, 1.0f), "%d", dc);
+            } else if (dc > DC_WARN) {
+                ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.0f, 1.0f), "%d", dc);
+            } else {
+                ImGui::Text("%d", dc);
+            }
             
             ImGui::Text("Triangles:");
             ImGui::SameLine(100);
-            if (state.renderStats.totalTriangles > 1000000) {
-                ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.0f, 1.0f), "%.1fM", state.renderStats.totalTriangles / 1000000.0f);
-            } else if (state.renderStats.totalTriangles > 1000) {
-                ImGui::Text("%.1fK", state.renderStats.totalTriangles / 1000.0f);
+            if (tris > 1000000ull) {
+                if (tris > TRI_DANGER) {
+                    ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.2f, 1.0f), "%.1fM", tris / 1000000.0f);
+                } else if (tris > TRI_WARN) {
+                    ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.0f, 1.0f), "%.1fM", tris / 1000000.0f);
+                } else {
+                    ImGui::Text("%.1fM", tris / 1000000.0f);
+                }
+            } else if (tris > 1000ull) {
+                ImGui::Text("%.1fK", tris / 1000.0f);
             } else {
-                ImGui::Text("%zu", state.renderStats.totalTriangles);
+                ImGui::Text("%zu", tris);
             }
             
             ImGui::Text("Materials:");
@@ -758,20 +779,20 @@ void ImGuiUILayer::renderPerformanceHUD(const UIState& state)
             
             ImGui::Text("Textures:");
             ImGui::SameLine(100);
-            if (state.renderStats.texturesMB > 100.0f) {
-                ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.0f, 1.0f), "%zu (%.1f MB)", state.renderStats.uniqueTextures, state.renderStats.texturesMB);
+            if (texMB > 100.0f) {
+                ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.0f, 1.0f), "%zu (%.1f MB)", state.renderStats.uniqueTextures, texMB);
             } else {
-                ImGui::Text("%zu (%.1f MB)", state.renderStats.uniqueTextures, state.renderStats.texturesMB);
+                ImGui::Text("%zu (%.1f MB)", state.renderStats.uniqueTextures, texMB);
             }
             
             ImGui::Text("Est. VRAM:");
             ImGui::SameLine(100);
-            if (state.renderStats.vramMB > 500.0f) {
-                ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.2f, 1.0f), "%.1f MB", state.renderStats.vramMB);  // Red for high usage
-            } else if (state.renderStats.vramMB > 200.0f) {
-                ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.0f, 1.0f), "%.1f MB", state.renderStats.vramMB);  // Orange for medium
+            if (vram > 500.0f) {
+                ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.2f, 1.0f), "%.1f MB", vram);  // Red for high usage
+            } else if (vram > 200.0f) {
+                ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.0f, 1.0f), "%.1f MB", vram);  // Orange for medium
             } else {
-                ImGui::TextColored(ImVec4(0.4f, 0.8f, 0.4f, 1.0f), "%.1f MB", state.renderStats.vramMB);  // Green for low
+                ImGui::TextColored(ImVec4(0.4f, 0.8f, 0.4f, 1.0f), "%.1f MB", vram);  // Green for low
             }
         }
         ImGui::EndGroup();

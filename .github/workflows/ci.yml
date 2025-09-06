@@ -130,7 +130,7 @@ jobs:
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r tools/requirements.txt
+          pip install -r tests/golden/tools/requirements.txt
 
       - name: Install system dependencies (GLFW, Mesa, Xvfb)
         run: |
@@ -201,7 +201,7 @@ jobs:
           mkdir -p renders
           
           # Render each golden test scene
-          for scene in examples/json-ops/golden-tests/*.json; do
+          for scene in tests/golden/scenes/*.json; do
             if [ -f "$scene" ]; then
               basename=$(basename "$scene" .json)
               echo "Rendering $basename..."
@@ -215,10 +215,10 @@ jobs:
       - name: Check for existing golden images
         id: check_goldens
         run: |
-          if [ -d "examples/golden" ] && [ "$(ls -A examples/golden/*.png 2>/dev/null)" ]; then
+          if [ -d "tests/golden/references" ] && [ "$(ls -A tests/golden/references/*.png 2>/dev/null)" ]; then
             echo "found=true" >> $GITHUB_OUTPUT
             echo "Golden images found - will perform comparison"
-            ls -la examples/golden/
+            ls -la tests/golden/references/
           else
             echo "found=false" >> $GITHUB_OUTPUT
             echo "No golden images found - skipping comparison"
@@ -231,8 +231,8 @@ jobs:
           set -e
           
           # Run comparison with detailed output
-          python tools/golden_image_compare.py \
-            --batch renders/ examples/golden/ \
+          python tests/golden/tools/golden_image_compare.py \
+            --batch renders/ tests/golden/references/ \
             --output comparison_artifacts \
             --json-output comparison_results.json \
             --type desktop \
@@ -269,17 +269,17 @@ jobs:
         if: steps.check_goldens.outputs.found == 'false'
         run: |
           echo "No golden images found - generating initial set"
-          mkdir -p examples/golden
+          mkdir -p tests/golden/references
           
-          python tools/generate_goldens.py builds/desktop/cmake/glint \
-            --test-dir examples/json-ops/golden-tests \
-            --golden-dir examples/golden \
+          python tests/golden/tools/generate_goldens.py builds/desktop/cmake/glint \
+            --test-dir tests/golden/scenes \
+            --golden-dir tests/golden/references \
             --asset-root test_assets \
             --width 400 --height 300 \
             --summary golden_generation.json
           
           echo "Generated golden images:"
-          ls -la examples/golden/
+          ls -la tests/golden/references/
 
       - name: Upload rendered images
         uses: actions/upload-artifact@v4
@@ -302,7 +302,7 @@ jobs:
         with:
           name: initial-golden-images
           path: |
-            examples/golden/
+            tests/golden/references/
             golden_generation.json
 
       - name: Fail build on comparison failure

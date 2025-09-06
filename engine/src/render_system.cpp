@@ -12,6 +12,10 @@
 #include <vector>
 #include <cstdint>
 #include <cstring>
+#include <unordered_set>
+#include <unordered_map>
+#include <algorithm>
+#include <cstdio>
 
 // PNG writer
 #ifndef __EMSCRIPTEN__
@@ -122,6 +126,8 @@ void RenderSystem::shutdown()
 
 void RenderSystem::render(const SceneManager& scene, const Light& lights)
 {
+    // Reset per-frame stats counters
+    m_stats = {};
     // Clear buffers with current background color
     glClearColor(m_backgroundColor.r, m_backgroundColor.g, m_backgroundColor.b, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -139,13 +145,19 @@ void RenderSystem::render(const SceneManager& scene, const Light& lights)
     // Render debug elements
     if (m_showGrid && m_grid) {
         m_grid->render(m_viewMatrix, m_projectionMatrix);
+        // Approximate draw call for grid
+        m_stats.drawCalls += 1;
     }
     if (m_showAxes && m_axisRenderer) {
         glm::mat4 I(1.0f);
         m_axisRenderer->render(I, m_viewMatrix, m_projectionMatrix);
+        // Approximate draw call for axes
+        m_stats.drawCalls += 1;
     }
     // Light indicators
     lights.renderIndicators(m_viewMatrix, m_projectionMatrix, m_selectedLightIndex);
+    // Approximate draw call for light indicators
+    m_stats.drawCalls += 1;
 
     // Selection outline for currently selected object (wireframe overlay)
     {
@@ -191,6 +203,8 @@ void RenderSystem::render(const SceneManager& scene, const Light& lights)
                     glDrawArrays(GL_TRIANGLES, 0, obj.objLoader.getVertCount());
                 }
                 glBindVertexArray(0);
+                // Selection overlay adds an extra draw call
+                m_stats.drawCalls += 1;
 #ifndef __EMSCRIPTEN__
                 glPolygonMode(GL_FRONT_AND_BACK, prevPolyMode[0]);
                 glDisable(GL_POLYGON_OFFSET_LINE);
@@ -226,6 +240,8 @@ void RenderSystem::render(const SceneManager& scene, const Light& lights)
             float dist = glm::length(m_camera.position - center);
             float gscale = glm::clamp(dist * 0.15f, 0.5f, 10.0f);
             m_gizmo->render(m_viewMatrix, m_projectionMatrix, center, R, gscale, m_gizmoAxis, m_gizmoMode);
+            // Approximate draw call for gizmo
+            m_stats.drawCalls += 1;
         }
     }
     
@@ -585,6 +601,8 @@ void RenderSystem::renderRasterized(const SceneManager& scene, const Light& ligh
     // Render skybox first as background
     if (m_showSkybox && m_skybox) {
         m_skybox->render(m_viewMatrix, m_projectionMatrix);
+        // Approximate draw call for skybox
+        m_stats.drawCalls += 1;
     }
     
     // Render all scene objects using OpenGL
@@ -670,6 +688,8 @@ void RenderSystem::renderRaytraced(const SceneManager& scene, const Light& light
     glBindVertexArray(m_screenQuadVAO);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);
+    // One draw call for the screen quad
+    m_stats.drawCalls += 1;
     
     glEnable(GL_DEPTH_TEST); // Re-enable depth testing
     
@@ -766,19 +786,105 @@ void RenderSystem::renderObject(const SceneObject& obj, const Light& lights)
     
     // Reset polygon mode
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+    // Count one draw call for this object
+    m_stats.drawCalls += 1;
 }
 
 void RenderSystem::updateRenderStats(const SceneManager& scene)
 {
-    // Update rendering statistics
-    m_stats = {}; // Reset stats
-    
+    // Update rendering statistics (non-invasive; keep existing drawCalls accumulated during render)
     const auto& objects = scene.getObjects();
-    m_stats.drawCalls = (int)objects.size();
-    
+
+    // Triangles in scene geometry
+    size_t tris = 0;
     for (const auto& obj : objects) {
-        m_stats.totalTriangles += obj.objLoader.getIndexCount() / 3;
+        tris += static_cast<size_t>(obj.objLoader.getIndexCount()) / 3u;
     }
+    m_stats.totalTriangles = tris;
+
+    // Unique textures and total texture memory estimate
+    std::unordered_set<const Texture*> uniqueTex;
+    size_t textureBytes = 0;
+    for (const auto& obj : objects) {
+        const Texture* texes[4] = { obj.texture, obj.baseColorTex, obj.normalTex, obj.mrTex };
+        for (const Texture* t : texes) {
+            if (!t) continue;
+            if (uniqueTex.insert(t).second) {
+                // New unique texture; bytes = W * H * channels (approx; compressed formats use channels=4)
+                const int w = t->width();
+                const int h = t->height();
+                const int c = std::max(1, t->channels());
+                textureBytes += static_cast<size_t>(w) * static_cast<size_t>(h) * static_cast<size_t>(c);
+            }
+        }
+    }
+    m_stats.uniqueTextures = uniqueTex.size();
+    m_stats.texturesMB = static_cast<float>(textureBytes) / (1024.0f * 1024.0f);
+
+    // Geometry memory estimate (positions + normals + uvs + tangents + indices)
+    size_t geoBytes = 0;
+    for (const auto& obj : objects) {
+        const size_t vcount = static_cast<size_t>(obj.objLoader.getVertCount());
+        const size_t icount = static_cast<size_t>(obj.objLoader.getIndexCount());
+        // positions (3 floats)
+        geoBytes += vcount * 3u * sizeof(float);
+        // normals if present
+        if (obj.objLoader.getNormals()) {
+            geoBytes += vcount * 3u * sizeof(float);
+        }
+        // uvs if present
+        if (obj.objLoader.hasTexcoords()) {
+            geoBytes += vcount * 2u * sizeof(float);
+        }
+        // tangents if present
+        if (obj.objLoader.hasTangents()) {
+            geoBytes += vcount * 3u * sizeof(float);
+        }
+        // indices (uint32)
+        geoBytes += icount * sizeof(unsigned int);
+    }
+    m_stats.geometryMB = static_cast<float>(geoBytes) / (1024.0f * 1024.0f);
+
+    // Unique material keys and top-shared material key
+    struct MatKeyHash {
+        size_t operator()(const std::string& s) const noexcept { return std::hash<std::string>()(s); }
+    };
+    std::unordered_map<std::string, int, MatKeyHash> matCounts;
+    matCounts.reserve(objects.size());
+    auto makeMatKey = [](const SceneObject& o) -> std::string {
+        // Build a compact string key from material + PBR factors presence of textures
+        char buf[256];
+        const auto& m = o.material;
+        // Reduce precision to keep keys compact; 2 decimals is enough for grouping
+        snprintf(buf, sizeof(buf),
+                 "D%.2f,%.2f,%.2f|S%.2f,%.2f,%.2f|A%.2f,%.2f,%.2f|Ns%.2f|R%.2f|M%.2f|BCF%.2f,%.2f,%.2f,%.2f|mr%.2f|rf%.2f|t%d%d%d",
+                 m.diffuse.x, m.diffuse.y, m.diffuse.z,
+                 m.specular.x, m.specular.y, m.specular.z,
+                 m.ambient.x, m.ambient.y, m.ambient.z,
+                 m.shininess, m.roughness, m.metallic,
+                 o.baseColorFactor.x, o.baseColorFactor.y, o.baseColorFactor.z, o.baseColorFactor.w,
+                 o.metallicFactor, o.roughnessFactor,
+                 o.baseColorTex ? 1 : 0, o.normalTex ? 1 : 0, o.mrTex ? 1 : 0);
+        return std::string(buf);
+    };
+    for (const auto& obj : objects) {
+        std::string key = makeMatKey(obj);
+        matCounts[key] += 1;
+    }
+    m_stats.uniqueMaterialKeys = static_cast<int>(matCounts.size());
+    // Compute most shared key
+    m_stats.topSharedCount = 0;
+    m_stats.topSharedKey.clear();
+    for (const auto& kv : matCounts) {
+        if (kv.second > m_stats.topSharedCount) {
+            m_stats.topSharedCount = kv.second;
+            m_stats.topSharedKey = kv.first;
+        }
+    }
+
+    // Final VRAM estimate
+    m_stats.vramMB = m_stats.texturesMB + m_stats.geometryMB;
 }
 
 void RenderSystem::initScreenQuad()
