@@ -5,6 +5,14 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
+  workflow_dispatch:
+    inputs:
+      regenerate_goldens:
+        description: "Render golden candidate images and upload as artifacts"
+        required: false
+        default: "true"
+        type: choice
+        options: ["true", "false"]
 
 jobs:
   build-windows:
@@ -153,3 +161,41 @@ jobs:
         with:
           name: headless-out-linux
           path: renders/out.png
+
+  regen-goldens-linux:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.regenerate_goldens == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+          submodules: recursive
+
+      - name: Install dependencies (GLFW, Mesa, Xvfb)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build libgl1-mesa-dev libglfw3-dev xvfb
+
+      - name: Configure (CMake)
+        run: cmake -S . -B builds/desktop/cmake -DCMAKE_BUILD_TYPE=Release -G "Unix Makefiles"
+
+      - name: Build
+        run: cmake --build builds/desktop/cmake --config Release -j
+
+      - name: Render golden candidates (directional & spot)
+        run: |
+          set -e
+          EXE="builds/desktop/cmake/glint"
+          test -f "$EXE" || { echo "glint not found"; ls -R builds/desktop/cmake; exit 1; }
+          mkdir -p renders
+          xvfb-run -a "$EXE" --ops examples/json-ops/directional-light-test.json --render renders/directional-light-test.candidate.png --w 256 --h 256
+          xvfb-run -a "$EXE" --ops examples/json-ops/spot-light-test.json --render renders/spot-light-test.candidate.png --w 256 --h 256
+          ls -l renders
+
+      - name: Upload golden candidates
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-candidates-linux
+          path: |
+            renders/directional-light-test.candidate.png
+            renders/spot-light-test.candidate.png

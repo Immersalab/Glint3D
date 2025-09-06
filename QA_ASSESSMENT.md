@@ -310,6 +310,7 @@ Known gaps (Web): No compute shaders; memory growth flags enabled; textures pref
 Rendering Pipeline
 - Directional lighting: DONE (shader path, light uniforms, UI controls, ops support).
 - Spot lights: DONE (attenuation, smooth cone falloff, UI, ops support).
+- Shadows: TODO — add deterministic shadow maps (depth FBO, bias, PCF), gate via `useShadows` uniform; re-enable in shaders and update CI goldens.
 - MSAA FBO and resolve: both onscreen and offscreen; sample count in settings and CLI.
 - Tone mapping: Reinhard, ACES, Filmic implementations; exposure/gamma controls.
 - IBL: irradiance, prefilter, BRDF LUT generation and PBR integration.
@@ -369,6 +370,7 @@ Web
 
 CI Integration (proposed)
 - Add a validate job to .github/workflows/ci.yml that runs schema checks and headless renders against examples with golden comparisons; upload diffs.
+- Added a workflow_dispatch job (regen-goldens-linux) to render directional/spot tests and upload candidate goldens as artifacts for easy review and commit.
 
 ---
 

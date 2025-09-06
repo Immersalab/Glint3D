@@ -99,7 +99,8 @@ void main() {
     vec3 F0 = mix(vec3(0.04), albedo, metallic);
 
     vec3 Lo = vec3(0.0);
-    float shadow = calculateShadow(lightSpaceMatrix * vec4(vWorldPos, 1.0));
+    // Disable shadowing until we implement a proper shadow map path
+    float shadow = 1.0;
     for (int i=0;i<numLights;i++) {
         if (lights[i].intensity <= 0.0) continue;
         

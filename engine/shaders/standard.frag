@@ -86,8 +86,8 @@ void main()
     // Base color from either texture or fallback color
     vec3 baseColor = useTexture ? texture(cowTexture, UV).rgb : objectColor;
 
-    // Shadow factor
-    float shadow = calculateShadow(lightSpaceMatrix * vec4(FragPos, 1.0));
+    // Shadow factor (disabled until shadow maps implemented deterministically)
+    float shadow = 1.0;
 
     // Start with ambient term
     vec3 totalLight = globalAmbient.rgb * material.ambient;
