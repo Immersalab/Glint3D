@@ -1,0 +1,30 @@
+{
+  "description": "Test cases for path traversal vulnerabilities - these should all FAIL when --asset-root is set",
+  "ops": [
+    {
+      "op": "load",
+      "path": "../../../etc/passwd",
+      "name": "malicious1"
+    },
+    {
+      "op": "load", 
+      "path": "..\\..\\windows\\system32\\config\\sam",
+      "name": "malicious2"
+    },
+    {
+      "op": "load",
+      "path": "models/../../../secret.txt", 
+      "name": "malicious3"
+    },
+    {
+      "op": "render_image",
+      "path": "../../../tmp/malicious_output.png",
+      "width": 800,
+      "height": 600
+    },
+    {
+      "op": "set_background",
+      "skybox": "../../sensitive/config.jpg"
+    }
+  ]
+}

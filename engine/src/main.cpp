@@ -1,6 +1,7 @@
 #include "application_core.h"
 #include "render_utils.h"
 #include "cli_parser.h"
+#include "path_security.h"
 #include <string>
 #include <vector>
 #include <algorithm>
@@ -94,6 +95,15 @@ int main(int argc, char** argv)
     }
     
     Logger::info("Glint 3D Engine v" + std::string(GLINT_VERSION));
+    
+    // Initialize path security if asset root is provided
+    if (!parseResult.options.assetRoot.empty()) {
+        if (!PathSecurity::setAssetRoot(parseResult.options.assetRoot)) {
+            Logger::error("Failed to set asset root: " + parseResult.options.assetRoot);
+            return static_cast<int>(CLIExitCode::RuntimeError);
+        }
+        Logger::info("Asset root set to: " + PathSecurity::getAssetRoot());
+    }
     
     // Initialize application
     auto* app = new ApplicationCore();

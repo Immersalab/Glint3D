@@ -6,6 +6,7 @@
 #include "config_defaults.h"
 #include "light.h"
 #include "schema_validator.h"
+#include "path_security.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -30,6 +31,28 @@ namespace {
         auto dot = name.find_last_of('.'); if (dot != std::string::npos) name = name.substr(0, dot);
         if (name.empty()) name = "Object";
         return name;
+    }
+
+    static bool validateAndResolvePath(const std::string& inputPath, std::string& resolvedPath, std::string& error) {
+        // If no asset root is set, allow all paths (backward compatibility)
+        if (!PathSecurity::isAssetRootSet()) {
+            resolvedPath = inputPath;
+            return true;
+        }
+
+        PathSecurity::ValidationResult result = PathSecurity::validatePath(inputPath);
+        if (result != PathSecurity::ValidationResult::Valid) {
+            error = PathSecurity::getErrorMessage(result);
+            return false;
+        }
+
+        resolvedPath = PathSecurity::resolvePath(inputPath);
+        if (resolvedPath.empty()) {
+            error = "Failed to resolve path: " + inputPath;
+            return false;
+        }
+
+        return true;
     }
 }
 
@@ -110,7 +133,12 @@ bool JsonOpsExecutor::apply(const std::string& json, std::string& error)
 
         if (op == "load") {
             if (!obj.HasMember("path") || !obj["path"].IsString()) { error = "load: missing 'path'"; return false; }
-            std::string path = obj["path"].GetString();
+            std::string inputPath = obj["path"].GetString();
+            std::string path;
+            if (!validateAndResolvePath(inputPath, path, error)) { 
+                error = "load: " + error; 
+                return false; 
+            }
             std::string name;
             if (obj.HasMember("name") && obj["name"].IsString()) name = obj["name"].GetString();
             if (name.empty()) name = deriveNameFromPath(path);
@@ -348,7 +376,12 @@ bool JsonOpsExecutor::apply(const std::string& json, std::string& error)
         }
         else if (op == "render_image") {
             if (!obj.HasMember("path") || !obj["path"].IsString()) { error = "render_image: missing 'path'"; return false; }
-            std::string path = obj["path"].GetString();
+            std::string inputPath = obj["path"].GetString();
+            std::string path;
+            if (!validateAndResolvePath(inputPath, path, error)) { 
+                error = "render_image: " + error; 
+                return false; 
+            }
             int width = 800, height = 600;
             if (obj.HasMember("width") && obj["width"].IsInt()) width = obj["width"].GetInt();
             if (obj.HasMember("height") && obj["height"].IsInt()) height = obj["height"].GetInt();
@@ -513,7 +546,12 @@ bool JsonOpsExecutor::apply(const std::string& json, std::string& error)
                 return true;
             }
             else if (obj.HasMember("skybox") && obj["skybox"].IsString()) {
-                std::string skyboxPath = obj["skybox"].GetString();
+                std::string inputPath = obj["skybox"].GetString();
+                std::string skyboxPath;
+                if (!validateAndResolvePath(inputPath, skyboxPath, error)) { 
+                    error = "set_background: " + error; 
+                    return false; 
+                }
                 bool okSky = m_renderer.loadSkybox(skyboxPath);
                 if (!okSky) { error = std::string("set_background: failed to load skybox '") + skyboxPath + "'"; return false; }
                 return true;

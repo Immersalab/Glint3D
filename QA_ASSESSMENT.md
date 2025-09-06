@@ -138,6 +138,15 @@ Plan
 
 ## IMPLEMENTATION HISTORY
 
+2025-09-06 - Asset Root Security Implementation
+- Implemented: --asset-root CLI flag for directory traversal protection
+- Implemented: PathSecurity namespace with comprehensive validation (path_security.h/cpp)
+- Implemented: Path validation integration into JSON ops (load, render_image, set_background)
+- Implemented: Comprehensive test suite (tests/path_security_test.cpp, test_path_security.sh)
+- Security: Blocks ../../../etc/passwd, ..\\..\\System32, URL-encoded traversals, and paths outside asset root
+- Backward Compatible: No restrictions when --asset-root is not specified
+- Documentation: Added security guide (docs/ASSET_ROOT_SECURITY.md) and updated help text
+
 2025-09-06 - CLI/Schema/JSON Ops v1.3 Completion
 - Implemented: CLI strict schema validation (--strict-schema) with RapidJSON Schema (v1.3 embedded); --schema-version v1.3
 - Implemented: Robust exit codes (0=OK, 2=schema, 3=file missing, 4=runtime, 5=unknown flag/invalid arg)
@@ -195,7 +204,7 @@ Overall Completion: ~72%
 1. Shader plumbing for tone mapping/exposure/gamma (hook RenderSystem state into shaders)
 2. MSAA offscreen pipeline (quality improvement)
 3. HDR skybox/IBL (visual enhancement)
-4. Asset root and seed controls for determinism (--asset-root, --seed)
+4. Seed controls for determinism (--seed)
 
 ---
 
@@ -232,10 +241,10 @@ One-Line Semantics (for QA)
 ## HEADLESS CLI
 
 Implementation Status
-- Status: Complete for schema/logging/exit codes; core flags stable
+- Status: Complete for schema/logging/exit codes/security; core flags stable
 - Location: engine/src/main.cpp, engine/src/cli_parser.cpp
-- Implemented: --ops, --render, --w, --h, --denoise, --raytrace, --strict-schema, --schema-version v1.3, --log quiet|warn|info|debug; robust exit codes
-- Missing (future): --asset-root, --seed <int>, --tone, --exposure, --gamma, --samples <1|2|4|8>, AI/NL helpers
+- Implemented: --ops, --render, --w, --h, --denoise, --raytrace, --strict-schema, --schema-version v1.3, --log quiet|warn|info|debug, --asset-root; robust exit codes
+- Missing (future): --seed <int>, --tone, --exposure, --gamma, --samples <1|2|4|8>, AI/NL helpers
 
 Exit Codes (for CI robustness)
 - 0: success
@@ -328,7 +337,7 @@ JSON Ops v1
 - Examples: expand examples/json-ops/ with each op demonstrated and golden images for CI.
 
 Headless CLI
-- Flags: --strict-schema, --schema-version v1.3, --log quiet|warn|info|debug implemented; --asset-root, --seed pending.
+- Flags: --strict-schema, --schema-version v1.3, --log quiet|warn|info|debug, --asset-root implemented; --seed pending.
 - Exit codes: stable codes for success, validation error, runtime error, file IO error, unknown flag.
 - Logging: timestamped, structured messages; quiet mode for CI.
 
@@ -358,6 +367,7 @@ Web
 - Camera presets: selecting any preset yields the same camera pose for a given target independent of prior state; hotkeys 1-8 map consistently; JSON set_camera_preset works.
 - MSAA resolve: --samples=N reduces edge aliasing vs N=1; at N=1 colors bit-match the non-MSAA path.
 - Strict schema: invalid ops file fails fast with non-zero exit code and clear message; CI step fails accordingly.
+- Asset root security: --asset-root restricts file access to specified directory; blocks ../../../etc/passwd and similar traversal attempts; provides clear error messages; maintains backward compatibility when flag not used. IMPLEMENTED.
 - Determinism: same ops + seed produce the same image hash on identical hardware; cross-vendor SSIM >= 0.995 (Web vs Desktop >= 0.990).
 
 ---
@@ -368,6 +378,7 @@ Web
 - Headless E2E: run glint --ops ... --render out.png --w 256 --h 256 for each example; verify output exists and matches schema.
 - Visual regression: compare out.png with golden.png using SSIM. Thresholds: default SSIM >= 0.995 or max per-channel delta <= 2 LSB; Web vs Desktop allow SSIM >= 0.990. Upload diff and heatmap artifacts on failure.
 - CLI validation: negative tests for unknown flags, bad JSON, missing assets, and schema violations when --strict-schema is on.
+- Security testing: verify --asset-root blocks path traversal attempts (../../../etc/passwd, ..\\..\\System32, etc.); run test_path_security.sh and tests/path_security_test.cpp.
 - UI smoke: scripted sequences (if available) or manual checklist for menus, toggles, presets, and drag-drop once implemented.
 
 CI Integration (proposed)
@@ -386,7 +397,7 @@ CI Integration (proposed)
 
 ## SECURITY AND ROBUSTNESS TESTS
 
-- Path traversal: reject .. that escapes --asset-root.
+- Path traversal: IMPLEMENTED - reject .. that escapes --asset-root; comprehensive validation with tests.
 - Oversized textures/OOM: clamp sizes and error cleanly with message; no crash.
 - Malformed assets (glTF/OBJ): resilient loaders with actionable errors; fuzz small samples.
 - Web: strong CSP, no cross-origin reads without explicit opt-in, no eval in UI.

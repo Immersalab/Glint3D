@@ -35,6 +35,7 @@ static inline void print_cli_help()
     std::printf("  --version             Print version\n");
     std::printf("  --ops <file>          JSON ops file to apply\n");
     std::printf("  --render [<png>]      Output PNG path for headless render (defaults to renders/ folder)\n");
+    std::printf("  --asset-root <dir>    Restrict file access to this directory (security)\n");
     std::printf("  --w <int>             Output image width (default 1024)\n");
     std::printf("  --h <int>             Output image height (default 1024)\n");
     std::printf("  --denoise             Enable denoiser if available\n");
@@ -58,6 +59,7 @@ static inline void print_cli_help()
     std::printf("  glint --ops examples/json-ops/duplicate-test.json --render output.png\n");
     std::printf("  glint --ops examples/json-ops/camera-preset-test.json --render --w 800 --h 600\n");
     std::printf("  glint --ops test.json --strict-schema --log debug --render result.png\n");
+    std::printf("  glint --asset-root ./assets --ops scene.json --render secure_output.png\n");
     std::printf("\nDocumentation:\n");
     std::printf("  See examples/README.md for operation details and examples/json-ops/ for samples\n");
     std::printf("  Schema validation: schemas/json_ops_v1.json\n");

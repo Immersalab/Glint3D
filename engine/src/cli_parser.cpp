@@ -65,6 +65,7 @@ CLIParseResult CLIParser::parse(int argc, char** argv)
     // Parse values
     result.options.opsFile = getValue("--ops");
     result.options.outputFile = getValue("--render");
+    result.options.assetRoot = getValue("--asset-root");
     result.options.outputWidth = getIntValue("--w", 1024);
     result.options.outputHeight = getIntValue("--h", 1024);
 
@@ -72,6 +73,12 @@ CLIParseResult CLIParser::parse(int argc, char** argv)
     if (hasFlag("--ops") && result.options.opsFile.empty()) {
         result.exitCode = CLIExitCode::UnknownFlag;
         result.errorMessage = "Missing value for --ops (expected a file path)";
+        return result;
+    }
+    
+    if (hasFlag("--asset-root") && result.options.assetRoot.empty()) {
+        result.exitCode = CLIExitCode::UnknownFlag;
+        result.errorMessage = "Missing value for --asset-root (expected a directory path)";
         return result;
     }
     
@@ -111,6 +118,20 @@ CLIParseResult CLIParser::parse(int argc, char** argv)
         if (!std::filesystem::exists(result.options.opsFile)) {
             result.exitCode = CLIExitCode::FileNotFound;
             result.errorMessage = "Operations file not found: " + result.options.opsFile;
+            return result;
+        }
+    }
+    
+    // Validate asset root directory
+    if (!result.options.assetRoot.empty()) {
+        if (!std::filesystem::exists(result.options.assetRoot)) {
+            result.exitCode = CLIExitCode::FileNotFound;
+            result.errorMessage = "Asset root directory not found: " + result.options.assetRoot;
+            return result;
+        }
+        if (!std::filesystem::is_directory(result.options.assetRoot)) {
+            result.exitCode = CLIExitCode::UnknownFlag;
+            result.errorMessage = "Asset root path is not a directory: " + result.options.assetRoot;
             return result;
         }
     }
@@ -179,6 +200,7 @@ std::vector<std::string> CLIParser::getValidFlags()
         "--version",
         "--ops",
         "--render",
+        "--asset-root",
         "--w",
         "--h",
         "--denoise",

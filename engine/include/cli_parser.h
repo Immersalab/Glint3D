@@ -31,6 +31,7 @@ struct CLIOptions {
     std::string opsFile;
     std::string outputFile;
     std::string schemaVersion = "v1.3";
+    std::string assetRoot;
     LogLevel logLevel = LogLevel::Info;
     
     int outputWidth = 1024;
