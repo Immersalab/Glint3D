@@ -6,6 +6,7 @@
 #include "json_ops.h"
 #include "config_defaults.h"
 #include "render_utils.h"
+#include "help_text.h"
 #include <iostream>
 #include <sstream>
 #include <rapidjson/document.h>
@@ -39,18 +40,12 @@ bool UIBridge::initUI(int windowWidth, int windowHeight)
     
     bool ok = m_ui->init(windowWidth, windowHeight);
     if (ok) {
-        // ASCII art welcome banner
-        addConsoleMessage("   _____ _      _____ _   _ _______ ____  _____");
-        addConsoleMessage("  / ____| |    |_   _| \\ | |__   __|___ \\|  __ \\");
-        addConsoleMessage(" | |  __| |      | | |  \\| |  | |    __) | |  | |");
-        addConsoleMessage(" | | |_ | |      | | | . ` |  | |   |__ <| |  | |");
-        addConsoleMessage(" | |__| | |____ _| |_| |\\  |  | |   ___) | |__| |");
-        addConsoleMessage("  \\_____|______|_____|_| \\_|  |_|  |____/|_____/");
+        // Show GLINT3D ASCII banner, version, then welcome lines
+        for_each_glint_ascii([this](const std::string& line){ this->addConsoleMessage(line); });
         addConsoleMessage("");
         addConsoleMessage("             3D Engine v0.3.0");
         addConsoleMessage("");
-        addConsoleMessage("Welcome to Glint3D! Type 'help' for console commands and JSON ops.");
-        addConsoleMessage("See Help menu (top bar) for interactive guides and controls.");
+        emit_welcome_lines([this](const std::string& line){ this->addConsoleMessage(line); });
     }
     return ok;
 }

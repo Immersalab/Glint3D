@@ -10,6 +10,10 @@
 #include <filesystem>
 #include <chrono>
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 #ifdef __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
 // Global application pointer for JS bridge
@@ -61,6 +65,11 @@ static const char* GLINT_VERSION = "0.3.0";
 
 int main(int argc, char** argv)
 {
+    // Ensure Windows console uses UTF-8 so Unicode ASCII art renders correctly
+#ifdef _WIN32
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+#endif
     // Parse command line arguments
     auto parseResult = CLIParser::parse(argc, argv);
     
