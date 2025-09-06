@@ -138,11 +138,19 @@ Plan
 
 ## IMPLEMENTATION HISTORY
 
+2025-09-06 - Test Organization Refactor
+- Reorganized: Complete test structure reorganization into hierarchical `tests/` directory
+- Implemented: Unified test runner system with category-specific scripts (run_all_tests.sh, run_unit_tests.sh, etc.)
+- Moved: All scattered test files organized into proper categories (unit/, integration/, security/, golden/)
+- Updated: CI workflow paths to use new test structure (tests/golden/scenes/, tests/golden/tools/)
+- Created: Comprehensive test documentation and migration guide (TEST_ORGANIZATION_SUMMARY.md)
+- Benefits: Clear separation of concerns, improved maintainability, better CI integration, extensible structure
+
 2025-09-06 - Asset Root Security Implementation
 - Implemented: --asset-root CLI flag for directory traversal protection
 - Implemented: PathSecurity namespace with comprehensive validation (path_security.h/cpp)
 - Implemented: Path validation integration into JSON ops (load, render_image, set_background)
-- Implemented: Comprehensive test suite (tests/path_security_test.cpp, test_path_security.sh)
+- Implemented: Comprehensive test suite (tests/unit/path_security_test.cpp, tests/security/path_traversal/)
 - Security: Blocks ../../../etc/passwd, ..\\..\\System32, URL-encoded traversals, and paths outside asset root
 - Backward Compatible: No restrictions when --asset-root is not specified
 - Documentation: Added security guide (docs/ASSET_ROOT_SECURITY.md) and updated help text
@@ -374,12 +382,72 @@ Web
 
 ## QA TEST PLAN
 
-- Unit-adjacent: where feasible, isolate math/utility (e.g., camera preset calculations) and test deterministically.
-- Headless E2E: run glint --ops ... --render out.png --w 256 --h 256 for each example; verify output exists and matches schema.
-- Visual regression: compare out.png with golden.png using SSIM. Thresholds: default SSIM >= 0.995 or max per-channel delta <= 2 LSB; Web vs Desktop allow SSIM >= 0.990. Upload diff and heatmap artifacts on failure.
-- CLI validation: negative tests for unknown flags, bad JSON, missing assets, and schema violations when --strict-schema is on.
-- Security testing: verify --asset-root blocks path traversal attempts (../../../etc/passwd, ..\\..\\System32, etc.); run test_path_security.sh and tests/path_security_test.cpp.
-- UI smoke: scripted sequences (if available) or manual checklist for menus, toggles, presets, and drag-drop once implemented.
+### Test Organization Structure
+All tests are now organized in a hierarchical structure under `tests/` directory following industry best practices:
+
+```
+tests/
+├── unit/                          # C++ unit tests
+│   ├── camera_preset_test.cpp     # Camera preset calculations
+│   ├── path_security_test.cpp     # Path validation logic
+│   └── test_path_security_build.cpp # Security build validation
+├── integration/                   # Integration tests (JSON ops)
+│   ├── json_ops/
+│   │   ├── basic/                 # Load, duplicate, transform tests
+│   │   ├── lighting/              # Light system tests
+│   │   ├── camera/                # Camera operation tests
+│   │   └── materials/             # Material and tone mapping tests
+│   ├── cli/                       # Command-line interface tests
+│   └── rendering/                 # End-to-end rendering tests
+├── security/                      # Security vulnerability tests
+│   └── path_traversal/            # Path traversal attack tests
+├── golden/                        # Visual regression testing
+│   ├── scenes/                    # Test scenes for golden generation
+│   ├── references/                # Reference golden images
+│   └── tools/                     # SSIM comparison tools
+├── data/                          # Test assets and fixtures
+└── scripts/                       # Test automation scripts
+```
+
+### Test Execution
+Unified test runner system with master and category-specific scripts:
+
+```bash
+# Run all test categories
+tests/scripts/run_all_tests.sh
+
+# Run specific test categories
+tests/scripts/run_unit_tests.sh        # C++ unit tests
+tests/scripts/run_integration_tests.sh # JSON ops integration tests
+tests/scripts/run_security_tests.sh    # Security vulnerability tests
+tests/scripts/run_golden_tests.sh      # Visual regression tests
+```
+
+### Test Categories
+
+**Unit Tests** (`tests/unit/`):
+- Isolate math/utility functions (camera preset calculations, path validation)  
+- Direct C++ compilation and execution
+- Test deterministic behavior and edge cases
+
+**Integration Tests** (`tests/integration/`):
+- Test component interactions via JSON operations
+- Headless E2E: run glint --ops ... --render out.png --w 256 --h 256
+- Verify output exists, matches schema, and validates correctly
+- Organized by feature area (basic, lighting, camera, materials)
+
+**Security Tests** (`tests/security/`):
+- Verify --asset-root blocks path traversal attempts
+- Test attack vectors: ../../../etc/passwd, ..\\..\\System32, URL-encoded traversals
+- Validate that valid operations work with asset root restrictions
+- Ensure backward compatibility when --asset-root not specified
+
+**Golden Image Tests** (`tests/golden/`):  
+- Visual regression testing with SSIM comparison
+- Thresholds: Desktop SSIM >= 0.995 or max per-channel delta <= 2 LSB
+- Web vs Desktop: SSIM >= 0.990
+- Upload diff and heatmap artifacts on failure
+- Automated golden generation if references missing
 
 CI Integration (implemented)
 - ✅ `validate-golden-images` job in .github/workflows/ci.yml with SSIM comparison and artifact upload
@@ -433,8 +501,8 @@ CI Integration (implemented)
 **Documentation**: `docs/GOLDEN_IMAGE_CI.md`
 
 **Implementation**: Comprehensive visual regression testing system with:
-- **Python SSIM comparison engine** (`tools/golden_image_compare.py`)
-- **Automated golden generation** (`tools/generate_goldens.py`) 
+- **Python SSIM comparison engine** (`tests/golden/tools/golden_image_compare.py`)
+- **Automated golden generation** (`tests/golden/tools/generate_goldens.py`) 
 - **CI integration** with `validate-golden-images` job
 - **Acceptance criteria**: Desktop SSIM ≥0.995 OR channel Δ≤2 LSB; Web vs Desktop SSIM ≥0.990
 - **Artifact generation**: Diff images and heatmaps on failure
@@ -446,7 +514,7 @@ CI Integration (implemented)
 - Visual diff artifacts (side-by-side + enhanced differences)
 - SSIM heatmaps for similarity visualization
 - JSON reports with comprehensive metrics
-- Local testing via `test_golden_system.py`
+- Local testing via `tests/scripts/run_golden_tests.sh`
 - Cross-platform threshold handling
 
 **Benefits**:

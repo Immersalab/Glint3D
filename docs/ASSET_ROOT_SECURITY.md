@@ -124,7 +124,7 @@ Run the comprehensive test suite:
 
 ```bash
 # Build and run path security tests
-g++ -std=c++17 -I./engine/include tests/path_security_test.cpp engine/src/path_security.cpp -o test_path_security
+g++ -std=c++17 -I./engine/include tests/unit/path_security_test.cpp engine/src/path_security.cpp -o test_path_security
 ./test_path_security
 ```
 
@@ -134,12 +134,12 @@ Test the full application with security controls:
 
 ```bash
 # Run the security validation script
-bash test_path_security.sh
+bash tests/scripts/run_security_tests.sh
 ```
 
 ### Negative Test Cases
 
-The `examples/json-ops/negative-tests/path-traversal-test.json` file contains various path traversal attempts that should all fail when `--asset-root` is set.
+The `tests/security/path_traversal/` directory contains various path traversal attack tests that should all fail when `--asset-root` is set.
 
 ## Backward Compatibility
 

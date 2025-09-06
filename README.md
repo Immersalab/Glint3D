@@ -292,10 +292,26 @@ Use the Samples menu or load recipes manually:
 ---
 
 ## Testing Strategy
-- Unit tests for core systems  
-- Golden tests for CI (hashes/SSIM)  
-- JSON Ops schema validation  
-- Importer/web build integration tests  
+
+Comprehensive test organization with hierarchical structure under `tests/`:
+
+```bash
+# Run all test categories
+tests/scripts/run_all_tests.sh
+
+# Run specific test categories
+tests/scripts/run_unit_tests.sh        # C++ unit tests
+tests/scripts/run_integration_tests.sh # JSON ops integration tests  
+tests/scripts/run_security_tests.sh    # Security vulnerability tests
+tests/scripts/run_golden_tests.sh      # Visual regression tests
+```
+
+**Test Categories:**
+- **Unit tests** (`tests/unit/`): Core system functionality (camera presets, path security)
+- **Integration tests** (`tests/integration/`): JSON ops workflows organized by feature area  
+- **Security tests** (`tests/security/`): Path traversal protection and attack vectors
+- **Golden image tests** (`tests/golden/`): Visual regression with SSIM comparison
+- **Test assets** (`tests/data/`): Standardized models and fixtures  
 
 ---
 

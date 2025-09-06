@@ -14,14 +14,14 @@ The Golden Image CI system provides automated visual regression testing for Glin
 
 ### Components
 
-1. **Golden Test Scenes** (`examples/json-ops/golden-tests/`)
+1. **Golden Test Scenes** (`tests/golden/scenes/`)
    - `basic-lighting.json` - Point light with sphere
    - `directional-lighting.json` - Directional light with cube
    - `spot-lighting.json` - Spot light with plane and sphere
    - `camera-presets.json` - Camera positioning consistency
    - `tone-mapping.json` - Exposure and tone mapping controls
 
-2. **Python Comparison Tools** (`tools/`)
+2. **Python Comparison Tools** (`tests/golden/tools/`)
    - `golden_image_compare.py` - Main SSIM comparison engine
    - `generate_goldens.py` - Golden reference image generator
    - `requirements.txt` - Python dependencies
@@ -127,15 +127,15 @@ python test_golden_system.py
 ### Manual Steps
 ```bash
 # 1. Install dependencies
-pip install -r tools/requirements.txt
+pip install -r tests/golden/tools/requirements.txt
 
 # 2. Generate golden references
-python tools/generate_goldens.py builds/desktop/cmake/Release/glint.exe \
+python tests/golden/tools/generate_goldens.py builds/desktop/cmake/Release/glint.exe \
   --asset-root test_assets
 
 # 3. Compare new renders
-python tools/golden_image_compare.py \
-  --batch renders/ examples/golden/ --verbose
+python tests/golden/tools/golden_image_compare.py \
+  --batch renders/ tests/golden/references/ --verbose
 ```
 
 ## Golden Image Management
@@ -143,9 +143,9 @@ python tools/golden_image_compare.py \
 ### Initial Setup
 ```bash
 # Generate first set of golden images
-python tools/generate_goldens.py <engine_binary> \
-  --test-dir examples/json-ops/golden-tests \
-  --golden-dir examples/golden \
+python tests/golden/tools/generate_goldens.py <engine_binary> \
+  --test-dir tests/golden/scenes \
+  --golden-dir tests/golden/references \
   --asset-root test_assets
 ```
 
@@ -156,19 +156,19 @@ When intentional rendering changes require new references:
 1. **Verify Changes**
    ```bash
    # Compare current vs golden
-   python tools/golden_image_compare.py --batch renders/ examples/golden/ --verbose
+   python tests/golden/tools/golden_image_compare.py --batch renders/ tests/golden/references/ --verbose
    ```
 
 2. **Regenerate References**
    ```bash
    # Create new golden set
-   python tools/generate_goldens.py <engine_binary> \
-     --golden-dir examples/golden --asset-root test_assets
+   python tests/golden/tools/generate_goldens.py <engine_binary> \
+     --golden-dir tests/golden/references --asset-root test_assets
    ```
 
 3. **Commit Updates**
    ```bash
-   git add examples/golden/
+   git add tests/golden/references/
    git commit -m "Update golden images for [reason]"
    ```
 
@@ -180,7 +180,7 @@ Use GitHub's workflow dispatch to generate candidate goldens:
 2. Click "Run workflow"  
 3. Set "regenerate_goldens" to "true"
 4. Download `golden-candidates-linux` artifact
-5. Review and replace `examples/golden/` if acceptable
+5. Review and replace `tests/golden/references/` if acceptable
 
 ## Platform Considerations
 
@@ -215,7 +215,7 @@ Use GitHub's workflow dispatch to generate candidate goldens:
 **Python dependency errors**
 ```bash
 # Install specific versions
-pip install -r tools/requirements.txt --force-reinstall
+pip install -r tests/golden/tools/requirements.txt --force-reinstall
 ```
 
 **Render failures**
@@ -227,23 +227,23 @@ pip install -r tools/requirements.txt --force-reinstall
 
 ```bash
 # Verbose comparison with all metrics
-python tools/golden_image_compare.py rendered.png golden.png --verbose
+python tests/golden/tools/golden_image_compare.py rendered.png golden.png --verbose
 
 # Generate debug artifacts
-python tools/golden_image_compare.py \
+python tests/golden/tools/golden_image_compare.py \
   --batch renders/ goldens/ --output debug_artifacts/
 
 # Test single scene rendering  
 ./builds/desktop/cmake/Release/glint \
   --asset-root test_assets \
-  --ops examples/json-ops/golden-tests/basic-lighting.json \
+  --ops tests/golden/scenes/basic-lighting.json \
   --render debug.png --w 400 --h 300 --log debug
 ```
 
 ## Configuration
 
 ### Threshold Tuning
-Edit `tools/golden_image_compare.py`:
+Edit `tests/golden/tools/golden_image_compare.py`:
 ```python
 DESKTOP_SSIM_THRESHOLD = 0.995          # Adjust for strictness
 DESKTOP_CHANNEL_DIFF_THRESHOLD = 2      # LSB tolerance  
@@ -314,6 +314,6 @@ python test_golden_system.py
 
 For questions or issues with the golden image system, check:
 1. This documentation
-2. `tools/README.md` for tool-specific help
+2. `tests/golden/tools/` documentation for tool-specific help
 3. CI logs and artifacts for failure analysis
 4. GitHub issues for known problems
