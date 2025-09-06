@@ -19,6 +19,7 @@ public:
 private:
     void renderMainMenuBar(const UIState& state);
     void renderSettingsPanel(const UIState& state);
+    void renderSceneHierarchyPanel(const UIState& state);
     void renderPerformanceHUD(const UIState& state);
     void renderConsole(const UIState& state);
     void renderHelpDialogs();
@@ -27,6 +28,7 @@ private:
     // Local UI state that can be toggled independently
     bool m_showSettingsPanel = true;
     bool m_showPerfHUD = false;
+    bool m_showHierarchyPanel = true;
     
     // Help dialogs
     bool m_showControlsHelp = false;

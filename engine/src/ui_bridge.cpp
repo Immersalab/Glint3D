@@ -9,6 +9,9 @@
 #include "help_text.h"
 #include <iostream>
 #include <sstream>
+#include <fstream>
+#include <algorithm>
+#include <cctype>
 #include <rapidjson/document.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
@@ -40,6 +43,8 @@ bool UIBridge::initUI(int windowWidth, int windowHeight)
     
     bool ok = m_ui->init(windowWidth, windowHeight);
     if (ok) {
+        // Load MRU recent files
+        loadRecentFiles();
         // Show GLINT3D ASCII banner, version, then welcome lines
         for_each_glint_ascii([this](const std::string& line){ this->addConsoleMessage(line); });
         emit_welcome_lines([this](const std::string& line){ this->addConsoleMessage(line); });
@@ -94,6 +99,12 @@ UIState UIBridge::buildUIState() const
     state.selectedObjectIndex = m_scene.getSelectedObjectIndex();
     state.selectedObjectName = m_scene.getSelectedObjectName();
     state.objectCount = (int)m_scene.getObjects().size();
+    // Populate object names for hierarchy panel
+    state.objectNames.clear();
+    state.objectNames.reserve(m_scene.getObjects().size());
+    for (const auto& obj : m_scene.getObjects()) {
+        state.objectNames.push_back(obj.name);
+    }
     
     // Light state  
     state.lightCount = (int)m_lights.getLightCount();
@@ -118,6 +129,9 @@ UIState UIBridge::buildUIState() const
     
     // Console log
     state.consoleLog = m_consoleLog;
+
+    // Recent files MRU
+    state.recentFiles = m_recentFiles;
     
     // AI
     state.useAI = m_useAI;
@@ -131,6 +145,86 @@ void UIBridge::handleUICommand(const UICommandData& command)
     switch (command.command) {
         case UICommand::LoadObject:
             handleLoadObject(command);
+            break;
+        case UICommand::OpenFile:
+            {
+                if (!command.stringParam.empty()) {
+                    bool ok = openFilePath(command.stringParam);
+                    if (!ok) addConsoleMessage("Open failed: " + command.stringParam);
+                }
+            }
+            break;
+        case UICommand::RemoveObject:
+            {
+                std::string name = command.stringParam;
+                if (name.empty() && command.intParam >= 0 && command.intParam < (int)m_scene.getObjects().size()) {
+                    name = m_scene.getObjects()[(size_t)command.intParam].name;
+                }
+                if (!name.empty()) {
+                    if (m_scene.deleteObject(name)) {
+                        addConsoleMessage("Deleted object: " + name);
+                    } else {
+                        addConsoleMessage("Delete failed: " + name);
+                    }
+                }
+            }
+            break;
+        case UICommand::DuplicateObject:
+            {
+                std::string src = command.stringParam;
+                if (src.empty() && command.intParam >= 0 && command.intParam < (int)m_scene.getObjects().size()) {
+                    src = m_scene.getObjects()[(size_t)command.intParam].name;
+                }
+                if (!src.empty()) {
+                    // Propose a unique name: src + "_copy", with numeric suffix if needed
+                    std::string base = src + "_copy";
+                    std::string newName = base;
+                    int n = 1;
+                    while (m_scene.findObjectByName(newName) != nullptr) {
+                        newName = base + std::string("_") + std::to_string(n++);
+                    }
+                    // New position slightly offset on Z
+                    glm::vec3 pos = m_scene.getSelectedObjectCenterWorld();
+                    pos.z -= 0.2f;
+                    if (m_scene.duplicateObject(src, newName, pos)) {
+                        addConsoleMessage("Duplicated '" + src + "' as '" + newName + "'");
+                    } else {
+                        addConsoleMessage("Duplicate failed: " + src);
+                    }
+                }
+            }
+            break;
+        case UICommand::RenameObject:
+            {
+                // stringParam: new name, intParam: index to rename
+                int idx = command.intParam;
+                if (idx >= 0 && idx < (int)m_scene.getObjects().size()) {
+                    std::string oldName = m_scene.getObjects()[(size_t)idx].name;
+                    const std::string& newName = command.stringParam;
+                    if (!newName.empty() && oldName != newName) {
+                        // Implemented in SceneManager via find + set
+                        // Fallback here if no API: check duplicates and set
+                        if (m_scene.findObjectByName(newName) == nullptr) {
+                            auto& obj = m_scene.getObjects()[(size_t)idx];
+                            obj.name = newName;
+                            addConsoleMessage("Renamed '" + oldName + "' to '" + newName + "'");
+                        } else {
+                            addConsoleMessage("Rename failed: name exists: " + newName);
+                        }
+                    }
+                }
+            }
+            break;
+        case UICommand::SelectObject:
+            {
+                // Prefer intParam index; fallback to name lookup
+                if (command.intParam >= 0 && command.intParam < (int)m_scene.getObjects().size()) {
+                    m_scene.setSelectedObjectIndex(command.intParam);
+                } else if (!command.stringParam.empty()) {
+                    int idx = m_scene.findObjectIndex(command.stringParam);
+                    if (idx >= 0) m_scene.setSelectedObjectIndex(idx);
+                }
+            }
             break;
             
         case UICommand::SetRenderMode:
@@ -411,6 +505,7 @@ void UIBridge::handleLoadObject(const UICommandData& cmd)
     bool success = m_scene.loadObject(cmd.stringParam, cmd.stringParam, cmd.vec3Param);
     if (success) {
         addConsoleMessage("Loaded object: " + cmd.stringParam);
+        addRecentFile(cmd.stringParam);
     } else {
         addConsoleMessage("Failed to load object: " + cmd.stringParam);
     }
@@ -629,6 +724,79 @@ void UIBridge::clearConsoleLog()
 {
     m_consoleLog.clear();
     addConsoleMessage("Console cleared");
+}
+
+void UIBridge::loadRecentFiles()
+{
+    m_recentFiles.clear();
+    const char* kRecent = ".glint_recent";
+    std::ifstream in(kRecent, std::ios::in);
+    if (!in) return;
+    std::string line;
+    while (std::getline(in, line)) {
+        if (!line.empty()) m_recentFiles.push_back(line);
+        if (m_recentFiles.size() >= m_recentMax) break;
+    }
+}
+
+void UIBridge::saveRecentFiles() const
+{
+    const char* kRecent = ".glint_recent";
+    std::ofstream out(kRecent, std::ios::out | std::ios::trunc);
+    if (!out) return;
+    size_t count = 0;
+    for (const auto& p : m_recentFiles) {
+        out << p << "\n";
+        if (++count >= m_recentMax) break;
+    }
+}
+
+void UIBridge::addRecentFile(const std::string& path)
+{
+    if (path.empty()) return;
+    // Remove if exists
+    m_recentFiles.erase(std::remove(m_recentFiles.begin(), m_recentFiles.end(), path), m_recentFiles.end());
+    // Add to front
+    m_recentFiles.insert(m_recentFiles.begin(), path);
+    // Trim
+    if (m_recentFiles.size() > m_recentMax) m_recentFiles.resize(m_recentMax);
+    saveRecentFiles();
+}
+
+static std::string toLowerStr(std::string s) { for (auto& c : s) c = (char)tolower((unsigned char)c); return s; }
+static std::string basenameOnly(const std::string& path)
+{
+    size_t pos = path.find_last_of("/\\");
+    std::string file = (pos == std::string::npos) ? path : path.substr(pos + 1);
+    return file;
+}
+
+bool UIBridge::openFilePath(const std::string& path)
+{
+    if (path.empty()) return false;
+    std::string low = toLowerStr(path);
+    bool ok = false;
+    if (low.size() >= 5 && low.substr(low.size()-5) == ".json") {
+        // Load JSON ops or scene
+        std::ifstream in(path, std::ios::in | std::ios::binary);
+        if (!in) { addConsoleMessage("Cannot open: " + path); return false; }
+        std::string data((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+        std::string err;
+        ok = applyJsonOps(data, err);
+        if (!ok && !err.empty()) addConsoleMessage("JSON open error: " + err);
+        if (ok) addConsoleMessage("Applied JSON ops from: " + path);
+    } else {
+        // Treat as model
+        UICommandData loadCmd;
+        // Name as basename
+        loadCmd.command = UICommand::LoadObject;
+        loadCmd.stringParam = path;
+        loadCmd.vec3Param = glm::vec3(0.0f, 0.0f, -2.0f);
+        handleLoadObject(loadCmd);
+        ok = true; // handleLoadObject logs failure too
+    }
+    if (ok) addRecentFile(path);
+    return ok;
 }
 
 bool UIBridge::applyJsonOps(const std::string& json, std::string& error)

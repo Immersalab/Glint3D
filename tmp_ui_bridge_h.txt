@@ -42,9 +42,6 @@ struct UIState {
     int objectCount = 0;
     int lightCount = 0;
     
-    // Objects list for hierarchy UI
-    std::vector<std::string> objectNames;
-    
     // Light details for UI editing
     struct LightUI {
         int type = 0;              // 0=point, 1=directional
@@ -73,9 +70,6 @@ struct UIState {
     // Console/log
     std::vector<std::string> consoleLog;
 
-    // Recent files (MRU)
-    std::vector<std::string> recentFiles;
-
     // AI controls
     bool useAI = true;
     std::string aiEndpoint; // e.g. http://127.0.0.1:11434
@@ -86,8 +80,6 @@ enum class UICommand {
     LoadObject,
     RemoveObject,
     DuplicateObject,
-    RenameObject,
-    SelectObject,
     SetRenderMode,
     SetShadingMode,
     ToggleFramebufferSRGB,
@@ -135,8 +127,7 @@ enum class UICommand {
     // File operations
     ImportModel,
     ImportSceneJSON,
-    ExportScene,
-    OpenFile
+    ExportScene
 };
 
 struct UICommandData {
@@ -217,14 +208,6 @@ private:
 
     // JSON ops executor (modularized from UI)
     std::unique_ptr<JsonOpsExecutor> m_ops;
-    
-    // MRU recent files
-    std::vector<std::string> m_recentFiles;
-    size_t m_recentMax = 10;
-    void loadRecentFiles();
-    void saveRecentFiles() const;
-    void addRecentFile(const std::string& path);
-    bool openFilePath(const std::string& path);
     
     // Command handlers
     void handleLoadObject(const UICommandData& cmd);

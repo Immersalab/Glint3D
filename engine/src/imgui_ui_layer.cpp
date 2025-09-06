@@ -126,6 +126,10 @@ void ImGuiUILayer::render(const UIState& state)
     if (m_showSettingsPanel) {
         renderSettingsPanel(state);
     }
+    // Render scene hierarchy panel
+    if (m_showHierarchyPanel) {
+        renderSceneHierarchyPanel(state);
+    }
     
     // Render performance HUD
     if (m_showPerfHUD) {
@@ -199,6 +203,22 @@ void ImGuiUILayer::renderMainMenuBar(const UIState& state)
             }
             
             ImGui::Separator();
+            if (ImGui::BeginMenu("Recent Files")) {
+                if (state.recentFiles.empty()) {
+                    ImGui::MenuItem("(empty)", nullptr, false, false);
+                } else {
+                    int shown = 0;
+                    for (const auto& path : state.recentFiles) {
+                        if (ImGui::MenuItem(path.c_str())) {
+                            UICommandData cmd; cmd.command = UICommand::OpenFile; cmd.stringParam = path; if (onCommand) onCommand(cmd);
+                        }
+                        if (++shown >= 10) break;
+                    }
+                }
+                ImGui::EndMenu();
+            }
+            
+            ImGui::Separator();
             
             if (ImGui::MenuItem("Copy Share Link", "Ctrl+Shift+C")) {
                 UICommandData cmd;
@@ -226,6 +246,11 @@ void ImGuiUILayer::renderMainMenuBar(const UIState& state)
                 UICommandData cmd;
                 cmd.command = UICommand::ToggleSettingsPanel;
                 if (onCommand) onCommand(cmd);
+            }
+            
+            bool showHierarchy = m_showHierarchyPanel;
+            if (ImGui::MenuItem("Scene Hierarchy", nullptr, showHierarchy)) {
+                m_showHierarchyPanel = !m_showHierarchyPanel;
             }
             
             if (ImGui::MenuItem("Performance HUD", "F2", m_showPerfHUD)) {
@@ -357,6 +382,73 @@ void ImGuiUILayer::renderMainMenuBar(const UIState& state)
 
         ImGui::EndMainMenuBar();
     }
+#endif
+}
+
+void ImGuiUILayer::renderSceneHierarchyPanel(const UIState& state)
+{
+#ifndef WEB_USE_HTML_UI
+    ImGuiIO& io = ImGui::GetIO();
+    float leftW = 260.0f;
+    ImGui::SetNextWindowPos(ImVec2(16.0f, 16.0f), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(leftW, io.DisplaySize.y - 220.0f), ImGuiCond_FirstUseEver);
+    if (ImGui::Begin("Scene Hierarchy")) {
+        // Header
+        ImGui::Text("Objects (%d)", state.objectCount);
+        ImGui::Separator();
+
+        static int renamingIndex = -1;
+        static char renameBuf[256] = "";
+
+        // List objects
+        for (int i = 0; i < (int)state.objectNames.size(); ++i) {
+            ImGui::PushID(i);
+            bool selected = (i == state.selectedObjectIndex);
+            if (renamingIndex == i) {
+                ImGui::SetNextItemWidth(-1);
+                if (ImGui::InputText("##rename", renameBuf, sizeof(renameBuf), ImGuiInputTextFlags_EnterReturnsTrue)) {
+                    UICommandData cmd; cmd.command = UICommand::RenameObject; cmd.intParam = i; cmd.stringParam = std::string(renameBuf); if (onCommand) onCommand(cmd); renamingIndex = -1;
+                }
+                if (!ImGui::IsItemActive() && ImGui::IsMouseClicked(0)) { renamingIndex = -1; }
+            } else {
+                // Simple ASCII icon + name for wide font compatibility
+                std::string label = "*  " + state.objectNames[i];
+                if (ImGui::Selectable(label.c_str(), selected)) {
+                    UICommandData cmd; cmd.command = UICommand::SelectObject; cmd.intParam = i; if (onCommand) onCommand(cmd);
+                }
+                if (ImGui::BeginPopupContextItem()) {
+                    if (ImGui::MenuItem("Select")) { UICommandData cmd; cmd.command = UICommand::SelectObject; cmd.intParam = i; if (onCommand) onCommand(cmd);}            
+                    if (ImGui::MenuItem("Rename")) { renamingIndex = i; std::snprintf(renameBuf, sizeof(renameBuf), "%s", state.objectNames[i].c_str()); }
+                    if (ImGui::MenuItem("Duplicate")) { UICommandData cmd; cmd.command = UICommand::DuplicateObject; cmd.intParam = i; if (onCommand) onCommand(cmd);}            
+                    if (ImGui::MenuItem("Delete")) { UICommandData cmd; cmd.command = UICommand::RemoveObject; cmd.intParam = i; if (onCommand) onCommand(cmd);}                 
+                    ImGui::EndPopup();
+                }
+            }
+            ImGui::PopID();
+        }
+
+        // Lights listing
+        ImGui::Separator();
+        ImGui::Text("Lights (%d)", state.lightCount);
+        for (int i = 0; i < (int)state.lights.size(); ++i) {
+            ImGui::PushID(10000 + i);
+            const auto& L = state.lights[i];
+            const char* typePrefix = (L.type == 2) ? "[S]" : (L.type == 1 ? "[D]" : "[P]");
+            char buf[128];
+            std::snprintf(buf, sizeof(buf), "%s  Light %d", typePrefix, i + 1);
+            bool selected = (i == state.selectedLightIndex);
+            if (ImGui::Selectable(buf, selected)) {
+                UICommandData cmd; cmd.command = UICommand::SelectLight; cmd.intParam = i; if (onCommand) onCommand(cmd);
+            }
+            if (ImGui::BeginPopupContextItem()) {
+                if (ImGui::MenuItem("Select")) { UICommandData cmd; cmd.command = UICommand::SelectLight; cmd.intParam = i; if (onCommand) onCommand(cmd); }
+                if (ImGui::MenuItem("Delete")) { UICommandData cmd; cmd.command = UICommand::DeleteLight; cmd.intParam = i; if (onCommand) onCommand(cmd); }
+                ImGui::EndPopup();
+            }
+            ImGui::PopID();
+        }
+    }
+    ImGui::End();
 #endif
 }
 
