@@ -105,7 +105,7 @@ def main():
     # Print final hash (first) for convenience
     print(hashes[0])
 
-    if args.print-hash-only:
+    if args.print_hash_only:
         return 0
 
     # Determinism gate: all hashes must match
