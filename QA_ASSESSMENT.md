@@ -452,7 +452,30 @@ Assets and Materials
 
 Web
 - Embed SDK stabilization: versioning, API docs, and error surfaces.
-- Viewer state import/export with ?state= base64 and addressable assets.
+- Viewer state import/export with `?state=` Base64URL or plain JSON; restores camera, lights, and materials; errors surface via browser console.
+
+### Web SDK: State Import/Export (QA)
+- Status: Completed; hardened importer/exporter validated.
+- Import behavior: accepts Base64URL (recommended) and standard Base64 (with `+`/`/` and optional `=` padding). If the `?state=` value starts with `{` or `[`, it is parsed directly as JSON. Envelope objects with `ops` field are supported; only `ops` are applied.
+- Export behavior: `app_share_link()` returns a URL using Base64URL (no padding) and includes ops to restore camera, lights, objects (with transforms), and material edits.
+
+Test Cases (Manual)
+- Positive:
+  - Base64URL (unpadded): open `glint3d.html?state=<b64url>` with ops `[ set_camera, add_light(point/dir/spot), set_material ]` → scene restores.
+  - Standard Base64 (padded): same payload encoded with `+`/`/` and `=` padding → scene restores identically.
+  - Plain JSON: `?state={...}` (URL-encoded) → parsed directly and applied.
+  - Envelope vs array: `{ camera, lights, ops:[...] }` vs `[ ...ops... ]` → both succeed; only ops applied.
+  - Materials: verify color/roughness/metallic restored (visually and via `app_scene_to_json`).
+- Negative:
+  - Invalid base64 (`?state=@@@`) → console logs: empty/undecodable; no crash.
+  - Malformed JSON (truncate) → console logs JSON parse error.
+  - Unknown op (`{ op:"bogus" }`) → console logs unknown op; no crash.
+  - Strict schema enabled → invalid shapes reject with `Schema validation failed: ...`.
+
+Host API (Web)
+- Import: `const ok = Module.cwrap('app_apply_ops_json','number',['string'])(JSON.stringify({ops}))` (1=ok, 0=err).
+- Export: `const url = Module.cwrap('app_share_link','string',[])()`; contains `?state=` Base64URL payload.
+- Diagnostics: errors are logged via `emscripten_log` to browser console.
 
 ---
 

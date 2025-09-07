@@ -872,22 +872,25 @@ std::string UIBridge::buildShareLink() const
 {
     using namespace rapidjson;
     
-    // Helper function for base64 encoding
-    auto base64Encode = [](const std::string& input) -> std::string {
+    // Helper function for URL-safe base64 encoding (RFC 4648 §5)
+    auto base64UrlEncode = [](const std::string& input) -> std::string {
         static const std::string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-        std::string encoded;
+        std::string b64;
         int val = 0, valb = -6;
         for (unsigned char c : input) {
             val = (val << 8) + c;
             valb += 8;
             while (valb >= 0) {
-                encoded.push_back(chars[(val >> valb) & 0x3F]);
+                b64.push_back(chars[(val >> valb) & 0x3F]);
                 valb -= 6;
             }
         }
-        if (valb > -6) encoded.push_back(chars[((val << 8) >> (valb + 8)) & 0x3F]);
-        while (encoded.size() % 4) encoded.push_back('=');
-        return encoded;
+        if (valb > -6) b64.push_back(chars[((val << 8) >> (valb + 8)) & 0x3F]);
+        // Transform to URL-safe and strip padding
+        for (auto& ch : b64) { if (ch=='+') ch='-'; else if (ch=='/') ch='_'; }
+        // Optional: remove '=' padding for cleaner URLs
+        while (!b64.empty() && b64.back()=='=') b64.pop_back();
+        return b64;
     };
     
     // Build state JSON containing scene data and camera
@@ -1022,7 +1025,7 @@ std::string UIBridge::buildShareLink() const
         Value name(obj.name.c_str(), allocator);
         loadOp.AddMember("name", name, allocator);
         
-        // Note: We don't have the original path stored, so we use name as placeholder
+        // Note: Original path is not persisted; using name as placeholder for now
         Value path(obj.name.c_str(), allocator);
         loadOp.AddMember("path", path, allocator);
         
@@ -1049,6 +1052,32 @@ std::string UIBridge::buildShareLink() const
         loadOp.AddMember("transform", transform, allocator);
         
         ops.PushBack(loadOp, allocator);
+
+        // Also export material properties so share-links restore appearance
+        Value matOp(kObjectType);
+        matOp.AddMember("op", "set_material", allocator);
+        matOp.AddMember("target", Value(obj.name.c_str(), allocator), allocator);
+        Value mat(kObjectType);
+        // Color from baseColorFactor if set, else diffuse
+        Value colorArr(kArrayType);
+        glm::vec3 color = glm::vec3(obj.baseColorFactor);
+        if (color == glm::vec3(1.0f) && obj.material.diffuse != glm::vec3(1.0f)) {
+            color = obj.material.diffuse;
+        }
+        colorArr.PushBack(color.x, allocator);
+        colorArr.PushBack(color.y, allocator);
+        colorArr.PushBack(color.z, allocator);
+        mat.AddMember("color", colorArr, allocator);
+        // Roughness / Metallic if available
+        mat.AddMember("roughness", obj.material.roughness, allocator);
+        mat.AddMember("metallic", obj.material.metallic, allocator);
+        // Specular / Ambient (legacy phong)
+        Value specArr(kArrayType); specArr.PushBack(obj.material.specular.x, allocator); specArr.PushBack(obj.material.specular.y, allocator); specArr.PushBack(obj.material.specular.z, allocator);
+        mat.AddMember("specular", specArr, allocator);
+        Value ambArr(kArrayType); ambArr.PushBack(obj.material.ambient.x, allocator); ambArr.PushBack(obj.material.ambient.y, allocator); ambArr.PushBack(obj.material.ambient.z, allocator);
+        mat.AddMember("ambient", ambArr, allocator);
+        matOp.AddMember("material", mat, allocator);
+        ops.PushBack(matOp, allocator);
     }
     
     state.AddMember("ops", ops, allocator);
@@ -1060,7 +1089,7 @@ std::string UIBridge::buildShareLink() const
     
     // Encode as base64
     std::string stateJson = buffer.GetString();
-    std::string encoded = base64Encode(stateJson);
+    std::string encoded = base64UrlEncode(stateJson);
     
     // Build shareable URL (this could be configured)
     return "https://glint3d.com/viewer?state=" + encoded;

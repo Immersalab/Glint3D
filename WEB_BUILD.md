@@ -64,3 +64,35 @@ Example page:
 ```
 
 See `build-web/embed/example.html` for a complete static demo.
+
+State Import/Export
+-------------------
+
+- Query param: `?state=` accepts a Base64URL-encoded JSON payload.
+  - Encoding: RFC 4648 Base64URL (characters `A–Z a–z 0–9 - _`), padding `=` optional and ignored.
+  - The payload can be either:
+    - a JSON array of ops, e.g. `[ {"op":"set_camera",...}, {"op":"add_light",...} ]`, or
+    - an envelope object containing `ops`, e.g. `{ "camera":{...}, "lights":[...], "ops":[...] }`.
+      Only the `ops` array is applied; extra fields are metadata.
+  - For convenience, if `?state=` looks like plain JSON (`{` or `[`), it is parsed directly without base64 decoding.
+
+- Export API (web): Emscripten exports `app_share_link()` which returns a shareable URL with the current state encoded in `?state=`.
+  - Usage from JS: `const getLink = Module.cwrap('app_share_link', 'string', []); const url = getLink();`
+  - Exported state includes ops for camera, lights, loaded objects (with transform), and material edits where available.
+
+- Import API (web): You can programmatically apply ops via `app_apply_ops_json(json)`.
+  - Usage from JS: `const apply = Module.cwrap('app_apply_ops_json', 'number', ['string']); const ok = apply(JSON.stringify({ ops }));`
+  - Returns `1` on success, `0` on error; see errors below.
+
+Error Surfaces
+--------------
+
+- Import errors (parse, schema, unknown op, invalid parameters) are logged to the browser console via `emscripten_log`, e.g. `State import failed: ...`.
+- If strict schema validation is enabled in the build/runtime, failures are reported as `Schema validation failed: ...`.
+- Host apps embedding the viewer should watch the console for diagnostics during development, and may expose a wrapper that captures/relays these messages to their own UI.
+
+Codec Notes
+-----------
+
+- The viewer now accepts both standard Base64 and Base64URL. For URLs, Base64URL is recommended to avoid `+` and `/`.
+- Padding is optional on input. On export, padding is stripped for shorter share links.

@@ -147,62 +147,53 @@ int main(int argc, char** argv)
         delete app;
         return static_cast<int>(CLIExitCode::RuntimeError);
     }
-    // Web: parse ?state=... and replay ops
+    // Web: parse ?state=... and replay ops (robust Base64URL + JSON envelope)
     {
-        const char* s64 = emscripten_run_script_string("(function(){var p=(new URLSearchParams(window.location.search)).get('state');return p?p:'';})()");
-        if (s64 && *s64) {
-            // Base64 decode (URL-safe variants not used here)
-            auto b64dec = [](const std::string& in){
+        const char* param = emscripten_run_script_string(
+            "(function(){var p=(new URLSearchParams(window.location.search)).get('state');return p?p:'';})()"
+        );
+        if (param && *param) {
+            auto fromBase64Url = [](std::string s)->std::string {
+                // Accept both standard and URL-safe base64. Strip whitespace.
+                s.erase(std::remove_if(s.begin(), s.end(), [](unsigned char c){ return c=='\n'||c=='\r'||c=='\t'||c==' '; }), s.end());
+                for (auto& c : s) { if (c=='-') c = '+'; else if (c=='_') c = '/'; }
+                // Pad to multiple of 4
+                while (s.size() % 4) s.push_back('=');
                 auto val = [](char c)->int{
                     if (c>='A'&&c<='Z') return c-'A';
                     if (c>='a'&&c<='z') return c-'a'+26;
                     if (c>='0'&&c<='9') return c-'0'+52;
-                    if (c=='+') return 62; if (c=='/') return 63; return -1; };
-                std::string out; out.reserve((in.size()*3)/4);
+                    if (c=='+') return 62; if (c=='/') return 63; if (c=='=') return -2; return -1; };
+                std::string out; out.reserve((s.size()*3)/4);
                 int buf=0, bits=0;
-                for (char ch : in){ if (ch=='=') break; int v=val(ch); if (v<0) continue; buf=(buf<<6)|v; bits+=6; if (bits>=8){ bits-=8; out.push_back(char((buf>>bits)&0xFF)); } }
-                return out; };
-            std::string state = b64dec(s64);
-            if (!state.empty()) {
-                // Extract ops array and apply each element
-                auto pos = state.find("\"ops\"");
-                if (pos != std::string::npos) {
-                    auto colon = state.find(':', pos);
-                    auto lb = state.find('[', colon);
-                    if (lb != std::string::npos) {
-                        size_t i = lb + 1; int depth = 0; bool inString=false; char esc=0;
-                        while (i < state.size()) {
-                            // Skip whitespace and commas between elements
-                            while (i < state.size() && (state[i]==' '||state[i]=='\n'||state[i]=='\r'||state[i]=='\t'||state[i]==',')) ++i;
-                            if (i >= state.size() || state[i] == ']') break;
-                            size_t start = i;
-                            // Determine element type
-                            if (state[i] == '{' || state[i] == '[') {
-                                char open = state[i]; char close = (open=='{'?'}':']');
-                                depth = 1; ++i;
-                                while (i < state.size() && depth > 0) {
-                                    char c = state[i++];
-                                    if (inString) {
-                                        if (esc) { esc = 0; }
-                                        else if (c == '\\') esc = 1;
-                                        else if (c == '"') inString = false;
-                                    } else {
-                                        if (c == '"') inString = true;
-                                        else if (c == open) depth++;
-                                        else if (c == close) depth--;
-                                    }
-                                }
-                                size_t end = i; // one past
-                                std::string snippet = state.substr(start, end - start);
-                                std::string err;
-                                app->applyJsonOpsV1(snippet, err);
-                            } else {
-                                // Unexpected token; break
-                                break;
-                            }
-                        }
-                    }
+                for (char ch : s){
+                    int v = val(ch);
+                    if (v == -2) break; // padding
+                    if (v < 0) continue; // ignore non-base64
+                    buf = (buf<<6) | v; bits += 6;
+                    if (bits >= 8) { bits -= 8; out.push_back(char((buf>>bits)&0xFF)); }
                 }
+                return out;
+            };
+
+            std::string raw(param);
+            std::string json;
+            // Heuristic: if looks like JSON, accept directly, otherwise decode base64
+            auto ltrim = [](const std::string& s){ size_t i=0; while(i<s.size() && (s[i]==' '||s[i]=='\n'||s[i]=='\r'||s[i]=='\t')) ++i; return s.substr(i); };
+            std::string lt = ltrim(raw);
+            if (!lt.empty() && (lt[0]=='{' || lt[0]=='[')) {
+                json = raw;
+            } else {
+                json = fromBase64Url(raw);
+            }
+
+            if (!json.empty()) {
+                std::string err;
+                if (!app->applyJsonOpsV1(json, err)) {
+                    emscripten_log(EM_LOG_CONSOLE, "State import failed: %s", err.c_str());
+                }
+            } else {
+                emscripten_log(EM_LOG_CONSOLE, "State import: empty or undecodable 'state' param");
             }
         }
     }
