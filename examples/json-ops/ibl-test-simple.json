@@ -1,0 +1,27 @@
+[
+  {
+    "op": "set_ibl_intensity",
+    "value": 2.5
+  },
+  {
+    "op": "set_skybox_intensity",
+    "value": 1.8
+  },
+  {
+    "op": "add_light",
+    "type": "point",
+    "position": [2, 3, 1],
+    "color": [1.0, 0.9, 0.8],
+    "intensity": 1.5
+  },
+  {
+    "op": "set_camera_preset",
+    "preset": "front"
+  },
+  {
+    "op": "render_image",
+    "path": "ibl_simple_test.png",
+    "width": 512,
+    "height": 512
+  }
+]

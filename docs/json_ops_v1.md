@@ -70,15 +70,30 @@ Operations
    - Purpose: Set background color or enable skybox.
    - Fields: `color` (color3) or `skybox` (string path)
 
-12) exposure (new)
+12) load_hdr_environment (new)
+   - Purpose: Load HDR environment for Image-Based Lighting (IBL).
+   - Fields: `op`, `path` (string path to .hdr file)
+   - Example: {"op":"load_hdr_environment","path":"assets/env/studio.hdr"}
+
+13) set_skybox_intensity (new)
+   - Purpose: Set skybox brightness multiplier.
+   - Fields: `op`, `value` (number, typically 0.0-5.0)
+   - Example: {"op":"set_skybox_intensity","value":1.5}
+
+14) set_ibl_intensity (new)
+   - Purpose: Set Image-Based Lighting intensity multiplier.
+   - Fields: `op`, `value` (number, typically 0.0-5.0)
+   - Example: {"op":"set_ibl_intensity","value":2.0}
+
+15) exposure (new)
    - Purpose: Set scene exposure bias.
    - Fields: `value`: number
 
-13) tone_map (new)
+16) tone_map (new)
    - Purpose: Configure tone mapping operator and gamma.
    - Fields: `type`: `linear|reinhard|filmic|aces`, optional `gamma` > 0
 
-14) render_image (renamed)
+17) render_image (renamed)
    - Purpose: Render scene to PNG (headless/CLI).
    - Fields: `path`, optional `width`, `height`
 

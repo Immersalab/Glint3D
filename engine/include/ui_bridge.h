@@ -30,6 +30,11 @@ struct UIState {
     bool denoiseEnabled = false;
     int msaaSamples = 1; // UI exposure of MSAA samples
     
+    // Environment/lighting state
+    float skyboxIntensity = 1.0f;
+    float iblIntensity = 1.0f;
+    std::string environmentPath;
+    
     // Camera state
     CameraState camera;
     float cameraSpeed = 0.5f;
@@ -124,6 +129,11 @@ enum class UICommand {
     ToggleGrid,
     ToggleAxes,
     ToggleSkybox,
+    
+    // IBL/Environment controls
+    LoadHDREnvironment,
+    SetSkyboxIntensity,
+    SetIBLIntensity,
     
     // Scene operations
     CenterCamera,

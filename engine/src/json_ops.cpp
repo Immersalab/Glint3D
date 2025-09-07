@@ -5,6 +5,7 @@
 #include "camera_controller.h"
 #include "config_defaults.h"
 #include "light.h"
+#include "skybox.h"
 #include "schema_validator.h"
 #include "path_security.h"
 
@@ -567,6 +568,44 @@ bool JsonOpsExecutor::apply(const std::string& json, std::string& error)
                 error = "set_background: missing 'color' or 'skybox'";
                 return false;
             }
+        }
+        else if (op == "load_hdr_environment") {
+            if (!obj.HasMember("path") || !obj["path"].IsString()) { 
+                error = "load_hdr_environment: missing 'path'"; 
+                return false; 
+            }
+            std::string inputPath = obj["path"].GetString();
+            std::string hdrPath;
+            if (!validateAndResolvePath(inputPath, hdrPath, error)) { 
+                error = "load_hdr_environment: " + error; 
+                return false; 
+            }
+            bool ok = m_renderer.loadHDREnvironment(hdrPath);
+            if (!ok) { 
+                error = "load_hdr_environment: failed to load HDR '" + hdrPath + "'"; 
+                return false; 
+            }
+            return true;
+        }
+        else if (op == "set_skybox_intensity") {
+            if (!obj.HasMember("value") || !obj["value"].IsNumber()) { 
+                error = "set_skybox_intensity: missing 'value'"; 
+                return false; 
+            }
+            float intensity = (float)obj["value"].GetDouble();
+            if (m_renderer.getSkybox()) {
+                m_renderer.getSkybox()->setIntensity(intensity);
+            }
+            return true;
+        }
+        else if (op == "set_ibl_intensity") {
+            if (!obj.HasMember("value") || !obj["value"].IsNumber()) { 
+                error = "set_ibl_intensity: missing 'value'"; 
+                return false; 
+            }
+            float intensity = (float)obj["value"].GetDouble();
+            m_renderer.setIBLIntensity(intensity);
+            return true;
         }
         else if (op == "exposure") {
             if (!obj.HasMember("value") || !obj["value"].IsNumber()) { error = "exposure: missing 'value'"; return false; }

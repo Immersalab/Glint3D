@@ -223,6 +223,7 @@ if exist "D:\Graphics\vcpkg\installed\x64-windows\bin\brotli*.dll" xcopy /y /d "
     <ClCompile Include="src\RayUtils.cpp" />
     <ClCompile Include="src\shader.cpp" />
     <ClCompile Include="src\skybox.cpp" />
+    <ClCompile Include="src\ibl_system.cpp" />
     <ClCompile Include="src\texture.cpp" />
     <ClCompile Include="src\ui_bridge.cpp" />
     <ClCompile Include="src\triangle.cpp" />
@@ -255,6 +256,7 @@ if exist "D:\Graphics\vcpkg\installed\x64-windows\bin\brotli*.dll" xcopy /y /d "
     <ClInclude Include="include\RayUtils.h" />
     <ClInclude Include="include\shader.h" />
     <ClInclude Include="include\skybox.h" />
+    <ClInclude Include="include\ibl_system.h" />
     <ClInclude Include="include\Texture.h" />
     <ClInclude Include="include\triangle.h" />
     <ClInclude Include="include\objloader.h" />

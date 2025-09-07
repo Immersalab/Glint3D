@@ -542,6 +542,47 @@ void ImGuiUILayer::renderSettingsPanel(const UIState& state)
                 if (onCommand) onCommand(cmd);
             }
             
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
+            
+            // Environment/IBL controls
+            ImGui::Text("Environment & Lighting");
+            
+            // HDR environment loading button
+            if (ImGui::Button("Load HDR Environment", ImVec2(-1, 0))) {
+                UICommandData cmd;
+                cmd.command = UICommand::LoadHDREnvironment;
+                cmd.stringParam = "engine/assets/img/default_env.hdr"; // placeholder path
+                if (onCommand) onCommand(cmd);
+            }
+            
+            // Skybox intensity slider
+            ImGui::Text("Skybox Intensity");
+            ImGui::SetNextItemWidth(-1);
+            float skyboxIntensity = state.skyboxIntensity;
+            if (ImGui::SliderFloat("##skybox_intensity", &skyboxIntensity, 0.0f, 5.0f, "%.2f")) {
+                UICommandData cmd;
+                cmd.command = UICommand::SetSkyboxIntensity;
+                cmd.floatParam = skyboxIntensity;
+                if (onCommand) onCommand(cmd);
+            }
+            
+            // IBL intensity slider
+            ImGui::Text("IBL Intensity");
+            ImGui::SetNextItemWidth(-1);
+            float iblIntensity = state.iblIntensity;
+            if (ImGui::SliderFloat("##ibl_intensity", &iblIntensity, 0.0f, 5.0f, "%.2f")) {
+                UICommandData cmd;
+                cmd.command = UICommand::SetIBLIntensity;
+                cmd.floatParam = iblIntensity;
+                if (onCommand) onCommand(cmd);
+            }
+            
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
+            
             // Output path setting
             ImGui::Text("Output Path for Renders");
             static char outputPathBuffer[256] = "";
@@ -1243,6 +1284,9 @@ void ImGuiUILayer::renderHelpDialogs()
             if (ImGui::CollapsingHeader("Materials & Appearance")) {
                 ImGui::BulletText("set_material - Modify materials: {\"op\":\"set_material\", \"target\":\"Obj\", \"material\":{\"color\":[1,0,0], \"roughness\":0.5}}");
                 ImGui::BulletText("set_background - Set background: {\"op\":\"set_background\", \"color\":[0.2,0.4,0.8]}");
+                ImGui::BulletText("load_hdr_environment - Load HDR for IBL: {\"op\":\"load_hdr_environment\", \"path\":\"assets/env/studio.hdr\"}");
+                ImGui::BulletText("set_skybox_intensity - Set skybox brightness: {\"op\":\"set_skybox_intensity\", \"value\":1.5}");
+                ImGui::BulletText("set_ibl_intensity - Set IBL strength: {\"op\":\"set_ibl_intensity\", \"value\":2.0}");
                 ImGui::BulletText("exposure - Adjust exposure: {\"op\":\"exposure\", \"value\":-1.0}");
                 ImGui::BulletText("tone_map - Configure tone mapping: {\"op\":\"tone_map\", \"type\":\"filmic|linear|reinhard|aces\"}");
             }

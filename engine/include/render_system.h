@@ -15,6 +15,7 @@ class AxisRenderer;
 class Grid;
 class Gizmo;
 class Skybox;
+class IBLSystem;
 struct SceneObject;
 
 class Shader;
@@ -149,6 +150,12 @@ public:
     class Skybox* getSkybox() { return m_skybox.get(); }
     const class Skybox* getSkybox() const { return m_skybox.get(); }
     
+    // IBL system access
+    class IBLSystem* getIBLSystem() { return m_iblSystem.get(); }
+    const class IBLSystem* getIBLSystem() const { return m_iblSystem.get(); }
+    bool loadHDREnvironment(const std::string& hdrPath);
+    void setIBLIntensity(float intensity);
+    
     // Gizmo/selection configuration
     void setGizmoMode(GizmoMode mode) { m_gizmoMode = mode; }
     void setGizmoAxis(GizmoAxis axis) { m_gizmoAxis = axis; }
@@ -186,6 +193,7 @@ private:
     std::unique_ptr<Grid> m_grid;
     std::unique_ptr<Gizmo> m_gizmo;
     std::unique_ptr<Skybox> m_skybox;
+    std::unique_ptr<IBLSystem> m_iblSystem;
     
     // Raytracer
     std::unique_ptr<Raytracer> m_raytracer;

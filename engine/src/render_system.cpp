@@ -5,6 +5,7 @@
 #include "grid.h" 
 #include "gizmo.h"
 #include "skybox.h"
+#include "ibl_system.h"
 #include "raytracer.h"
 #include "shader.h"
 #include "gl_platform.h"
@@ -37,6 +38,7 @@ RenderSystem::RenderSystem()
     m_raytracer = std::make_unique<Raytracer>();
     m_gizmo = std::make_unique<Gizmo>();
     m_skybox = std::make_unique<Skybox>();
+    m_iblSystem = std::make_unique<IBLSystem>();
 }
 
 RenderSystem::~RenderSystem()
@@ -77,6 +79,7 @@ bool RenderSystem::init(int windowWidth, int windowHeight)
     if (m_grid) m_grid->init(m_gridShader.get(), 200, 1.0f);
     if (m_axisRenderer) m_axisRenderer->init();
     if (m_skybox) m_skybox->init();
+    if (m_iblSystem) m_iblSystem->init();
     
     // Initialize raytracing resources only when needed
     if (m_renderMode == RenderMode::Raytrace) {
@@ -285,6 +288,30 @@ bool RenderSystem::loadSkybox(const std::string& path)
     if (!m_skybox->init()) return false;
     setShowSkybox(true);
     return true;
+}
+
+bool RenderSystem::loadHDREnvironment(const std::string& hdrPath)
+{
+    if (!m_iblSystem) return false;
+    
+    if (m_iblSystem->loadHDREnvironment(hdrPath)) {
+        // Generate IBL maps
+        m_iblSystem->generateIrradianceMap();
+        m_iblSystem->generatePrefilterMap();
+        m_iblSystem->generateBRDFLUT();
+        
+        // Also use the environment map for skybox rendering if possible
+        // For now, we'll keep the procedural skybox for compatibility
+        return true;
+    }
+    return false;
+}
+
+void RenderSystem::setIBLIntensity(float intensity)
+{
+    if (m_iblSystem) {
+        m_iblSystem->setIntensity(intensity);
+    }
 }
 
 bool RenderSystem::renderToTexture(const SceneManager& scene, const Light& lights,
@@ -1255,6 +1282,15 @@ void RenderSystem::setupCommonUniforms(Shader* shader)
     glBindTexture(GL_TEXTURE_2D, m_dummyShadowTex);
     shader->setInt("shadowMap", 7);
     shader->setMat4("lightSpaceMatrix", glm::mat4(1.0f));
+    
+    // Bind IBL textures if available
+    if (m_iblSystem) {
+        m_iblSystem->bindIBLTextures();
+        shader->setInt("irradianceMap", 3);
+        shader->setInt("prefilterMap", 4);
+        shader->setInt("brdfLUT", 5);
+        shader->setFloat("iblIntensity", m_iblSystem->getIntensity());
+    }
 }
 
 void RenderSystem::renderObjectFast(const SceneObject& obj, const Light& lights, Shader* shader)

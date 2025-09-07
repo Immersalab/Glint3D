@@ -3,6 +3,8 @@
 #include "render_system.h"
 #include "camera_controller.h"
 #include "light.h"
+#include "skybox.h"
+#include "ibl_system.h"
 #include "json_ops.h"
 #include "config_defaults.h"
 #include "render_utils.h"
@@ -95,6 +97,14 @@ UIState UIBridge::buildUIState() const
     state.showAxes = m_renderer.isShowAxes();
     state.showSkybox = m_renderer.isShowSkybox();
     state.requireRMBToMove = m_requireRMBToMove;
+    
+    // Environment/IBL state
+    if (m_renderer.getSkybox()) {
+        state.skyboxIntensity = m_renderer.getSkybox()->getIntensity();
+    }
+    if (m_renderer.getIBLSystem()) {
+        state.iblIntensity = m_renderer.getIBLSystem()->getIntensity();
+    }
     
     // Scene state
     state.selectedObjectIndex = m_scene.getSelectedObjectIndex();
@@ -438,6 +448,34 @@ void UIBridge::handleUICommand(const UICommandData& command)
         case UICommand::ToggleSkybox:
             m_renderer.setShowSkybox(!m_renderer.isShowSkybox());
             addConsoleMessage(m_renderer.isShowSkybox() ? "Skybox enabled" : "Skybox disabled");
+            break;
+            
+        // IBL/Environment controls
+        case UICommand::LoadHDREnvironment:
+            {
+                std::string hdrPath = command.stringParam;
+                if (m_renderer.loadHDREnvironment(hdrPath)) {
+                    addConsoleMessage("HDR environment loaded: " + hdrPath);
+                } else {
+                    addConsoleMessage("Failed to load HDR environment: " + hdrPath);
+                }
+            }
+            break;
+        case UICommand::SetSkyboxIntensity:
+            {
+                float intensity = command.floatParam;
+                if (m_renderer.getSkybox()) {
+                    m_renderer.getSkybox()->setIntensity(intensity);
+                    addConsoleMessage("Skybox intensity set to " + std::to_string(intensity));
+                }
+            }
+            break;
+        case UICommand::SetIBLIntensity:
+            {
+                float intensity = command.floatParam;
+                m_renderer.setIBLIntensity(intensity);
+                addConsoleMessage("IBL intensity set to " + std::to_string(intensity));
+            }
             break;
             
         // Scene operations

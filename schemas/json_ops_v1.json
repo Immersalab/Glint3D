@@ -218,6 +218,33 @@
         { "required": ["skybox"] }
       ]
     },
+    "opLoadHDREnvironment": {
+      "type": "object",
+      "required": ["op", "path"],
+      "properties": {
+        "op": { "const": "load_hdr_environment" },
+        "path": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "opSetSkyboxIntensity": {
+      "type": "object",
+      "required": ["op", "value"],
+      "properties": {
+        "op": { "const": "set_skybox_intensity" },
+        "value": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "opSetIBLIntensity": {
+      "type": "object",
+      "required": ["op", "value"],
+      "properties": {
+        "op": { "const": "set_ibl_intensity" },
+        "value": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
     "opExposure": {
       "type": "object",
       "required": ["op", "value"],
@@ -266,6 +293,9 @@
         { "$ref": "#/definitions/opFrameObject" },
         { "$ref": "#/definitions/opSelect" },
         { "$ref": "#/definitions/opSetBackground" },
+        { "$ref": "#/definitions/opLoadHDREnvironment" },
+        { "$ref": "#/definitions/opSetSkyboxIntensity" },
+        { "$ref": "#/definitions/opSetIBLIntensity" },
         { "$ref": "#/definitions/opExposure" },
         { "$ref": "#/definitions/opToneMap" },
         { "$ref": "#/definitions/opRenderImage" }

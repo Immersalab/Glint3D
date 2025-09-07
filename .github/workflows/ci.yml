@@ -67,6 +67,20 @@ jobs:
           xvfb-run -a "$EXE" --ops examples/json-ops/cube_basic.json --render out.png --w 128 --h 128
           test -f renders/out.png
 
+      - name: Determinism hash check (same ops + seed)
+        run: |
+          set -e
+          EXE="builds/desktop/cmake/glint"
+          test -f "$EXE" || { echo "glint not found"; ls -R builds/desktop/cmake; exit 1; }
+          python3 tests/determinism/hash_check.py \
+            --exe "$EXE" \
+            --ops examples/json-ops/cube_basic.json \
+            --seed 42 \
+            --width 160 --height 120 \
+            --output renders/determinism.png \
+            --repeat 2 \
+            --xvfb
+
       # TODO: Re-enable golden image testing - see GitHub issue for details
       # Temporarily disabled due to platform rendering differences and ImageMagick dependency issues
 

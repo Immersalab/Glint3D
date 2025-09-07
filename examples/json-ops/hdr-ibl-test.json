@@ -1,0 +1,41 @@
+[
+  {
+    "op": "load",
+    "path": "engine/assets/models/Suzanne.obj",
+    "name": "Monkey",
+    "position": [0, 0, -3]
+  },
+  {
+    "op": "set_material",
+    "target": "Monkey",
+    "material": {
+      "color": [0.9, 0.9, 0.9],
+      "roughness": 0.2,
+      "metallic": 0.8
+    }
+  },
+  {
+    "op": "load_hdr_environment",
+    "path": "engine/assets/img/default_env.hdr"
+  },
+  {
+    "op": "set_ibl_intensity",
+    "value": 2.0
+  },
+  {
+    "op": "set_skybox_intensity",
+    "value": 1.5
+  },
+  {
+    "op": "set_camera",
+    "position": [0, 0, 5],
+    "target": [0, 0, 0]
+  },
+  {
+    "op": "add_light",
+    "type": "point",
+    "position": [2, 2, 2],
+    "color": [1.0, 1.0, 1.0],
+    "intensity": 1.0
+  }
+]
