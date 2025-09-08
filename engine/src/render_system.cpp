@@ -70,6 +70,11 @@ bool RenderSystem::init(int windowWidth, int windowHeight)
     if (!m_gridShader->load("shaders/grid.vert", "shaders/grid.frag"))
         std::cerr << "[RenderSystem] Failed to load grid shader.\n";
 
+    // Gradient background shader (for background mode = Gradient)
+    m_gradientShader = std::make_unique<Shader>();
+    if (!m_gradientShader->load("shaders/gradient.vert", "shaders/gradient.frag"))
+        std::cerr << "[RenderSystem] Failed to load gradient shader.\n";
+
     // Load raytracing screen quad shader
     m_screenQuadShader = std::make_unique<Shader>();
     if (!m_screenQuadShader->load("shaders/rayscreen.vert", "shaders/rayscreen.frag"))
@@ -163,6 +168,23 @@ void RenderSystem::render(const SceneManager& scene, const Light& lights)
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // If using gradient background and no skybox, draw full-screen gradient
+    if (m_bgMode == BackgroundMode::Gradient && !m_showSkybox && m_gradientShader) {
+        if (!m_screenQuadVAO) {
+            initScreenQuad();
+        }
+        glDisable(GL_DEPTH_TEST);
+        m_gradientShader->use();
+        m_gradientShader->setVec3("topColor", m_bgTop);
+        m_gradientShader->setVec3("bottomColor", m_bgBottom);
+        glBindVertexArray(m_screenQuadVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(0);
+        glEnable(GL_DEPTH_TEST);
+        // counts as one draw call
+        m_stats.drawCalls += 1;
+    }
     
     // Choose render path based on mode
     switch (m_renderMode) {

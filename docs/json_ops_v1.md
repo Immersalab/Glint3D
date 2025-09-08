@@ -66,9 +66,18 @@ Operations
    - Purpose: Select an object by name for editing/gizmo.
    - Fields: `name`
 
-11) set_background (new)
-   - Purpose: Set background color or enable skybox.
-   - Fields: `color` (color3) or `skybox` (string path)
+11) set_background (updated)
+   - Purpose: Set background presentation: solid color, vertical gradient, or accept HDR reference (stub), or enable skybox.
+   - Fields: One of the following variants:
+     - `color` (color3) — Solid background color, e.g. `[0.2,0.4,0.8]`
+     - `top` (color3) and `bottom` (color3) — Vertical gradient colors
+     - `hdr` (string path) — Accepts an HDR file path (stub hook)
+     - `skybox` (string path) — Enable a skybox (loader is minimal)
+   - Examples:
+     - Solid: `{ "op":"set_background", "color":[0.2,0.4,0.8] }`
+     - Gradient: `{ "op":"set_background", "top":[0.1,0.1,0.2], "bottom":[0.0,0.0,0.0] }`
+     - HDR (stub): `{ "op":"set_background", "hdr":"assets/env/studio.hdr" }`
+     - Skybox: `{ "op":"set_background", "skybox":"assets/sky/skybox" }`
 
 12) load_hdr_environment (new)
    - Purpose: Load HDR environment for Image-Based Lighting (IBL).
@@ -113,4 +122,3 @@ End-to-End Example
   {"op":"tone_map","type":"aces","gamma":2.2},
   {"op":"render_image","path":"renders/frame_0001.png","width":1280,"height":720}
 ]
-

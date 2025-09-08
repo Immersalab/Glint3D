@@ -97,6 +97,11 @@ UIState UIBridge::buildUIState() const
     state.showAxes = m_renderer.isShowAxes();
     state.showSkybox = m_renderer.isShowSkybox();
     state.requireRMBToMove = m_requireRMBToMove;
+    state.backgroundMode = m_renderer.getBackgroundMode();
+    state.backgroundSolid = m_renderer.getBackgroundColor();
+    state.backgroundTop = m_renderer.getBackgroundTopColor();
+    state.backgroundBottom = m_renderer.getBackgroundBottomColor();
+    state.backgroundHDRPath = m_renderer.getBackgroundHDRPath();
     
     // Environment/IBL state
     if (m_renderer.getSkybox()) {
@@ -655,7 +660,7 @@ void UIBridge::handleConsoleCommand(const UICommandData& cmd)
         addConsoleMessage("  add_light        - Add point/directional/spot lights");
         addConsoleMessage("--- Materials & Appearance ---");
         addConsoleMessage("  set_material     - Modify object material properties");
-        addConsoleMessage("  set_background   - Set background color or skybox");
+        addConsoleMessage("  set_background   - Set background (solid/gradient/HDR stub/skybox)");
         addConsoleMessage("  exposure         - Adjust scene exposure");
         addConsoleMessage("  tone_map         - Configure tone mapping (linear/reinhard/filmic/aces)");
         addConsoleMessage("--- Rendering ---");

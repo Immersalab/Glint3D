@@ -102,9 +102,17 @@ public:
     void setFramebufferSRGBEnabled(bool enabled) { m_framebufferSRGBEnabled = enabled; }
     bool isFramebufferSRGBEnabled() const { return m_framebufferSRGBEnabled; }
 
-    // Presentation/appearance
-    void setBackgroundColor(const glm::vec3& c) { m_backgroundColor = c; }
+    // Background / Presentation
+    enum class BackgroundMode { Solid = 0, Gradient = 1, HDR = 2 };
+    void setBackgroundColor(const glm::vec3& c) { setBackgroundSolid(c); }
     const glm::vec3& getBackgroundColor() const { return m_backgroundColor; }
+    void setBackgroundSolid(const glm::vec3& c) { m_backgroundColor = c; m_bgMode = BackgroundMode::Solid; }
+    void setBackgroundGradient(const glm::vec3& top, const glm::vec3& bottom) { m_bgTop = top; m_bgBottom = bottom; m_bgMode = BackgroundMode::Gradient; }
+    void setBackgroundHDR(const std::string& hdrPath) { m_bgHDRPath = hdrPath; m_bgMode = BackgroundMode::HDR; }
+    BackgroundMode getBackgroundMode() const { return m_bgMode; }
+    glm::vec3 getBackgroundTopColor() const { return m_bgTop; }
+    glm::vec3 getBackgroundBottomColor() const { return m_bgBottom; }
+    const std::string& getBackgroundHDRPath() const { return m_bgHDRPath; }
     bool loadSkybox(const std::string& path); // simple loader/enable toggle
     void setExposure(float v) { m_exposure = v; }
     float getExposure() const { return m_exposure; }
@@ -178,6 +186,10 @@ private:
     ShadingMode m_shadingMode = ShadingMode::Gouraud;
     bool m_framebufferSRGBEnabled = true;
     glm::vec3 m_backgroundColor{0.10f, 0.11f, 0.12f};
+    BackgroundMode m_bgMode = BackgroundMode::Solid;
+    glm::vec3 m_bgTop{0.10f, 0.11f, 0.12f};
+    glm::vec3 m_bgBottom{0.10f, 0.11f, 0.12f};
+    std::string m_bgHDRPath; // accepted via ops; hook/stub
     float m_exposure = 0.0f;
     float m_gamma = 2.2f;
     RenderToneMapMode m_tonemap = RenderToneMapMode::Linear;
@@ -211,6 +223,7 @@ private:
     std::unique_ptr<Shader> m_basicShader;
     std::unique_ptr<Shader> m_pbrShader;
     std::unique_ptr<Shader> m_gridShader;
+    std::unique_ptr<Shader> m_gradientShader;
     
     // Fallback shadow map to satisfy shaders that sample shadowMap
     GLuint m_dummyShadowTex = 0;

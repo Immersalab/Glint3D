@@ -390,16 +390,171 @@ Low Priority
 
 ## ARCHITECTURE OVERVIEW
 
-- Core Rendering: render_system manages raster vs raytrace modes, camera matrices, debug elements, gizmo, and selection highlight.
-- Scene: scene_manager stores objects and selection; material.h, pbr_material.h define material properties.
-- Camera: camera_controller provides free-fly and look-at controls; presets implemented.
-- Lighting: light manages point lights and draws indicators; directional/spot planned.
-- Skybox: skybox handles procedural gradient skybox; IBLSystem provides HDR environment loading with complete convolution pipeline.
-- UI: imgui_ui_layer renders menus, settings, perf HUD, and uses UIBridge to emit commands.
-- Bridge: ui_bridge composes Scene/Renderer/Camera/Light, exposes console/history, JSON Ops executor, and share-link export.
-- JSON Ops: json_ops parses and applies ops; schema in schemas/json_ops_v1.json.
-- CLI Entrypoint: engine/src/main.cpp handles --ops, --render, sizes, denoise, raytrace, help/version.
-- Web: WEB_BUILD.md for Emscripten; ui/public/engine/README.md for web bundle expectations.
+### System Architecture Chart
+
+```
+                            GLINT3D ENGINE ARCHITECTURE
+                                     
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                               ENTRY POINTS                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ main.cpp          │ WebAssembly API     │ React UI (ui/)                   │
+│ - CLI Arguments   │ - app_apply_ops_json│ - Modern Web Interface           │ 
+│ - Headless Mode   │ - app_share_link    │ - JSON Ops Bridge                │
+│ - Desktop UI      │ - app_scene_to_json │ - State Management               │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                            APPLICATION CORE                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ ApplicationCore (application_core.h/cpp)                                   │
+│ - Main application lifecycle and coordination                              │
+│ - Platform abstraction (GLFW/OpenGL context)                              │
+│ - Component initialization and orchestration                               │
+│ - Public API for loading, rendering, JSON ops                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                     │
+                    ┌────────────────┼────────────────┐
+                    ▼                ▼                ▼
+┌─────────────────┐ ┌──────────────────┐ ┌─────────────────────┐
+│   UI SYSTEMS    │ │   CORE ENGINE    │ │   PLATFORM/API      │
+├─────────────────┤ ├──────────────────┤ ├─────────────────────┤
+│ ImGui UI Layer  │ │  Scene Manager   │ │   JSON Operations   │
+│ - Desktop UI    │ │  - Objects       │ │   - Schema v1.3     │
+│ - Settings      │ │  - Selection     │ │   - Validation      │
+│ - Scene Tree    │ │  - Hierarchy     │ │   - Operations      │
+│ - Performance   │ │  - Materials     │ │   - CLI Parser      │
+│   HUD           │ │                  │ │   - Path Security   │
+│                 │ │  Render System   │ │                     │
+│ UI Bridge       │ │  - OpenGL Raster │ │  Asset Management   │ 
+│ - State Mgmt    │ │  - CPU Raytracer │ │  - Import Registry  │
+│ - Commands      │ │  - MSAA Pipeline │ │  - OBJ Importer     │
+│ - Bridge Layer  │ │  - Tone Mapping  │ │  - Assimp Plugin    │
+└─────────────────┘ │  - Offscreen     │ │  - Texture Cache    │
+                    │    Render        │ │                     │
+                    │                  │ │  Security           │
+                    │  Camera System   │ │  - Asset Root       │
+                    │  - Free-fly      │ │  - Path Validation  │
+                    │  - Orbit Mode    │ │  - Traversal Block  │
+                    │  - Presets       │ └─────────────────────┘
+                    │  - Controllers   │
+                    │                  │
+                    │  Lighting        │
+                    │  - Point Lights  │
+                    │  - Directional   │
+                    │  - Spot Lights   │
+                    │  - IBL System    │
+                    │  - HDR Skybox    │
+                    └──────────────────┘
+                             │
+            ┌────────────────┼────────────────┐
+            ▼                ▼                ▼
+┌─────────────────┐ ┌──────────────────┐ ┌─────────────────┐
+│   RENDERING     │ │     GEOMETRY     │ │    MATERIALS    │
+├─────────────────┤ ├──────────────────┤ ├─────────────────┤
+│ OpenGL Pipeline │ │   Mesh Loader    │ │  PBR Materials  │
+│ - Vertex Arrays │ │   - OBJ Format   │ │  - Base Color   │
+│ - Shaders       │ │   - Assimp       │ │  - Metallic     │
+│ - Textures      │ │   - Validation   │ │  - Roughness    │
+│ - Framebuffers  │ │                  │ │  - Normal Maps  │
+│                 │ │   BVH System     │ │                 │
+│ CPU Raytracer   │ │   - Acceleration │ │  Legacy Mats    │
+│ - BVH Traversal │ │   - Intersection │ │  - Phong Model  │
+│ - Materials     │ │   - Threading    │ │  - Conversion   │
+│ - Denoising     │ │                  │ │                 │
+│ - Threading     │ │   Primitives     │ │  Skybox System  │
+│                 │ │   - Triangles    │ │  - Procedural   │
+│ Utilities       │ │   - Transforms   │ │  - HDR Loading  │
+│ - Grid Render   │ │   - Selection    │ │  - IBL Pipeline │
+│ - Axis Render   │ │   - Gizmos       │ │  - Environment  │
+│ - Gizmo System  │ │                  │ │    Convolution  │
+└─────────────────┘ └──────────────────┘ └─────────────────┘
+                             │
+            ┌────────────────┼────────────────┐
+            ▼                ▼                ▼
+┌─────────────────┐ ┌──────────────────┐ ┌─────────────────┐
+│     SHADERS     │ │      ASSETS      │ │      OUTPUT     │
+├─────────────────┤ ├──────────────────┤ ├─────────────────┤
+│ PBR Shaders     │ │    Models        │ │  PNG Render     │
+│ - Vertex        │ │    - OBJ Files   │ │  - MSAA Resolve │
+│ - Fragment      │ │    - Scene Data  │ │  - Headless     │
+│ - IBL Support   │ │                  │ │  - Offscreen    │
+│                 │ │    Textures      │ │                 │
+│ Standard Shade  │ │    - PNG/JPG     │ │  Live Display   │
+│ - Legacy Compat │ │    - HDR/EXR     │ │  - Real-time    │
+│ - Blinn-Phong   │ │    - Cubemaps    │ │  - Interactive  │
+│                 │ │                  │ │                 │
+│ Utility Shade   │ │    Shaders       │ │  Share Links    │
+│ - Skybox        │ │    - GLSL Files  │ │  - State Export │
+│ - Grid/Axis     │ │    - Includes    │ │  - JSON State   │
+│ - Selection     │ │                  │ │  - URL Encoding │
+└─────────────────┘ └──────────────────┘ └─────────────────┘
+
+                           DATA FLOW PATTERNS
+                                     
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                            PROCESSING PIPELINE                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│ Input → JSON Ops → Scene Update → Render Pipeline → Output                 │
+│   ↓       ↓           ↓              ↓                ↓                     │
+│ CLI/UI → Validate → Objects/       → OpenGL/         → PNG/                 │
+│ Files    Schema    Lights/          Raytracer        Display               │
+│          Parse     Camera/                                                  │
+│          Security  Materials                                               │
+│                                                                             │
+│ Feedback Loop: UI State ← Render System ← Scene Manager ← JSON Ops        │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+                          CROSS-PLATFORM LAYERS
+                                     
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              PLATFORMS                                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Desktop (Windows/Linux/Mac)    │  Web (Emscripten/WASM)                    │
+│ - Full OpenGL 3.3+             │  - WebGL 2.0                              │
+│ - ImGui Native UI               │  - React/Tailwind UI                      │
+│ - File System Access           │  - Limited File Access                    │
+│ - Multi-threading               │  - Single-threaded                        │
+│ - External Dependencies        │  - Preloaded Assets                        │
+│   (Assimp, OIDN)               │  - No External Deps                       │
+│                                │  - Shared State via JSON                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+                             TESTING HIERARCHY
+                                     
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          TESTING ARCHITECTURE                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ tests/                                                                      │
+│ ├── unit/               # C++ unit tests (camera, path security)           │
+│ ├── integration/        # JSON ops end-to-end testing                      │
+│ │   ├── json_ops/       # Operation-specific tests                        │
+│ │   ├── cli/            # Command-line interface tests                     │
+│ │   └── rendering/      # Render pipeline tests                           │  
+│ ├── security/          # Security vulnerability testing                    │
+│ ├── golden/            # Visual regression with SSIM                       │
+│ │   ├── scenes/        # Test scene definitions                           │
+│ │   ├── references/    # Golden reference images                          │
+│ │   └── tools/         # SSIM comparison utilities                        │
+│ └── scripts/           # Test automation and CI                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Component Relationships
+
+- **Core Rendering**: render_system manages raster vs raytrace modes, camera matrices, debug elements, gizmo, and selection highlight.
+- **Scene**: scene_manager stores objects and selection; material.h, pbr_material.h define material properties.
+- **Camera**: camera_controller provides free-fly and look-at controls; presets implemented.
+- **Lighting**: light manages point lights and draws indicators; directional/spot planned.
+- **Skybox**: skybox handles procedural gradient skybox; IBLSystem provides HDR environment loading with complete convolution pipeline.
+- **UI**: imgui_ui_layer renders menus, settings, perf HUD, and uses UIBridge to emit commands.
+- **Bridge**: ui_bridge composes Scene/Renderer/Camera/Light, exposes console/history, JSON Ops executor, and share-link export.
+- **JSON Ops**: json_ops parses and applies ops; schema in schemas/json_ops_v1.json.
+- **CLI Entrypoint**: engine/src/main.cpp handles --ops, --render, sizes, denoise, raytrace, help/version.
+- **Web**: WEB_BUILD.md for Emscripten; ui/public/engine/README.md for web bundle expectations.
 
 ---
 

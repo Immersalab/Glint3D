@@ -31,6 +31,11 @@ struct UIState {
     int msaaSamples = 1; // UI exposure of MSAA samples
     
     // Environment/lighting state
+    RenderSystem::BackgroundMode backgroundMode = RenderSystem::BackgroundMode::Solid;
+    glm::vec3 backgroundSolid{0.10f,0.11f,0.12f};
+    glm::vec3 backgroundTop{0.10f,0.11f,0.12f};
+    glm::vec3 backgroundBottom{0.10f,0.11f,0.12f};
+    std::string backgroundHDRPath;
     float skyboxIntensity = 1.0f;
     float iblIntensity = 1.0f;
     std::string environmentPath;

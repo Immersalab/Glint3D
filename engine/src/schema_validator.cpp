@@ -308,11 +308,16 @@ std::string SchemaValidator::getEmbeddedSchemaV1_3() {
       "properties": {
         "op": { "const": "set_background" },
         "color": { "$ref": "#/definitions/vec3" },
+        "top": { "$ref": "#/definitions/vec3" },
+        "bottom": { "$ref": "#/definitions/vec3" },
+        "hdr": { "type": "string" },
         "skybox": { "type": "string" }
       },
       "additionalProperties": false,
       "anyOf": [
         { "required": ["color"] },
+        { "required": ["top", "bottom"] },
+        { "required": ["hdr"] },
         { "required": ["skybox"] }
       ]
     },

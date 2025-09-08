@@ -24,7 +24,7 @@ The following operations are supported:
 
 ### Materials & Appearance
 - **`set_material`** - Modify object material properties
-- **`set_background`** - Set background color or skybox
+- **`set_background`** - Set solid color or gradient, accept HDR reference (stub), or skybox
 - **`exposure`** - Adjust scene exposure
 - **`tone_map`** - Configure tone mapping (linear, reinhard, filmic, aces)
 
@@ -40,7 +40,7 @@ The following operations are supported:
 - **`camera-preset-test.json`** - Using camera presets
 - **`orbit-camera-test.json`** - Orbiting camera around objects
 - **`frame-object-test.json`** - Framing objects in viewport
-- **`background-test.json`** - Setting background colors
+ - **`background-test.json`** - Setting background: solid, gradient, HDR (stub)
 - **`exposure-test.json`** - Exposure control
 - **`tone-map-test.json`** - Tone mapping configuration
 - **`comprehensive-new-ops-test.json`** - Multiple new operations combined

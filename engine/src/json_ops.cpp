@@ -546,11 +546,28 @@ bool JsonOpsExecutor::apply(const std::string& json, std::string& error)
             return true;
         }
         else if (op == "set_background") {
-            // Support both color and skybox types
+            // Unified: solid, gradient, HDR (stub), or skybox
             if (obj.HasMember("color") && obj["color"].IsArray()) {
                 glm::vec3 color;
                 if (!getVec3(obj["color"], color)) { error = "set_background: bad 'color'"; return false; }
-                m_renderer.setBackgroundColor(color);
+                m_renderer.setBackgroundSolid(color);
+                return true;
+            }
+            else if (obj.HasMember("top") && obj.HasMember("bottom") && obj["top"].IsArray() && obj["bottom"].IsArray()) {
+                glm::vec3 top, bottom;
+                if (!getVec3(obj["top"], top)) { error = "set_background: bad 'top'"; return false; }
+                if (!getVec3(obj["bottom"], bottom)) { error = "set_background: bad 'bottom'"; return false; }
+                m_renderer.setBackgroundGradient(top, bottom);
+                return true;
+            }
+            else if (obj.HasMember("hdr") && obj["hdr"].IsString()) {
+                std::string inputPath = obj["hdr"].GetString();
+                std::string hdrPath;
+                if (!validateAndResolvePath(inputPath, hdrPath, error)) {
+                    error = "set_background: " + error;
+                    return false;
+                }
+                m_renderer.setBackgroundHDR(hdrPath);
                 return true;
             }
             else if (obj.HasMember("skybox") && obj["skybox"].IsString()) {
@@ -565,7 +582,7 @@ bool JsonOpsExecutor::apply(const std::string& json, std::string& error)
                 return true;
             }
             else {
-                error = "set_background: missing 'color' or 'skybox'";
+                error = "set_background: expected 'color' (solid) or 'top'+'bottom' (gradient) or 'hdr' (stub) or 'skybox'";
                 return false;
             }
         }

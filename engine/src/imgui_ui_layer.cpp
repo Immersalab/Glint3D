@@ -548,7 +548,76 @@ void ImGuiUILayer::renderSettingsPanel(const UIState& state)
             
             // Environment/IBL controls
             ImGui::Text("Environment & Lighting");
-            
+
+            // Background controls: Solid / Gradient / HDR (stub)
+            ImGui::Separator();
+            ImGui::Text("Background");
+            int bgMode = static_cast<int>(state.backgroundMode);
+            const char* bgItems[] = { "Solid", "Gradient", "HDR (stub)" };
+            ImGui::SetNextItemWidth(-1);
+            if (ImGui::Combo("##background_mode", &bgMode, bgItems, IM_ARRAYSIZE(bgItems))) {
+                // Apply default op for selected mode with current values
+                if (bgMode == 0) {
+                    char buf[256];
+                    std::snprintf(buf, sizeof(buf), "[{\"op\":\"set_background\",\"color\":[%.4f,%.4f,%.4f]}]", state.backgroundSolid.x, state.backgroundSolid.y, state.backgroundSolid.z);
+                    UICommandData cmd; cmd.command = UICommand::ApplyJsonOps; cmd.stringParam = std::string(buf); if (onCommand) onCommand(cmd);
+                } else if (bgMode == 1) {
+                    char buf[256];
+                    std::snprintf(buf, sizeof(buf), "[{\"op\":\"set_background\",\"top\":[%.4f,%.4f,%.4f],\"bottom\":[%.4f,%.4f,%.4f]}]",
+                                  state.backgroundTop.x, state.backgroundTop.y, state.backgroundTop.z,
+                                  state.backgroundBottom.x, state.backgroundBottom.y, state.backgroundBottom.z);
+                    UICommandData cmd; cmd.command = UICommand::ApplyJsonOps; cmd.stringParam = std::string(buf); if (onCommand) onCommand(cmd);
+                } else if (bgMode == 2) {
+                    // HDR stub: send current path or placeholder
+                    std::string path = state.backgroundHDRPath.empty() ? std::string("engine/assets/img/default_env.hdr") : state.backgroundHDRPath;
+                    std::string payload = std::string("[{\"op\":\"set_background\",\"hdr\":\"") + path + "\"}]";
+                    UICommandData cmd; cmd.command = UICommand::ApplyJsonOps; cmd.stringParam = payload; if (onCommand) onCommand(cmd);
+                }
+            }
+            // Color editors for current mode
+            if (bgMode == 0) {
+                glm::vec3 c = state.backgroundSolid;
+                if (ImGui::ColorEdit3("Solid Color", &c.x, ImGuiColorEditFlags_NoAlpha)) {
+                    char buf[256];
+                    std::snprintf(buf, sizeof(buf), "[{\"op\":\"set_background\",\"color\":[%.4f,%.4f,%.4f]}]", c.x, c.y, c.z);
+                    UICommandData cmd; cmd.command = UICommand::ApplyJsonOps; cmd.stringParam = std::string(buf); if (onCommand) onCommand(cmd);
+                }
+            } else if (bgMode == 1) {
+                glm::vec3 top = state.backgroundTop;
+                glm::vec3 bottom = state.backgroundBottom;
+                if (ImGui::ColorEdit3("Top", &top.x, ImGuiColorEditFlags_NoAlpha)) {
+                    char buf[256];
+                    std::snprintf(buf, sizeof(buf), "[{\"op\":\"set_background\",\"top\":[%.4f,%.4f,%.4f],\"bottom\":[%.4f,%.4f,%.4f]}]",
+                                  top.x, top.y, top.z,
+                                  bottom.x, bottom.y, bottom.z);
+                    UICommandData cmd; cmd.command = UICommand::ApplyJsonOps; cmd.stringParam = std::string(buf); if (onCommand) onCommand(cmd);
+                }
+                if (ImGui::ColorEdit3("Bottom", &bottom.x, ImGuiColorEditFlags_NoAlpha)) {
+                    char buf[256];
+                    std::snprintf(buf, sizeof(buf), "[{\"op\":\"set_background\",\"top\":[%.4f,%.4f,%.4f],\"bottom\":[%.4f,%.4f,%.4f]}]",
+                                  top.x, top.y, top.z,
+                                  bottom.x, bottom.y, bottom.z);
+                    UICommandData cmd; cmd.command = UICommand::ApplyJsonOps; cmd.stringParam = std::string(buf); if (onCommand) onCommand(cmd);
+                }
+            } else if (bgMode == 2) {
+                // HDR path input (stub)
+                static char hdrBuf[256] = "";
+                if (std::strlen(hdrBuf) == 0) {
+                    std::string init = state.backgroundHDRPath.empty() ? std::string("engine/assets/img/default_env.hdr") : state.backgroundHDRPath;
+                    #ifdef _WIN32
+                    strncpy_s(hdrBuf, sizeof(hdrBuf), init.c_str(), _TRUNCATE);
+                    #else
+                    std::strncpy(hdrBuf, init.c_str(), sizeof(hdrBuf)-1); hdrBuf[sizeof(hdrBuf)-1] = '\0';
+                    #endif
+                }
+                ImGui::SetNextItemWidth(-1);
+                if (ImGui::InputText("HDR Path (stub)", hdrBuf, sizeof(hdrBuf))) {
+                    std::string payload = std::string("[{\"op\":\"set_background\",\"hdr\":\"") + std::string(hdrBuf) + "\"}]";
+                    UICommandData cmd; cmd.command = UICommand::ApplyJsonOps; cmd.stringParam = payload; if (onCommand) onCommand(cmd);
+                }
+            }
+            ImGui::Spacing();
+
             // HDR environment loading button
             if (ImGui::Button("Load HDR Environment", ImVec2(-1, 0))) {
                 UICommandData cmd;
@@ -1283,7 +1352,9 @@ void ImGuiUILayer::renderHelpDialogs()
             
             if (ImGui::CollapsingHeader("Materials & Appearance")) {
                 ImGui::BulletText("set_material - Modify materials: {\"op\":\"set_material\", \"target\":\"Obj\", \"material\":{\"color\":[1,0,0], \"roughness\":0.5}}");
-                ImGui::BulletText("set_background - Set background: {\"op\":\"set_background\", \"color\":[0.2,0.4,0.8]}");
+                ImGui::BulletText("set_background - Solid: {\"op\":\"set_background\", \"color\":[0.2,0.4,0.8]}");
+                ImGui::BulletText("set_background - Gradient: {\"op\":\"set_background\", \"top\":[0.1,0.1,0.2], \"bottom\":[0.0,0.0,0.0]}");
+                ImGui::BulletText("set_background - HDR (stub): {\"op\":\"set_background\", \"hdr\":\"assets/env/studio.hdr\"}");
                 ImGui::BulletText("load_hdr_environment - Load HDR for IBL: {\"op\":\"load_hdr_environment\", \"path\":\"assets/env/studio.hdr\"}");
                 ImGui::BulletText("set_skybox_intensity - Set skybox brightness: {\"op\":\"set_skybox_intensity\", \"value\":1.5}");
                 ImGui::BulletText("set_ibl_intensity - Set IBL strength: {\"op\":\"set_ibl_intensity\", \"value\":2.0}");
