@@ -14,6 +14,8 @@
 
 #include <rapidjson/document.h>
 #include <rapidjson/error/en.h>
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
 #include <algorithm>
 #include <cctype>
 #include <limits>
@@ -108,22 +110,38 @@ bool JsonOpsExecutor::validateSchema(const std::string& json, std::string& error
     return true;
 }
 
+
 bool JsonOpsExecutor::apply(const std::string& json, std::string& error)
 {
     using namespace rapidjson;
     error.clear();
     
-    // First validate schema if strict mode is enabled
-    if (!validateSchema(json, error)) {
-        return false;
-    }
-
+    // Parse JSON once
     Document d;
     ParseResult ok = d.Parse(json.c_str());
     if (!ok) {
         error = std::string("JSON parse error: ") + GetParseError_En(ok.Code()) +
                 " at offset " + std::to_string(ok.Offset());
         return false;
+    }
+    
+    // Validate schema using the parsed document if strict mode is enabled
+    if (m_strictSchema && m_validator) {
+        // Convert parsed document back to string for schema validation
+        // This is more efficient than parsing twice since we only serialize when validation is needed
+        rapidjson::StringBuffer buffer;
+        rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+        d.Accept(writer);
+        std::string jsonString(buffer.GetString());
+        
+        auto result = m_validator->validate(jsonString);
+        if (result.result != SchemaValidator::ValidationResult::Success) {
+            error = "Schema validation failed: " + result.errorMessage;
+            if (!result.detailedErrors.empty()) {
+                error += " (" + result.detailedErrors + ")";
+            }
+            return false;
+        }
     }
 
     // Inner lambda that applies a single op object

@@ -28,6 +28,43 @@ public:
             return false;
         }
     }
+    
+    SchemaValidator::ValidationResponse validateDocument(const rapidjson::Document& document) {
+        using namespace rapidjson;
+        SchemaValidator::ValidationResponse response;
+        
+        if (!schema || !validator) {
+            response.result = SchemaValidator::ValidationResult::SchemaLoadError;
+            response.errorMessage = "No schema loaded";
+            return response;
+        }
+        
+        // Reset validator for new validation
+        validator->Reset();
+        
+        if (!document.Accept(*validator)) {
+            response.result = SchemaValidator::ValidationResult::ValidationError;
+            
+            // Get validation errors
+            StringBuffer sb;
+            validator->GetInvalidSchemaPointer().StringifyUriFragment(sb);
+            std::string schemaPath = sb.GetString();
+            
+            sb.Clear();
+            validator->GetInvalidDocumentPointer().StringifyUriFragment(sb);
+            std::string documentPath = sb.GetString();
+            
+            response.errorMessage = "Validation failed";
+            response.detailedErrors = "Schema violation at " + documentPath + 
+                                    " (schema path: " + schemaPath + "): " + 
+                                    validator->GetInvalidSchemaKeyword();
+            
+            return response;
+        }
+        
+        response.result = SchemaValidator::ValidationResult::Success;
+        return response;
+    }
 };
 
 SchemaValidator::SchemaValidator() : m_impl(std::make_unique<Impl>()) {
@@ -68,31 +105,7 @@ SchemaValidator::ValidationResponse SchemaValidator::validate(const std::string&
         return response;
     }
     
-    // Reset validator for new validation
-    m_impl->validator->Reset();
-    
-    if (!document.Accept(*m_impl->validator)) {
-        response.result = ValidationResult::ValidationError;
-        
-        // Get validation errors
-        StringBuffer sb;
-        m_impl->validator->GetInvalidSchemaPointer().StringifyUriFragment(sb);
-        std::string schemaPath = sb.GetString();
-        
-        sb.Clear();
-        m_impl->validator->GetInvalidDocumentPointer().StringifyUriFragment(sb);
-        std::string documentPath = sb.GetString();
-        
-        response.errorMessage = "Validation failed";
-        response.detailedErrors = "Schema violation at " + documentPath + 
-                                " (schema path: " + schemaPath + "): " + 
-                                m_impl->validator->GetInvalidSchemaKeyword();
-        
-        return response;
-    }
-    
-    response.result = ValidationResult::Success;
-    return response;
+    return m_impl->validateDocument(document);
 }
 
 std::string SchemaValidator::getEmbeddedSchemaV1_3() {
