@@ -1,0 +1,50 @@
+{
+  "ops": [
+    {
+      "op": "load",
+      "path": "assets/models/sphere.obj",
+      "name": "sphere_smooth",
+      "position": [-1.5, 0, 0],
+      "scale": [0.8, 0.8, 0.8]
+    },
+    {
+      "op": "set_material",
+      "target": "sphere_smooth",
+      "material": {
+        "roughness": 0.1,
+        "metallic": 0.0
+      }
+    },
+    {
+      "op": "duplicate",
+      "source": "sphere_smooth",
+      "name": "sphere_rough",
+      "position": [1.5, 0, 0]
+    },
+    {
+      "op": "set_material",
+      "target": "sphere_rough",
+      "material": {
+        "roughness": 0.9,
+        "metallic": 0.0
+      }
+    },
+    {
+      "op": "add_light",
+      "type": "directional",
+      "direction": [0.3, -1.0, 0.2],
+      "color": [1.0, 1.0, 1.0],
+      "intensity": 3.0
+    },
+    {
+      "op": "set_camera",
+      "position": [0, 0, 6],
+      "target": [0, 0, 0],
+      "fov": 45
+    },
+    {
+      "op": "set_background",
+      "color": [0.1, 0.1, 0.15]
+    }
+  ]
+}

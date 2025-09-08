@@ -1,0 +1,347 @@
+{
+  "ops": [
+    {
+      "op": "load",
+      "path": "engine/assets/models/cube.obj",
+      "name": "sphere_r00_m00",
+      "position": [-4, 2, 0],
+      "scale": [0.8, 0.8, 0.8]
+    },
+    {
+      "op": "set_material",
+      "target": "sphere_r00_m00",
+      "roughness": 0.0,
+      "metallic": 0.0,
+      "baseColor": [0.8, 0.8, 0.8]
+    },
+    {
+      "op": "duplicate",
+      "source": "sphere_r00_m00",
+      "name": "sphere_r00_m25",
+      "position": [-2, 2, 0]
+    },
+    {
+      "op": "set_material",
+      "target": "sphere_r00_m25",
+      "roughness": 0.0,
+      "metallic": 0.25,
+      "baseColor": [0.8, 0.8, 0.8]
+    },
+    {
+      "op": "duplicate",
+      "source": "sphere_r00_m00",
+      "name": "sphere_r00_m50",
+      "position": [0, 2, 0]
+    },
+    {
+      "op": "set_material",
+      "target": "sphere_r00_m50",
+      "roughness": 0.0,
+      "metallic": 0.5,
+      "baseColor": [0.8, 0.8, 0.8]
+    },
+    {
+      "op": "duplicate",
+      "source": "sphere_r00_m00",
+      "name": "sphere_r00_m75",
+      "position": [2, 2, 0]
+    },
+    {
+      "op": "set_material",
+      "target": "sphere_r00_m75",
+      "roughness": 0.0,
+      "metallic": 0.75,
+      "baseColor": [0.8, 0.8, 0.8]
+    },
+    {
+      "op": "duplicate",
+      "source": "sphere_r00_m00",
+      "name": "sphere_r00_m100",
+      "position": [4, 2, 0]
+    },
+    {
+      "op": "set_material",
+      "target": "sphere_r00_m100",
+      "roughness": 0.0,
+      "metallic": 1.0,
+      "baseColor": [0.8, 0.8, 0.8]
+    },
+    {
+      "op": "duplicate",
+      "source": "sphere_r00_m00",
+      "name": "sphere_r25_m00",
+      "position": [-4, 0, 0]
+    },
+    {
+      "op": "set_material",
+      "target": "sphere_r25_m00",
+      "roughness": 0.25,
+      "metallic": 0.0,
+      "baseColor": [0.8, 0.8, 0.8]
+    },
+    {
+      "op": "duplicate",
+      "source": "sphere_r00_m00",
+      "name": "sphere_r25_m25",
+      "position": [-2, 0, 0]
+    },
+    {
+      "op": "set_material",
+      "target": "sphere_r25_m25",
+      "roughness": 0.25,
+      "metallic": 0.25,
+      "baseColor": [0.8, 0.8, 0.8]
+    },
+    {
+      "op": "duplicate",
+      "source": "sphere_r00_m00",
+      "name": "sphere_r25_m50",
+      "position": [0, 0, 0]
+    },
+    {
+      "op": "set_material",
+      "target": "sphere_r25_m50",
+      "roughness": 0.25,
+      "metallic": 0.5,
+      "baseColor": [0.8, 0.8, 0.8]
+    },
+    {
+      "op": "duplicate",
+      "source": "sphere_r00_m00",
+      "name": "sphere_r25_m75",
+      "position": [2, 0, 0]
+    },
+    {
+      "op": "set_material",
+      "target": "sphere_r25_m75",
+      "roughness": 0.25,
+      "metallic": 0.75,
+      "baseColor": [0.8, 0.8, 0.8]
+    },
+    {
+      "op": "duplicate",
+      "source": "sphere_r00_m00",
+      "name": "sphere_r25_m100",
+      "position": [4, 0, 0]
+    },
+    {
+      "op": "set_material",
+      "target": "sphere_r25_m100",
+      "roughness": 0.25,
+      "metallic": 1.0,
+      "baseColor": [0.8, 0.8, 0.8]
+    },
+    {
+      "op": "duplicate",
+      "source": "sphere_r00_m00",
+      "name": "sphere_r50_m00",
+      "position": [-4, -2, 0]
+    },
+    {
+      "op": "set_material",
+      "target": "sphere_r50_m00",
+      "roughness": 0.5,
+      "metallic": 0.0,
+      "baseColor": [0.8, 0.8, 0.8]
+    },
+    {
+      "op": "duplicate",
+      "source": "sphere_r00_m00",
+      "name": "sphere_r50_m25",
+      "position": [-2, -2, 0]
+    },
+    {
+      "op": "set_material",
+      "target": "sphere_r50_m25",
+      "roughness": 0.5,
+      "metallic": 0.25,
+      "baseColor": [0.8, 0.8, 0.8]
+    },
+    {
+      "op": "duplicate",
+      "source": "sphere_r00_m00",
+      "name": "sphere_r50_m50",
+      "position": [0, -2, 0]
+    },
+    {
+      "op": "set_material",
+      "target": "sphere_r50_m50",
+      "roughness": 0.5,
+      "metallic": 0.5,
+      "baseColor": [0.8, 0.8, 0.8]
+    },
+    {
+      "op": "duplicate",
+      "source": "sphere_r00_m00",
+      "name": "sphere_r50_m75",
+      "position": [2, -2, 0]
+    },
+    {
+      "op": "set_material",
+      "target": "sphere_r50_m75",
+      "roughness": 0.5,
+      "metallic": 0.75,
+      "baseColor": [0.8, 0.8, 0.8]
+    },
+    {
+      "op": "duplicate",
+      "source": "sphere_r00_m00",
+      "name": "sphere_r50_m100",
+      "position": [4, -2, 0]
+    },
+    {
+      "op": "set_material",
+      "target": "sphere_r50_m100",
+      "roughness": 0.5,
+      "metallic": 1.0,
+      "baseColor": [0.8, 0.8, 0.8]
+    },
+    {
+      "op": "duplicate",
+      "source": "sphere_r00_m00",
+      "name": "sphere_r75_m00",
+      "position": [-4, -4, 0]
+    },
+    {
+      "op": "set_material",
+      "target": "sphere_r75_m00",
+      "roughness": 0.75,
+      "metallic": 0.0,
+      "baseColor": [0.8, 0.8, 0.8]
+    },
+    {
+      "op": "duplicate",
+      "source": "sphere_r00_m00",
+      "name": "sphere_r75_m25",
+      "position": [-2, -4, 0]
+    },
+    {
+      "op": "set_material",
+      "target": "sphere_r75_m25",
+      "roughness": 0.75,
+      "metallic": 0.25,
+      "baseColor": [0.8, 0.8, 0.8]
+    },
+    {
+      "op": "duplicate",
+      "source": "sphere_r00_m00",
+      "name": "sphere_r75_m50",
+      "position": [0, -4, 0]
+    },
+    {
+      "op": "set_material",
+      "target": "sphere_r75_m50",
+      "roughness": 0.75,
+      "metallic": 0.5,
+      "baseColor": [0.8, 0.8, 0.8]
+    },
+    {
+      "op": "duplicate",
+      "source": "sphere_r00_m00",
+      "name": "sphere_r75_m75",
+      "position": [2, -4, 0]
+    },
+    {
+      "op": "set_material",
+      "target": "sphere_r75_m75",
+      "roughness": 0.75,
+      "metallic": 0.75,
+      "baseColor": [0.8, 0.8, 0.8]
+    },
+    {
+      "op": "duplicate",
+      "source": "sphere_r00_m00",
+      "name": "sphere_r75_m100",
+      "position": [4, -4, 0]
+    },
+    {
+      "op": "set_material",
+      "target": "sphere_r75_m100",
+      "roughness": 0.75,
+      "metallic": 1.0,
+      "baseColor": [0.8, 0.8, 0.8]
+    },
+    {
+      "op": "duplicate",
+      "source": "sphere_r00_m00",
+      "name": "sphere_r100_m00",
+      "position": [-4, -6, 0]
+    },
+    {
+      "op": "set_material",
+      "target": "sphere_r100_m00",
+      "roughness": 1.0,
+      "metallic": 0.0,
+      "baseColor": [0.8, 0.8, 0.8]
+    },
+    {
+      "op": "duplicate",
+      "source": "sphere_r00_m00",
+      "name": "sphere_r100_m25",
+      "position": [-2, -6, 0]
+    },
+    {
+      "op": "set_material",
+      "target": "sphere_r100_m25",
+      "roughness": 1.0,
+      "metallic": 0.25,
+      "baseColor": [0.8, 0.8, 0.8]
+    },
+    {
+      "op": "duplicate",
+      "source": "sphere_r00_m00",
+      "name": "sphere_r100_m50",
+      "position": [0, -6, 0]
+    },
+    {
+      "op": "set_material",
+      "target": "sphere_r100_m50",
+      "roughness": 1.0,
+      "metallic": 0.5,
+      "baseColor": [0.8, 0.8, 0.8]
+    },
+    {
+      "op": "duplicate",
+      "source": "sphere_r00_m00",
+      "name": "sphere_r100_m75",
+      "position": [2, -6, 0]
+    },
+    {
+      "op": "set_material",
+      "target": "sphere_r100_m75",
+      "roughness": 1.0,
+      "metallic": 0.75,
+      "baseColor": [0.8, 0.8, 0.8]
+    },
+    {
+      "op": "duplicate",
+      "source": "sphere_r00_m00",
+      "name": "sphere_r100_m100",
+      "position": [4, -6, 0]
+    },
+    {
+      "op": "set_material",
+      "target": "sphere_r100_m100",
+      "roughness": 1.0,
+      "metallic": 1.0,
+      "baseColor": [0.8, 0.8, 0.8]
+    },
+    {
+      "op": "add_light",
+      "type": "directional",
+      "direction": [0.3, -1.0, 0.2],
+      "color": [1.0, 1.0, 1.0],
+      "intensity": 3.0
+    },
+    {
+      "op": "set_camera",
+      "position": [0, 0, 12],
+      "target": [0, -2, 0],
+      "fov": 45
+    },
+    {
+      "op": "set_background",
+      "color": [0.1, 0.1, 0.15]
+    }
+  ]
+}

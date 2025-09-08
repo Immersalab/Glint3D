@@ -43,7 +43,23 @@ void ObjLoader::load(const char* filename)
         }
         else if (type == "f")                          // face
         {
-            Face f;  ss >> f.a >> f.b >> f.c;
+            Face f;
+            std::string v1, v2, v3;
+            ss >> v1 >> v2 >> v3;
+            
+            // Parse vertex indices (handle v, v/vt, or v/vt/vn format)
+            auto parseVertexIndex = [](const std::string& s) -> unsigned {
+                size_t slash = s.find('/');
+                if (slash != std::string::npos) {
+                    return std::stoul(s.substr(0, slash));
+                }
+                return std::stoul(s);
+            };
+            
+            f.a = parseVertexIndex(v1);
+            f.b = parseVertexIndex(v2);
+            f.c = parseVertexIndex(v3);
+            
             --f.a; --f.b; --f.c;                      // OBJ is 1-based
             Faces.push_back(f);
         }

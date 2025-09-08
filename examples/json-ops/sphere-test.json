@@ -1,0 +1,36 @@
+{
+  "ops": [
+    {
+      "op": "load",
+      "path": "assets/models/sphere.obj",
+      "name": "test_sphere",
+      "position": [0, 0, 0],
+      "scale": [1, 1, 1]
+    },
+    {
+      "op": "set_material",
+      "target": "test_sphere",
+      "material": {
+        "roughness": 0.2,
+        "metallic": 0.1
+      }
+    },
+    {
+      "op": "add_light",
+      "type": "directional",
+      "direction": [0.3, -1.0, 0.2],
+      "color": [1.0, 1.0, 1.0],
+      "intensity": 3.0
+    },
+    {
+      "op": "set_camera",
+      "position": [0, 0, 4],
+      "target": [0, 0, 0],
+      "fov": 45
+    },
+    {
+      "op": "set_background",
+      "color": [0.1, 0.1, 0.15]
+    }
+  ]
+}

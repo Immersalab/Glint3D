@@ -3,6 +3,7 @@
 #include <glm/glm.hpp>
 #include <iostream>
 #include <algorithm>
+#include "brdf.h"
 
 Raytracer::Raytracer()
     : lightPos(glm::vec3(-2.0f, 4.0f, -3.0f)),
@@ -132,16 +133,13 @@ glm::vec3 Raytracer::traceRay(const Ray& ray, const Light& lights, int depth) co
 
         if (!inShadow)
         {
-            // Diffuse shading
-            float diff = glm::max(glm::dot(normal, lightDir), 0.0f);
-            glm::vec3 diffuse = diff * mat.diffuse * light.color * light.intensity;
+            // Cook–Torrance BRDF (Beckmann D, Cook–Torrance G, Schlick F)
+            // Use material diffuse as baseColor/albedo; metallic drives specular vs diffuse split
+            glm::vec3 brdf = brdf::cookTorrance(normal, viewDir, lightDir, mat.diffuse, mat.roughness, mat.metallic);
+            float NdotL = glm::max(glm::dot(normal, lightDir), 0.0f);
 
-            // Specular shading (Blinn-Phong)
-            glm::vec3 halfwayDir = glm::normalize(lightDir + viewDir);
-            float spec = glm::pow(glm::max(glm::dot(normal, halfwayDir), 0.0f), mat.shininess);
-            glm::vec3 specular = spec * mat.specular * light.color * light.intensity;
-
-            color += diffuse + specular;
+            // Scale by light radiance (color * intensity) and Lambert cosine term
+            color += brdf * (NdotL * light.intensity) * light.color;
         }
     }
 

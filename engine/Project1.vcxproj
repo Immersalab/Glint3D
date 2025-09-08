@@ -220,6 +220,7 @@ if exist "D:\Graphics\vcpkg\installed\x64-windows\bin\brotli*.dll" xcopy /y /d "
     <ClCompile Include="src\material.cpp" />
     <ClCompile Include="src\objloader.cpp" />
     <ClCompile Include="src\raytracer.cpp" />
+    <ClCompile Include="src\brdf.cpp" />
     <ClCompile Include="src\RayUtils.cpp" />
     <ClCompile Include="src\shader.cpp" />
     <ClCompile Include="src\skybox.cpp" />
@@ -238,6 +239,10 @@ if exist "D:\Graphics\vcpkg\installed\x64-windows\bin\brotli*.dll" xcopy /y /d "
   </ItemGroup>
   <ItemGroup>
     
+    <ClInclude Include="include\application_core.h" />
+    <ClInclude Include="include\render_system.h" />
+    <ClInclude Include="include\camera_controller.h" />
+    <ClInclude Include="include\ui_bridge.h" />
     <ClInclude Include="include\assimp_loader.h" />
     <ClInclude Include="include\importer.h" />
     <ClInclude Include="include\importer_registry.h" />
@@ -253,6 +258,7 @@ if exist "D:\Graphics\vcpkg\installed\x64-windows\bin\brotli*.dll" xcopy /y /d "
     <ClInclude Include="include\light.h" />
     <ClInclude Include="include\ray.h" />
     <ClInclude Include="include\raytracer.h" />
+    <ClInclude Include="include\brdf.h" />
     <ClInclude Include="include\RayUtils.h" />
     <ClInclude Include="include\shader.h" />
     <ClInclude Include="include\skybox.h" />

@@ -47,6 +47,7 @@ set(APP_SOURCES
     ${SRC_DIR}/ai_bridge.cpp
     ${SRC_DIR}/assimp_loader.cpp
     ${SRC_DIR}/triangle.cpp
+    ${SRC_DIR}/brdf.cpp
 )
 
 # Core library: expose engine without the app entry
@@ -84,6 +85,7 @@ set(CORE_SOURCES
     ${SRC_DIR}/triangle.cpp
     ${SRC_DIR}/json_ops.cpp
     ${SRC_DIR}/glad.c
+    ${SRC_DIR}/brdf.cpp
 )
 
 set(IMGUI_SOURCES

@@ -36,8 +36,23 @@ fi
 echo "Test 2: Camera Preset Test"
 echo "✅ Camera preset unit test passed (placeholder)"
 
-# Test 3: Basic engine functionality
-echo "Test 3: Engine Basic Functionality"
+# Test 3: BRDF edge conditions
+echo "Test 3: BRDF Edge Conditions"
+if [ -f "tests/unit/brdf_test.cpp" ]; then
+    mkdir -p tests/results/unit
+    g++ -std=c++17 -I. tests/unit/brdf_test.cpp engine/src/brdf.cpp -o tests/results/unit/brdf_test
+    if ./tests/results/unit/brdf_test; then
+        echo "BRDF edge-condition unit test passed"
+    else
+        echo "BRDF edge-condition unit test failed"
+        exit 1
+    fi
+else
+    echo "BRDF unit test not found"
+fi
+
+# Test 4: Basic engine functionality
+echo "Test 4: Engine Basic Functionality"
 if $ENGINE_BINARY --version > /dev/null 2>&1; then
     echo "✅ Engine version check passed"
 else
