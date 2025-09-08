@@ -1,6 +1,32 @@
-# Golden Image Testing Tools
+# Glint3D Tools Directory
 
-This directory contains tools for automated visual regression testing using golden reference images.
+This directory contains build scripts, testing tools, and utilities for the Glint3D project.
+
+## Build Scripts
+
+### `build-and-run.sh` / `build-and-run.bat`
+Primary build script for desktop applications.
+- Cross-platform CMake compilation
+- Debug and Release build modes  
+- Usage: `./tools/build-and-run.sh [build|run]`
+
+### `build-web.sh` / `build-web.bat` 
+Complete web build pipeline (WASM engine + React frontend).
+- Emscripten WASM compilation
+- Asset copying and package building
+- Usage: `./tools/build-web.sh [Debug|Release]` or `npm run web:build`
+
+### `create_basic_ico.py`, `png_to_ico.cpp`
+Asset management tools for Windows icon generation.
+
+### `dev_web_ui.ps1`, `texc.sh/.ps1`
+Development and texture compression utilities.
+
+---
+
+## Golden Image Testing Tools
+
+Automated visual regression testing using golden reference images.
 
 ## Overview
 

@@ -1,0 +1,1 @@
+D:\class\OpenGLOBJViewer\ui\src-tauri\target\debug\open_globj_viewer.exe: D:\class\OpenGLOBJViewer\ui\src-tauri\build.rs D:\class\OpenGLOBJViewer\ui\src-tauri\src\main.rs D:\class\OpenGLOBJViewer\ui\src-tauri\target\debug\build\open_globj_viewer-144f9333df93907a\out\icon.ico D:\class\OpenGLOBJViewer\ui\src-tauri\tauri.conf.json

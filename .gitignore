@@ -61,23 +61,29 @@ test_*.png
 *.ipch
 
 # Tauri build artifacts
-ui/src-tauri/target/
-ui/src-tauri/Cargo.lock
+web/src-tauri/target/
+web/src-tauri/Cargo.lock
 
-# Node.js dependencies and build artifacts
-ui/node_modules/
-ui/dist/
-ui/build/
-ui/.next/
-ui/.nuxt/
-ui/.output/
-ui/.vite/
-ui/.turbo/
+# Node.js dependencies and build artifacts (workspace packages + web)
+packages/*/node_modules/
+packages/*/dist/
+packages/*/.turbo/
+web/node_modules/
+web/dist/
+web/build/
+web/.next/
+web/.nuxt/
+web/.output/
+web/.vite/
+web/.turbo/
 
-# Package manager files
-ui/package-lock.json
-ui/yarn.lock
-ui/pnpm-lock.yaml
+# Package manager files (keep root package-lock.json but ignore workspace ones)
+web/package-lock.json
+packages/*/package-lock.json
+web/yarn.lock
+web/pnpm-lock.yaml
+packages/*/yarn.lock
+packages/*/pnpm-lock.yaml
 
 # Environment files
 .env
@@ -85,6 +91,11 @@ ui/pnpm-lock.yaml
 .env.development.local
 .env.test.local
 .env.production.local
+
+# TypeScript build cache
+packages/*/.tsbuildinfo
+web/.tsbuildinfo
+*.tsbuildinfo
 
 # IDE/Editor files
 .vscode/
@@ -111,12 +122,22 @@ imgui.ini
 # Large and frequently changing cache directories
 .claude/
 .claude/settings.local.json
-CLAUDE.md
 
 # Test scripts and temporary outputs
 test_golden_comparison.sh
 *comparison*.sh
 render_*.png
 out.png
+temp_*.json
+simple_*.json
+
+# Generated documentation
+docs/api/
+packages/*/docs/api/
+
+# Coverage reports  
+coverage/
+packages/*/coverage/
+web/coverage/
 
 # ... any other build or large files you don't want ...
