@@ -1,0 +1,15 @@
+{
+  "ops": [
+    {
+      "op": "load",
+      "path": "assets/models/sphere.obj",
+      "name": "sphere",
+      "position": [0, 0, -2]
+    },
+    {
+      "op": "frame_object",
+      "name": "sphere",
+      "margin": 0.25
+    }
+  ]
+}

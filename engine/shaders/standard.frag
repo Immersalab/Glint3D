@@ -55,6 +55,11 @@ uniform Material material;
 // Camera position (for specular reflection in Gouraud)
 uniform vec3 viewPos;
 
+// Post-processing uniforms
+uniform float exposure;
+uniform float gamma;
+uniform int toneMappingMode; // 0=Linear, 1=Reinhard, 2=Filmic, 3=ACES
+
 // ------------------------------------------------------------------------
 // Calculate Shadow
 float calculateShadow(vec4 fragPosLightSpace)
@@ -137,36 +142,26 @@ void main()
 
     // Final color
     vec3 finalColor = baseColor * totalLight;
-    // Apply tone mapping/exposure/gamma for consistency with PBR
-    finalColor = applyToneMapping(finalColor);
-// Post-processing uniforms
-uniform float exposure;
-uniform float gamma;
-uniform int toneMappingMode; // 0=Linear, 1=Reinhard, 2=Filmic, 3=ACES
-
-// Optimized tone mapping with fewer branches
-vec3 applyToneMapping(vec3 color) {
+    
     // Apply exposure first
-    color *= exp2(exposure); // More efficient than pow(2.0, exposure)
+    finalColor *= exp2(exposure);
     
-    // Optimized tone mapping selection using mix to reduce branches
-    vec3 reinhard = color / (1.0 + color);
-    vec3 x = max(vec3(0.0), color - 0.004);
-    vec3 filmic = (x * (6.2 * x + 0.5)) / (x * (6.2 * x + 1.7) + 0.06);
-    const float a = 2.51, b = 0.03, c = 2.43, d = 0.59, e = 0.14;
-    vec3 aces = clamp((color * (a * color + b)) / (color * (c * color + d) + e), 0.0, 1.0);
+    // Apply tone mapping
+    if (toneMappingMode == 1) {
+        // Reinhard
+        finalColor = finalColor / (1.0 + finalColor);
+    } else if (toneMappingMode == 2) {
+        // Filmic
+        vec3 x = max(vec3(0.0), finalColor - 0.004);
+        finalColor = (x * (6.2 * x + 0.5)) / (x * (6.2 * x + 1.7) + 0.06);
+    } else if (toneMappingMode == 3) {
+        // ACES
+        const float a = 2.51, b = 0.03, c = 2.43, d = 0.59, e = 0.14;
+        finalColor = clamp((finalColor * (a * finalColor + b)) / (finalColor * (c * finalColor + d) + e), 0.0, 1.0);
+    }
+    // toneMappingMode == 0 is linear, no tone mapping needed
     
-    // Use step functions instead of branches for better GPU performance
-    float useReinhard = step(0.5, float(toneMappingMode == 1));
-    float useFilmic = step(0.5, float(toneMappingMode == 2));
-    float useAces = step(0.5, float(toneMappingMode == 3));
-    
-    color = mix(color, reinhard, useReinhard);
-    color = mix(color, filmic, useFilmic);
-    color = mix(color, aces, useAces);
-    
-    return color;
-}
+    // Apply gamma correction
     finalColor = pow(finalColor, vec3(1.0 / gamma));
     FragColor = vec4(finalColor, 1.0);
 }

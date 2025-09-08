@@ -558,7 +558,37 @@ void UIBridge::handleLoadObject(const UICommandData& cmd)
         addConsoleMessage("Loaded object: " + cmd.stringParam);
         // Select newly added object (assume appended)
         int newIndex = (int)m_scene.getObjects().size() - 1;
-        if (newIndex >= 0) m_scene.setSelectedObjectIndex(newIndex);
+        if (newIndex >= 0) {
+            m_scene.setSelectedObjectIndex(newIndex);
+            // Frame the newly loaded object so it's visible
+            const auto& objects = m_scene.getObjects();
+            if (newIndex < (int)objects.size()) {
+                const std::string& objName = objects[newIndex].name;
+                // Escape the object name for JSON
+                std::string escapedName = objName;
+                // Replace backslashes with double backslashes for JSON
+                size_t pos = 0;
+                while ((pos = escapedName.find("\\", pos)) != std::string::npos) {
+                    escapedName.replace(pos, 1, "\\\\");
+                    pos += 2;
+                }
+                // Replace quotes with escaped quotes
+                pos = 0;
+                while ((pos = escapedName.find("\"", pos)) != std::string::npos) {
+                    escapedName.replace(pos, 1, "\\\"");
+                    pos += 2;
+                }
+                
+                // Use JSON ops with properly escaped name
+                std::string frameOps = "{\"ops\":[{\"op\":\"frame_object\",\"name\":\"" + escapedName + "\",\"margin\":0.25}]}";
+                std::string error;
+                if (m_ops && m_ops->apply(frameOps, error)) {
+                    addConsoleMessage("Framed object: " + objName);
+                } else {
+                    addConsoleMessage("Failed to frame object: " + objName + " (" + error + ")");
+                }
+            }
+        }
         addRecentFile(cmd.stringParam);
     } else {
         addConsoleMessage("Failed to load object: " + cmd.stringParam);

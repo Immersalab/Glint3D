@@ -1,0 +1,16 @@
+{
+  "ops": [
+    {
+      "op": "load",
+      "path": "assets/models/sphere.obj",
+      "name": "test_sphere",
+      "position": [0, 0, -2]
+    },
+    {
+      "op": "set_camera",
+      "position": [0, 2, 5],
+      "target": [0, 0, -2],
+      "fov": 45
+    }
+  ]
+}

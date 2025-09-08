@@ -2,6 +2,7 @@
 
 layout(location = 0) in vec3 aPos;
 layout(location = 1) in vec3 aNormal;
+layout(location = 2) in vec2 aTexCoord;
 
 // Matrices
 uniform mat4 model;
@@ -59,8 +60,8 @@ void main()
     // Normal transformation via normal matrix
     Normal = mat3(transpose(inverse(model))) * aNormal;
 
-    // Simple placeholder UV mapping
-    UV = aPos.xy * 0.5 + 0.5;
+    // Use actual texture coordinates if available
+    UV = aTexCoord;
 
     // Default to black unless we're in Gouraud shading mode
     GouraudLight = vec3(0.0);
