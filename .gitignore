@@ -93,6 +93,13 @@ ui/pnpm-lock.yaml
 *.swo
 *~
 
+# ImGui configuration files
+imgui.ini
+
+# Glint application files
+.glint_history
+.glint_recent
+
 # Large binary files that shouldn't be tracked
 *.rlib
 *.rmeta
