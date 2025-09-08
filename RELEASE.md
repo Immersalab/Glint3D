@@ -13,16 +13,17 @@ Version v0.3.0 highlights
   - git push origin v0.3.0
 
 2) Build Windows desktop zip
-- Visual Studio 2022 (x64)
+- CMake + Visual Studio 2022 (x64)
+  - Generate: `cmake -S . -B builds/desktop/cmake`
   - Config: Release|x64
-  - Build target: Project1
-  - Ensure DLLs are copied to OutDir (vcxproj has post-build copy for Assimp and deps)
+  - Build target: glint
+  - Executable location: `builds/desktop/cmake/Release/glint.exe`
 - Package
   - Create `Glint3D-v0.3.0-win64.zip` containing:
-    - `Project1.exe`
-    - `Project1/shaders/` folder
-    - `Project1/assets/` folder (or a subset if large)
-    - Any required DLLs from `x64/Release/`
+    - `glint.exe`
+    - `shaders/` folder
+    - `assets/` folder (or a subset if large)
+    - Any required DLLs from `builds/desktop/cmake/Release/`
 
 3) Build web bundle
 - Emscripten SDK active
@@ -32,7 +33,7 @@ Version v0.3.0 highlights
 - Package
   - Create `Glint-v0.3.0-web.zip` containing:
     - `glint.html` (+ `.wasm`, `.data`)
-    - `Project1/assets/` and `Project1/shaders/` (or ensure preloaded via CMake flags)
+    - `assets/` and `shaders/` (or ensure preloaded via CMake flags)
 
 4) GitHub Release
 - Create a GitHub Release for tag `v0.3.0`

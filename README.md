@@ -42,9 +42,10 @@ Runs on desktop (GLFW/GLAD/ImGui) and web (WebGL2 via Emscripten) with a new Rea
 ## Quick Start
 
 ### Desktop (Windows)
-- Open `engine/Project1.vcxproj` in Visual Studio 2022 (x64).  
+- Generate project files: `cmake -S . -B builds/desktop/cmake`  
+- Open `builds/desktop/cmake/glint.sln` in Visual Studio 2022 (x64).  
 - Build and run from the repo root so `shaders/` and `assets/` resolve.  
-- Use the top menu to load sample models or recipes. Hold RMB to fly the camera.  
+- Use the top menu to import assets or apply JSON recipes. Hold RMB to fly the camera.  
 
 ### Desktop (CMake, cross-platform)
 ```bash
