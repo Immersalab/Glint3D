@@ -184,15 +184,9 @@ void ImGuiUILayer::renderMainMenuBar(const UIState& state)
     if (ImGui::BeginMainMenuBar()) {
         // File menu
         if (ImGui::BeginMenu("File")) {
-            if (ImGui::MenuItem("Import Model...", "Ctrl+O")) {
+            if (ImGui::MenuItem("Import Asset...", "Ctrl+O")) {
                 UICommandData cmd;
-                cmd.command = UICommand::ImportModel;
-                if (onCommand) onCommand(cmd);
-            }
-            
-            if (ImGui::MenuItem("Load Scene JSON...", "Ctrl+L")) {
-                UICommandData cmd;
-                cmd.command = UICommand::ImportSceneJSON;
+                cmd.command = UICommand::ImportAsset;
                 if (onCommand) onCommand(cmd);
             }
             
@@ -507,17 +501,12 @@ void ImGuiUILayer::renderSettingsPanel(const UIState& state)
             
             // Import/Export buttons
             ImGui::Text("Import/Export");
-            if (ImGui::Button("Import Model", ImVec2((ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) / 2, 0))) {
+            if (ImGui::Button("Import Asset", ImVec2((ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) / 2, 0))) {
                 UICommandData cmd;
-                cmd.command = UICommand::ImportModel;
+                cmd.command = UICommand::ImportAsset;
                 if (onCommand) onCommand(cmd);
             }
             ImGui::SameLine();
-            if (ImGui::Button("Load Scene JSON", ImVec2(-1, 0))) {
-                UICommandData cmd;
-                cmd.command = UICommand::ImportSceneJSON;
-                if (onCommand) onCommand(cmd);
-            }
             
             if (ImGui::Button("Export Scene", ImVec2(-1, 0))) {
                 UICommandData cmd;

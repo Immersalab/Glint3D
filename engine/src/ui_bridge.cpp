@@ -9,6 +9,7 @@
 #include "config_defaults.h"
 #include "render_utils.h"
 #include "help_text.h"
+#include "file_dialog.h"
 #include <iostream>
 #include <sstream>
 #include <fstream>
@@ -530,18 +531,61 @@ void UIBridge::handleUICommand(const UICommandData& command)
             break;
             
         // File operations
-        case UICommand::ImportModel:
-            addConsoleMessage("Import Model: File dialog not yet implemented on desktop. Use console command: load <path>");
-            break;
-        case UICommand::ImportSceneJSON:
-            addConsoleMessage("Import Scene JSON: File dialog not yet implemented on desktop. Use console JSON ops.");
+        case UICommand::ImportAsset:
+            {
+                std::string filepath = FileDialog::openFile("Import Asset", FileDialog::getAssetFilters());
+                if (!filepath.empty()) {
+                    if (FileDialog::isSceneFile(filepath)) {
+                        // Handle JSON scene file
+                        std::ifstream file(filepath);
+                        if (file.is_open()) {
+                            std::string jsonContent((std::istreambuf_iterator<char>(file)),
+                                                  std::istreambuf_iterator<char>());
+                            file.close();
+                            
+                            std::string error;
+                            bool success = applyJsonOps(jsonContent, error);
+                            if (success) {
+                                addConsoleMessage("Scene loaded from: " + filepath);
+                                addRecentFile(filepath);
+                            } else {
+                                addConsoleMessage("Failed to load scene: " + error);
+                            }
+                        } else {
+                            addConsoleMessage("Failed to open file: " + filepath);
+                        }
+                    } else if (FileDialog::isModelFile(filepath)) {
+                        // Handle 3D model file
+                        UICommandData loadCmd;
+                        loadCmd.command = UICommand::LoadObject;
+                        loadCmd.stringParam = filepath;
+                        loadCmd.vec3Param = glm::vec3(0.0f, 0.0f, -2.0f); // Default position
+                        handleLoadObject(loadCmd);
+                        addRecentFile(filepath);
+                    } else {
+                        addConsoleMessage("Unsupported file type: " + filepath);
+                    }
+                } else {
+                    addConsoleMessage("Import cancelled.");
+                }
+            }
             break;
         case UICommand::ExportScene:
             {
                 std::string sceneJson = sceneToJson();
-                // TODO: Save to file with dialog - for now just show in console
-                addConsoleMessage("Scene export (copy from console):");
-                addConsoleMessage(sceneJson);
+                std::string filepath = FileDialog::saveFile("Export Scene", FileDialog::getJSONFilters(), "", "scene.json");
+                if (!filepath.empty()) {
+                    std::ofstream file(filepath);
+                    if (file.is_open()) {
+                        file << sceneJson;
+                        file.close();
+                        addConsoleMessage("Scene exported to: " + filepath);
+                    } else {
+                        addConsoleMessage("Failed to save scene to: " + filepath);
+                    }
+                } else {
+                    addConsoleMessage("Export cancelled.");
+                }
             }
             break;
 

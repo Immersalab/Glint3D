@@ -510,6 +510,23 @@ void ApplicationCore::handleKey(int key, int scancode, int action, int mods)
         }
     }
     
+    // File operation shortcuts
+    if ((mods & GLFW_MOD_CONTROL) && action == GLFW_PRESS) {
+        if (m_uiBridge) {
+            UICommandData cmd;
+            switch (key) {
+                case GLFW_KEY_O:
+                    cmd.command = UICommand::ImportAsset;
+                    m_uiBridge->handleUICommand(cmd);
+                    break;
+                case GLFW_KEY_E:
+                    cmd.command = UICommand::ExportScene;
+                    m_uiBridge->handleUICommand(cmd);
+                    break;
+            }
+        }
+    }
+    
     // Quick gizmo mode switching while holding Shift
     if ((mods & GLFW_MOD_SHIFT) && action == GLFW_PRESS) {
         if (key == GLFW_KEY_Q) { m_gizmoMode = GizmoMode::Translate; m_renderer->setGizmoMode(m_gizmoMode); }

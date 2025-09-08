@@ -180,6 +180,18 @@ Plan
 
 ## IMPLEMENTATION HISTORY
 
+2025-09-08 - Unified Desktop File Dialog Implementation  
+- **Refactored**: Consolidated separate "Import Model..." and "Load Scene JSON..." menu items into single "Import Asset..." option
+- **Implemented**: Cross-platform file dialog wrapper (`engine/include/file_dialog.h`, `engine/src/file_dialog.cpp`) with Windows native API support
+- **Added**: Intelligent file type detection - automatically determines whether selected file is 3D model (.obj, .gltf, .fbx, etc.) or JSON scene based on extension
+- **Enhanced**: Combined file filters showing "All Assets" as primary option with separate categories for "3D Models" and "Scene Files"  
+- **Updated**: UI Commands replaced `ImportModel` and `ImportSceneJSON` with unified `ImportAsset` command
+- **Simplified**: Single keyboard shortcut (Ctrl+O) handles both model and scene importing; removed redundant Ctrl+L shortcut
+- **Improved**: Streamlined UI with single "Import Asset" button instead of two separate import buttons
+- **Features**: Native Windows file dialogs with proper filtering, Recent Files integration, Export Scene dialog with save functionality
+- **Benefits**: Cleaner interface, single workflow for any asset type, automatic file type handling, reduced user confusion
+- **Cross-platform**: Windows implementation complete, Linux/macOS placeholders ready for future implementation
+
 2025-09-08 - Sphere BRDF Testing Implementation
 - Fixed: OBJ loader face parsing to handle v/vt/vn format (objloader.cpp:44-65)
 - Fixed: Vector out of range error when loading sphere.obj with texture/normal indices
@@ -362,7 +374,7 @@ Exit Codes (for CI robustness)
 ## DESKTOP UI (IMGUI)
 
 Core Requirements
-- [ ] Drag-drop models; file menu
+- [x] Drag-drop models; file menu with unified import dialog
 - [x] Recent files (MRU) menu with persistence
 - [x] Scene tree; selection highlights; transform gizmo (translate/rotate/scale)
 - [x] Camera presets; orbit/fly controls
@@ -370,9 +382,10 @@ Core Requirements
 - [ ] Perf HUD: draw calls, triangles, materials, textures, VRAM estimate
 
 Implementation Status
-- Status: Improved (Scene Hierarchy + MRU added)
-- Location: engine/src/imgui_ui_layer.cpp
-- Implemented: File menu (Import/Export, Recent Files MRU), free-fly camera with speed/sensitivity, Scene Hierarchy panel (objects + lights) with select/rename/delete/duplicate and context menu, selection highlight, transform gizmo (translate/rotate/scale rendering and picking via Gizmo), camera preset quick buttons (toolbar), light editor (add/select/delete; enable/disable, intensity; edits per type: position/direction/cones), settings panel with modern theme, View toggles (Grid/Axes/Skybox), Performance HUD.
+- Status: Enhanced (Unified File Dialog System Completed)
+- Location: engine/src/imgui_ui_layer.cpp, engine/src/file_dialog.cpp
+- Implemented: **Unified File menu** with single "Import Asset..." dialog (auto-detects models vs JSON scenes), Export Scene with save dialog, Recent Files MRU with persistence, Scene Hierarchy panel (objects + lights) with select/rename/delete/duplicate and context menu, selection highlight, transform gizmo (translate/rotate/scale rendering and picking via Gizmo), camera preset quick buttons (toolbar), light editor (add/select/delete; enable/disable, intensity; edits per type: position/direction/cones), settings panel with modern theme, View toggles (Grid/Axes/Skybox), Performance HUD, keyboard shortcuts (Ctrl+O unified import, Ctrl+E export).
+- **File Dialog Features**: Native Windows file dialogs, intelligent file type detection, combined asset filters (All Assets, 3D Models, Scene Files), proper Recent Files integration
 - Missing: Snap controls UI, more detailed HUD metrics
 - Implementation Priority: MEDIUM for remaining items
 

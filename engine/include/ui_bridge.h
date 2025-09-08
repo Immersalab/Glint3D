@@ -150,8 +150,7 @@ enum class UICommand {
     ExitApplication,
     
     // File operations
-    ImportModel,
-    ImportSceneJSON,
+    ImportAsset,          // Unified import for models and JSON scenes
     ExportScene,
     OpenFile
 };
