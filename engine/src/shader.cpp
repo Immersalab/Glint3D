@@ -83,9 +83,9 @@ std::string Shader::loadShaderFromFile(const std::string& path)
 
     std::ifstream file(path);
     if (!file.is_open()) {
-        std::cerr << "❌ Failed to open shader: " << path << std::endl;
+        std::cerr << "Failed to open shader: " << path << std::endl;
         if (logFile.is_open())
-            logFile << "❌ Failed to open shader: " << path << "\n";
+            logFile << "Failed to open shader: " << path << "\n";
         return "";
     }
 
@@ -93,9 +93,9 @@ std::string Shader::loadShaderFromFile(const std::string& path)
     buffer << file.rdbuf();
     std::string shaderCode = buffer.str();
 
-    std::cerr << "✅ Opened shader file: " << path << std::endl;
+    std::cerr << "Opened shader file: " << path << std::endl;
     if (logFile.is_open()) {
-        logFile << "✅ Opened shader file: " << path << "\n";
+        logFile << "Opened shader file: " << path << "\n";
         logFile << "----- Shader Code Start -----\n";
         logFile << shaderCode << "\n";
         logFile << "----- Shader Code End -----\n\n";

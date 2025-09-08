@@ -394,6 +394,20 @@ void ImGuiUILayer::renderSceneHierarchyPanel(const UIState& state)
         static int renamingIndex = -1;
         static char renameBuf[256] = "";
 
+        // Enhanced keyboard shortcuts for objects
+        if (ImGui::IsWindowFocused()) {
+            // Delete key: Delete selected object
+            if (ImGui::Shortcut(ImGuiKey_Delete, ImGuiInputFlags_Repeat)) {
+                if (state.selectedObjectIndex >= 0 && state.selectedObjectIndex < (int)state.objectNames.size()) {
+                    UICommandData cmd; 
+                    cmd.command = UICommand::RemoveObject; 
+                    cmd.intParam = state.selectedObjectIndex; 
+                    if (onCommand) onCommand(cmd);
+                }
+            }
+            
+        }
+
         // List objects
         for (int i = 0; i < (int)state.objectNames.size(); ++i) {
             ImGui::PushID(i);
@@ -412,9 +426,9 @@ void ImGuiUILayer::renderSceneHierarchyPanel(const UIState& state)
                 }
                 if (ImGui::BeginPopupContextItem()) {
                     if (ImGui::MenuItem("Select")) { UICommandData cmd; cmd.command = UICommand::SelectObject; cmd.intParam = i; if (onCommand) onCommand(cmd);}            
-                    if (ImGui::MenuItem("Rename")) { renamingIndex = i; std::snprintf(renameBuf, sizeof(renameBuf), "%s", state.objectNames[i].c_str()); }
-                    if (ImGui::MenuItem("Duplicate")) { UICommandData cmd; cmd.command = UICommand::DuplicateObject; cmd.intParam = i; if (onCommand) onCommand(cmd);}            
-                    if (ImGui::MenuItem("Delete")) { UICommandData cmd; cmd.command = UICommand::RemoveObject; cmd.intParam = i; if (onCommand) onCommand(cmd);}                 
+                    if (ImGui::MenuItem("Rename", "F2")) { renamingIndex = i; std::snprintf(renameBuf, sizeof(renameBuf), "%s", state.objectNames[i].c_str()); }
+                    if (ImGui::MenuItem("Duplicate", "Ctrl+D")) { UICommandData cmd; cmd.command = UICommand::DuplicateObject; cmd.intParam = i; if (onCommand) onCommand(cmd);}            
+                    if (ImGui::MenuItem("Delete", "Del")) { UICommandData cmd; cmd.command = UICommand::RemoveObject; cmd.intParam = i; if (onCommand) onCommand(cmd);}                 
                     ImGui::EndPopup();
                 }
             }
@@ -424,6 +438,20 @@ void ImGuiUILayer::renderSceneHierarchyPanel(const UIState& state)
         // Lights listing
         ImGui::Separator();
         ImGui::Text("Lights (%d)", state.lightCount);
+        
+        // Enhanced keyboard shortcuts for lights when focused on this section
+        if (ImGui::IsWindowFocused() && state.selectedLightIndex >= 0) {
+            // Delete key: Delete selected light
+            if (ImGui::Shortcut(ImGuiKey_Delete, ImGuiInputFlags_Repeat)) {
+                if (state.selectedLightIndex >= 0 && state.selectedLightIndex < (int)state.lights.size()) {
+                    UICommandData cmd; 
+                    cmd.command = UICommand::DeleteLight; 
+                    cmd.intParam = state.selectedLightIndex; 
+                    if (onCommand) onCommand(cmd);
+                }
+            }
+        }
+        
         for (int i = 0; i < (int)state.lights.size(); ++i) {
             ImGui::PushID(10000 + i);
             const auto& L = state.lights[i];
@@ -436,10 +464,16 @@ void ImGuiUILayer::renderSceneHierarchyPanel(const UIState& state)
             }
             if (ImGui::BeginPopupContextItem()) {
                 if (ImGui::MenuItem("Select")) { UICommandData cmd; cmd.command = UICommand::SelectLight; cmd.intParam = i; if (onCommand) onCommand(cmd); }
-                if (ImGui::MenuItem("Delete")) { UICommandData cmd; cmd.command = UICommand::DeleteLight; cmd.intParam = i; if (onCommand) onCommand(cmd); }
+                if (ImGui::MenuItem("Delete", "Del")) { UICommandData cmd; cmd.command = UICommand::DeleteLight; cmd.intParam = i; if (onCommand) onCommand(cmd); }
                 ImGui::EndPopup();
             }
             ImGui::PopID();
+        }
+        
+        // Add light buttons
+        ImGui::Spacing();
+        if (ImGui::Button("Add Point Light", ImVec2(-1, 20))) {
+            UICommandData cmd; cmd.command = UICommand::AddPointLight; if (onCommand) onCommand(cmd);
         }
     }
     ImGui::End();
@@ -1304,6 +1338,16 @@ void ImGuiUILayer::renderHelpDialogs()
             ImGui::BulletText("Click on objects to select them");
             ImGui::BulletText("Selected objects show in the settings panel");
             ImGui::BulletText("Use gizmos to transform selected objects");
+            
+            ImGui::Spacing();
+            ImGui::Text("Delete & Duplicate Keys:");
+            ImGui::BulletText("Delete - Delete selected object or light");
+            ImGui::BulletText("Ctrl+D - Duplicate selected object");
+            
+            ImGui::Spacing();
+            ImGui::Text("File Operations:");
+            ImGui::BulletText("Ctrl+O - Import asset");
+            ImGui::BulletText("Ctrl+E - Export scene");
         }
         ImGui::End();
     }

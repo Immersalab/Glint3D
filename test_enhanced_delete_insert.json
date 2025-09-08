@@ -1,0 +1,31 @@
+[
+  {
+    "op": "load",
+    "path": "engine/assets/models/cube.obj",
+    "name": "TestCube",
+    "position": [0, 0, 0]
+  },
+  {
+    "op": "duplicate",
+    "source": "TestCube",
+    "name": "TestCube_copy",
+    "position": [2, 0, 0]
+  },
+  {
+    "op": "add_light",
+    "type": "point",
+    "position": [0, 3, 0],
+    "intensity": 2.0
+  },
+  {
+    "op": "add_light",
+    "type": "directional",
+    "direction": [-1, -1, -1],
+    "intensity": 1.5
+  },
+  {
+    "op": "set_camera",
+    "position": [4, 3, 4],
+    "target": [0, 0, 0]
+  }
+]

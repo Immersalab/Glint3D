@@ -510,6 +510,33 @@ void ApplicationCore::handleKey(int key, int scancode, int action, int mods)
         }
     }
     
+    // Delete key functionality - comprehensive delete system
+    if (action == GLFW_PRESS && key == GLFW_KEY_DELETE && m_uiBridge) {
+        UICommandData cmd;
+        
+        // Priority: Selected light > Selected object
+        if (m_selectedLightIndex >= 0) {
+            // Delete selected light
+            cmd.command = UICommand::DeleteLight;
+            cmd.intParam = m_selectedLightIndex;
+            m_uiBridge->handleUICommand(cmd);
+        } else {
+            // Delete selected object
+            int selectedObjectIndex = m_scene->getSelectedObjectIndex();
+            if (selectedObjectIndex >= 0) {
+                cmd.command = UICommand::RemoveObject;
+                cmd.intParam = selectedObjectIndex;
+                m_uiBridge->handleUICommand(cmd);
+            } else {
+                // No selection - show help message
+                if (m_uiBridge) {
+                    m_uiBridge->addConsoleMessage("Delete: Select an object or light first (click to select)");
+                }
+            }
+        }
+    }
+    
+    
     // File operation shortcuts
     if ((mods & GLFW_MOD_CONTROL) && action == GLFW_PRESS) {
         if (m_uiBridge) {
@@ -522,6 +549,17 @@ void ApplicationCore::handleKey(int key, int scancode, int action, int mods)
                 case GLFW_KEY_E:
                     cmd.command = UICommand::ExportScene;
                     m_uiBridge->handleUICommand(cmd);
+                    break;
+                case GLFW_KEY_D:
+                    // Ctrl+D: Duplicate selected object (alternative to Insert)
+                    {
+                        int selectedObjectIndex = m_scene->getSelectedObjectIndex();
+                        if (selectedObjectIndex >= 0) {
+                            cmd.command = UICommand::DuplicateObject;
+                            cmd.intParam = selectedObjectIndex;
+                            m_uiBridge->handleUICommand(cmd);
+                        }
+                    }
                     break;
             }
         }
