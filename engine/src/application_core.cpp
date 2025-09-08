@@ -142,21 +142,24 @@ void ApplicationCore::frame()
         if (glfwGetKey(m_window, GLFW_KEY_Q) == GLFW_PRESS) m_camera->moveDown(speed);
     }
     
-    // Update render system camera
-    m_renderer->setCamera(m_camera->getCameraState());
-    m_renderer->updateViewMatrix();
-    m_renderer->updateProjectionMatrix(m_windowWidth, m_windowHeight);
-    
-    // Clear and render scene
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    m_renderer->render(*m_scene, *m_lights);
-    
-    // Render UI
-    if (!m_headless) {
-        m_uiBridge->renderUI();
+    // Skip rendering if window is minimized (0x0 framebuffer)
+    if (m_windowWidth > 0 && m_windowHeight > 0) {
+        // Update render system camera
+        m_renderer->setCamera(m_camera->getCameraState());
+        m_renderer->updateViewMatrix();
+        m_renderer->updateProjectionMatrix(m_windowWidth, m_windowHeight);
+        
+        // Clear and render scene
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        m_renderer->render(*m_scene, *m_lights);
+        
+        // Render UI
+        if (!m_headless) {
+            m_uiBridge->renderUI();
+        }
+        
+        glfwSwapBuffers(m_window);
     }
-    
-    glfwSwapBuffers(m_window);
 }
 
 void ApplicationCore::shutdown()
@@ -480,6 +483,11 @@ void ApplicationCore::handleMouseButton(int button, int action, int mods)
 
 void ApplicationCore::handleFramebufferResize(int width, int height)
 {
+    // Don't update anything if window is minimized (0x0 framebuffer)
+    if (width <= 0 || height <= 0) {
+        return;
+    }
+    
     m_windowWidth = width;
     m_windowHeight = height;
     glViewport(0, 0, width, height);
