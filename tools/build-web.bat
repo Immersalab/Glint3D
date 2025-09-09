@@ -66,15 +66,26 @@ echo ^>^>^> Step 2: Copying WASM artifacts to web frontend
 REM Create engine directory in web public folder
 if not exist "web\public\engine" mkdir web\public\engine
 
-REM Copy engine files (handle both possible output names)
+REM Copy engine files (handle both possible output names and rename as needed)
 if exist "builds\web\emscripten\glint3d.js" (
     copy builds\web\emscripten\glint3d.* web\public\engine\ >nul
     echo ✓ Copied glint3d.* files to web\public\engine\
 ) else if exist "builds\web\emscripten\objviewer.js" (
-    copy builds\web\emscripten\objviewer.* web\public\engine\ >nul
-    echo ✓ Copied objviewer.* files to web\public\engine\
+    REM Copy and rename objviewer -> glint3d for frontend compatibility
+    copy builds\web\emscripten\objviewer.js web\public\engine\glint3d.js >nul
+    copy builds\web\emscripten\objviewer.wasm web\public\engine\glint3d.wasm >nul
+    copy builds\web\emscripten\objviewer.data web\public\engine\glint3d.data >nul
+    if exist "builds\web\emscripten\objviewer.html" copy builds\web\emscripten\objviewer.html web\public\engine\glint3d.html >nul
+    echo ✓ Copied and renamed objviewer.* to glint3d.* files to web\public\engine\
+) else if exist "builds\web\emscripten\glint.js" (
+    REM Handle glint target name
+    copy builds\web\emscripten\glint.js web\public\engine\glint3d.js >nul
+    copy builds\web\emscripten\glint.wasm web\public\engine\glint3d.wasm >nul
+    copy builds\web\emscripten\glint.data web\public\engine\glint3d.data >nul
+    if exist "builds\web\emscripten\glint.html" copy builds\web\emscripten\glint.html web\public\engine\glint3d.html >nul
+    echo ✓ Copied and renamed glint.* to glint3d.* files to web\public\engine\
 ) else (
-    echo Error: No engine WASM artifacts found. Expected glint3d.* or objviewer.* files.
+    echo Error: No engine WASM artifacts found. Expected glint3d.*, objviewer.*, or glint.* files.
     exit /b 1
 )
 

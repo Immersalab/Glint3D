@@ -34,6 +34,20 @@ export async function init(canvas: HTMLCanvasElement) {
   // Prepare Module before loading engine
   (window as any).Module = (window as any).Module || {}
   window.Module.canvas = canvas
+  // Surface Emscripten status updates in dev console (helps diagnose data file fetch)
+  window.Module.setStatus = (s: string) => { try { console.debug('[Engine]', s) } catch {} }
+  // Extra diagnostics for init failures
+  window.Module.onAbort = (what: any) => { try { console.error('[Engine abort]', what) } catch {} }
+  window.Module.onExit = (code: number) => { try { console.warn('[Engine exit]', code) } catch {} }
+  window.Module.onRuntimeInitialized = () => { try { console.info('[Engine] runtime initialized') } catch {} }
+  
+  // Fix filename mismatch: emscripten generates objviewer.* but we renamed to glint3d.*
+  window.Module.locateFile = (path: string, scriptDirectory: string) => {
+    if (path === 'objviewer.wasm') return scriptDirectory + 'glint3d.wasm'
+    if (path === 'objviewer.data') return scriptDirectory + 'glint3d.data'
+    return scriptDirectory + path
+  }
+  
   await loadEngine()
   await waitForModuleReady()
   // Wait for app to be ready (g_app set)

@@ -85,7 +85,6 @@ set(CORE_SOURCES
     ${SRC_DIR}/assimp_loader.cpp
     ${SRC_DIR}/triangle.cpp
     ${SRC_DIR}/json_ops.cpp
-    ${SRC_DIR}/glad.c
     ${SRC_DIR}/brdf.cpp
     ${SRC_DIR}/file_dialog.cpp
 )

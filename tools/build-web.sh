@@ -74,15 +74,26 @@ print_step "Step 2: Copying WASM artifacts to web frontend"
 # Create engine directory in web public folder
 mkdir -p web/public/engine
 
-# Copy engine files (handle both possible output names)
+# Copy engine files (handle both possible output names and rename as needed)
 if [[ -f "builds/web/emscripten/glint3d.js" ]]; then
     cp builds/web/emscripten/glint3d.* web/public/engine/
     print_success "Copied glint3d.* files to web/public/engine/"
 elif [[ -f "builds/web/emscripten/objviewer.js" ]]; then
-    cp builds/web/emscripten/objviewer.* web/public/engine/
-    print_success "Copied objviewer.* files to web/public/engine/"
+    # Copy and rename objviewer -> glint3d for frontend compatibility
+    cp builds/web/emscripten/objviewer.js web/public/engine/glint3d.js
+    cp builds/web/emscripten/objviewer.wasm web/public/engine/glint3d.wasm
+    cp builds/web/emscripten/objviewer.data web/public/engine/glint3d.data
+    [[ -f "builds/web/emscripten/objviewer.html" ]] && cp builds/web/emscripten/objviewer.html web/public/engine/glint3d.html
+    print_success "Copied and renamed objviewer.* -> glint3d.* files to web/public/engine/"
+elif [[ -f "builds/web/emscripten/glint.js" ]]; then
+    # Handle glint target name
+    cp builds/web/emscripten/glint.js web/public/engine/glint3d.js
+    cp builds/web/emscripten/glint.wasm web/public/engine/glint3d.wasm
+    cp builds/web/emscripten/glint.data web/public/engine/glint3d.data
+    [[ -f "builds/web/emscripten/glint.html" ]] && cp builds/web/emscripten/glint.html web/public/engine/glint3d.html
+    print_success "Copied and renamed glint.* -> glint3d.* files to web/public/engine/"
 else
-    print_error "No engine WASM artifacts found. Expected glint3d.* or objviewer.* files."
+    print_error "No engine WASM artifacts found. Expected glint3d.*, objviewer.*, or glint.* files."
     exit 1
 fi
 

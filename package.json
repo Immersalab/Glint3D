@@ -18,7 +18,7 @@
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "engine:build": "./tools/build-and-run.sh build",
+    "engine:build": "./build-and-run.sh release",
     "engine:build:web": "./tools/build-web.sh Release",
     "web:build": "./tools/build-web.sh",
     "engine:serve": "emrun --no_browser --port 8080 builds/web/emscripten/glint.html",

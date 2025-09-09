@@ -8,7 +8,7 @@ This directory contains build scripts, testing tools, and utilities for the Glin
 Primary build script for desktop applications.
 - Cross-platform CMake compilation
 - Debug and Release build modes  
-- Usage: `./tools/build-and-run.sh [build|run]`
+- Usage: `./build-and-run.sh [debug|release] [args...]`
 
 ### `build-web.sh` / `build-web.bat` 
 Complete web build pipeline (WASM engine + React frontend).

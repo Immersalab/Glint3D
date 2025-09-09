@@ -11,7 +11,7 @@ This document tracks the implementation status of features required for the Publ
 
 ---
 
-## ✅ IMPLEMENTED FEATURES
+## IMPLEMENTED FEATURES
 
 ### Core Architecture
 - [x] **React 18 + TypeScript + Tailwind CSS** - Modern frontend stack
@@ -55,29 +55,29 @@ This document tracks the implementation status of features required for the Publ
 
 ---
 
-## ⚠️ PARTIALLY IMPLEMENTED
+## PARTIALLY IMPLEMENTED
 
 ### State Management & Sharing
 - [~] **Share links** - Basic implementation via `app_share_link()` 
-  - ✅ Function exists and generates links
-  - ❌ URL-based state restoration (`?state=` parameter handling)
-  - ❌ Base64URL encoding/decoding for state serialization
+  - Function exists and generates links
+  - URL-based state restoration (`?state=` parameter handling)
+  - Base64URL encoding/decoding for state serialization
 
 ### Rendering Features  
 - [~] **Tone mapping** - Engine supports it, UI controls missing
-  - ✅ Engine has Linear/Reinhard/Filmic/ACES support
-  - ❌ UI sliders for exposure/gamma controls
-  - ❌ Web UI tone mapping selector
+  - Engine has Linear/Reinhard/Filmic/ACES support
+  - UI sliders for exposure/gamma controls
+  - Web UI tone mapping selector
 
 ### Asset Pipeline
 - [~] **Texture loading** - Basic support, needs optimization
-  - ✅ Basic texture loading via file system
-  - ❌ Automatic texture downscaling (4K → 2K)
-  - ❌ Texture size validation and warnings
+  - Basic texture loading via file system
+  - Automatic texture downscaling (4K → 2K)
+  - Texture size validation and warnings
 
 ---
 
-## ❌ NOT IMPLEMENTED (Required for Public Beta)
+## NOT IMPLEMENTED (Required for Public Beta)
 
 ### Critical Missing Features
 
@@ -130,7 +130,7 @@ This document tracks the implementation status of features required for the Publ
 
 ---
 
-## 🔄 INTENTIONALLY EXCLUDED (Desktop Only)
+## INTENTIONALLY EXCLUDED (Desktop Only)
 
 ### High-Performance Features
 - [ ] **CPU raytracer** - Headless rendering (desktop only)
@@ -147,7 +147,7 @@ This document tracks the implementation status of features required for the Publ
 
 ---
 
-## 🎯 ACCEPTANCE CRITERIA FOR PUBLIC BETA
+## ACCEPTANCE CRITERIA FOR PUBLIC BETA
 
 ### Core Functionality Tests
 - [ ] **Share link test** - `?state=` loads with correct camera/lights/materials
@@ -172,7 +172,7 @@ This document tracks the implementation status of features required for the Publ
 
 ---
 
-## 📋 IMPLEMENTATION PRIORITY
+## IMPLEMENTATION PRIORITY
 
 ### Phase 1: Critical Path (Blocking Beta)
 1. **State serialization system** - URL-based sharing foundation
@@ -194,7 +194,7 @@ This document tracks the implementation status of features required for the Publ
 
 ---
 
-## 📊 IMPLEMENTATION ESTIMATE
+## IMPLEMENTATION ESTIMATE
 
 **Total Features**: 45 required features  
 **Implemented**: 25 features (56%)  
@@ -207,7 +207,7 @@ This document tracks the implementation status of features required for the Publ
 
 ---
 
-## 🔗 RELATED DOCUMENTATION
+## RELATED DOCUMENTATION
 
 - [JSON Ops v1 Specification](../docs/schemas/json_ops_v1.json)
 - [Architecture Overview](../CLAUDE.md#architecture-overview)
