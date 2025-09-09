@@ -58,7 +58,7 @@ void Grid::render(const glm::mat4& view, const glm::mat4& projection)
     m_shader->setMat4("view", view);
     m_shader->setMat4("projection", projection);
 
-    m_shader->setVec3("gridColor", Colors::Red);
+    m_shader->setVec3("gridColor", Colors::LightGray);
 
     glBindVertexArray(m_VAO);
     glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(m_lineVertices.size()));
