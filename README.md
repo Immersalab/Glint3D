@@ -1,16 +1,13 @@
-# Glint3D ✨️ Roadmap, Use Cases, and Engineering Plan
+# Glint3D ✨ Roadmap, Use Cases, and Engineering Plan
 
-A modern **OpenGL viewer and CPU raytracer** with **AI-powered tools** and cross-platform builds.  
-Runs on desktop (GLFW/GLAD/ImGui) and web (WebGL2 via Emscripten) with a new React/Tailwind UI.  
+A modern **lightweight 3D rendering engine** with **automation and AI-supported workflows**.  
+Runs on **desktop (OpenGL/GLFW/ImGui)** and **web (WebGL2 via Emscripten)**, with a new **React/Tailwind UI** in development.  
 
-> **High ‘level pitch:**  
-> **Glint3D** is a fast, lightweight 3D viewer and renderer built for **automation and reproducibility**.  
-> It runs the same on **desktop and in the browser**, so teams can **view, test, embed, and share** 3D scenes anywhere.  
-> Unlike heavy 3D tools, it focuses on **deterministic JSON Ops** and **headless rendering** for CI/CD and bulk rendering.  
-> **Optional AI** adds friendly diagnostics and naturalâ€‘language scene setup without sacrificing determinism.
->
-> <img width="1918" height="1022" alt="image" src="https://github.com/user-attachments/assets/339167ae-2f39-4b92-8111-5668ffe989cd" />
-
+> **High-Level Pitch:**  
+> **Glint3D** is a fast, automation-first 3D viewer and renderer built for **determinism, reproducibility, and AI integration**.  
+> It runs the same on **desktop and in the browser**, so teams can **view, embed, test, and share** 3D scenes anywhere.  
+> Unlike heavy DCC tools, Glint3D focuses on **JSON Ops scripting**, **headless rendering**, and **shareable results**.  
+> **AI support** means external AI systems can easily drive rendering pipelines, generate datasets, or analyze outputs.
 
 ---
 
@@ -27,18 +24,19 @@ Runs on desktop (GLFW/GLAD/ImGui) and web (WebGL2 via Emscripten) with a new Rea
 10. [Build Notes](#build-notes)  
 11. [Repo Layout](#repo-layout)  
 12. [Samples](#samples)  
-13. [Who Itâ€™s For & When It Wins](#who-its-for--when-it-wins)  
-14. [Why Use This Viewer](#why-use-this-viewer-strengths)  
+13. [Who It’s For & When It Wins](#who-its-for--when-it-wins)  
+14. [Why Use Glint3D](#why-use-glint3d-strengths)  
 15. [Not In Scope](#not-in-scope)  
-16. [Roadmap (Phased)](#roadmap-phased)  
-17. [Feature Checklist](#feature-checklist-by-phase)  
-18. [Use Cases](#use-cases)  
-19. [Refactor TODOs](#refactor-todos-code-level)  
-20. [Implementation Notes](#implementation-notes)  
-21. [Testing Strategy](#testing-strategy)  
-22. [Modern Technologies](#modern-technologies-to-consider)  
-23. [Milestones](#milestone-checklists)  
-24. [Appendix: JSON Ops Example](#appendix-json-ops-example)
+16. [Graphics API Evolution Roadmap](#graphics-api-evolution-roadmap)  
+17. [Roadmap (Phased)](#roadmap-phased)  
+18. [Feature Checklist](#feature-checklist-by-phase)  
+19. [Use Cases](#use-cases)  
+20. [Refactor TODOs](#refactor-todos-code-level)  
+21. [Implementation Notes](#implementation-notes)  
+22. [Testing Strategy](#testing-strategy)  
+23. [Modern Technologies](#modern-technologies-to-consider)  
+24. [Milestones](#milestone-checklists)  
+25. [Appendix: JSON Ops Example](#appendix-json-ops-example)
 
 ---
 
@@ -87,7 +85,7 @@ Open the printed URL. Drag & drop `.obj/.ply/.glb` onto the canvas. Use the Cons
 
 ## JSON Ops v1 (Bridge)
 
-The engine exposes a simple JSON operation API, used by both the ImGui and Web UIs.
+Glint3D’s JSON Ops API is **the automation core**. It’s designed for both **human reproducibility** and **AI-driven pipelines**, ensuring renders are deterministic and scriptable.  
 
 Example:
 ```json
@@ -99,9 +97,9 @@ Example:
 ```
 
 Exports to JS (Emscripten):
-- `app_apply_ops_json(json)` â€” apply a single op or array  
-- `app_share_link()` â€” export a shareable state link  
-- `app_scene_to_json()` â€” get current scene snapshot  
+- `app_apply_ops_json(json)` — apply a single op or array  
+- `app_share_link()` — export a shareable state link  
+- `app_scene_to_json()` — get current scene snapshot  
 
 Docs: `docs/json_ops_v1.md` (schema in `schemas/json_ops_v1.json`).  
 
@@ -109,33 +107,29 @@ Docs: `docs/json_ops_v1.md` (schema in `schemas/json_ops_v1.json`).
 
 ## Highlights
 
-- Natural-language commands via AI â†’ JSON Ops v1 scripting  
-- Raster path with **PBR (Cookâ€“Torrance)** and flat/Gouraud modes  
-- CPU raytracer with BVH + optional OpenImageDenoise  
-- **â€œWhy is it black?â€ diagnostics** with one-click fixes  
-- **Performance Coach HUD** with actionable suggestions  
-- Shareable scene state (JSON Ops v1) + headless CLI renderer  
-- Native OBJ loader; optional unified loader (glTF/GLB/FBX/DAE/PLY) via Assimp  
-- Texture cache deduplicates loads; per-object shader choice  
+- **Automation-first**: JSON Ops for repeatable, scriptable scene setup and rendering  
+- **Headless rendering + CLI** for CI/CD, bulk jobs, and dataset generation  
+- **AI-supported**: external AI agents can issue Ops, request batches, or validate outputs  
+- **Cross-platform parity**: same engine on **desktop + web**, no GPU installs required  
+- **Two rendering paths**:  
+  - **Raster (real-time)** with modern PBR (Cook–Torrance), gizmos, and SSR transparency  
+  - **CPU raytracer** with BVH acceleration and optional denoising  
+- **Shareable states**: export Ops, scene JSON, and deep links  
+- **Diagnostics tools**: *“Why is it black?”* checks, performance HUD, actionable tips  
 
 ---
 
 ## New Tools (MVPs)
 
-### 1) Explain-my-render: â€œWhy is it black?â€
-Detects and offers one-click fixes:
-- Missing normals â†’ Recompute angle-weighted normals  
-- Bad winding (mostly backfacing) â†’ Flip triangle order + invert normals  
-- No lights / tone-mapped black â†’ Add a neutral key light  
-- sRGB mismatch â†’ Toggle framebuffer sRGB  
+### 1) Explain-my-render
+Quick, automated diagnostics with **one-click fixes** for common issues:  
+- Missing normals → Recompute  
+- Bad winding → Flip and invert  
+- No lights → Add neutral key light  
+- sRGB mismatch → Toggle framebuffer sRGB  
 
 ### 2) Perf Coach HUD
-Overlay shows: draw calls, total triangles, materials, textures, VRAM estimate.  
-Suggestions:
-- Meshes share a material â†’ instancing candidate  
-- High draw calls â†’ merge static meshes or instance  
-- High triangle count â†’ consider LOD/decimation  
-- Optional: **â€œAsk AI for perf tipsâ€** when AI is enabled  
+Overlay with actionable insights (draw calls, VRAM, instancing candidates) — usable by humans or **AI pipelines**.  
 
 ---
 
@@ -149,11 +143,11 @@ Suggestions:
 
 ## Menubar
 
-- File â†’ Load Cube/Plane, Copy Share Link, Settings  
-- View â†’ Point/Wire/Solid/Raytrace, Fullscreen, Perf HUD  
-- Gizmo â†’ Mode, Axis, Local/Snap  
-- Samples â†’ Prebuilt recipes (`examples/json-ops/`)  
-- Toolbar â†’ Mode, Gizmo, Add Light, Denoise, Why is it black?  
+- File → Load, Copy Share Link, Settings  
+- View → Point/Wire/Solid/Raytrace, Fullscreen, Perf HUD  
+- Gizmo → Mode, Axis, Local/Snap  
+- Samples → Prebuilt recipes (`examples/json-ops/`)  
+- Toolbar → Mode, Gizmo, Add Light, Denoise, Diagnostics  
 
 ---
 
@@ -173,203 +167,193 @@ Options:
 
 ## Troubleshooting
 
-- **Black frame (raster)**: use â€œWhy is it black?â€ panel, add lights, check normals, flip winding if needed.  
-- **Dark/washed PBR**: avoid double-gamma (disable FB sRGB if needed).  
-- **Headless asset paths**: run from repo root or use absolute paths.  
+- **Black frame**: run diagnostics (*Why is it black?*), add lights, check normals  
+- **Dark/washed PBR**: avoid double-gamma (disable FB sRGB if needed)  
+- **Headless asset paths**: run from repo root or use absolute paths  
 
 ---
 
 ## Build Notes
 
-- Toolchain: Visual Studio 2022, C++17, x64.  
-- Third-party: GLFW, ImGui, stb, GLM under `Libraries/`.  
-- Optional: Assimp via vcpkg (`USE_ASSIMP`) for non-OBJ formats.  
-- Optional: KTX2 via `ENABLE_KTX2` if libktx is available.  
+- Toolchain: Visual Studio 2022, C++17, x64  
+- Third-party: GLFW, ImGui, stb, GLM  
+- Optional: Assimp (multi-format import), libktx (KTX2 textures)  
 
 ---
 
 ## Repo Layout
 
-- `engine/src/` â€” rendering, UI, loaders, raytracer  
-- `engine/include/` â€” headers  
-- `engine/shaders/` â€” GLSL  
-- `engine/assets/—sample models and textures   
-- `builds/` â€” organized build outputs (desktop/web/vs)
-- `examples/json-ops/` â€” sample JSON Operations files
-- `docs/` â€” JSON Ops documentation  
+- `engine/src/` — rendering, UI, loaders, raytracer  
+- `engine/include/` — headers  
+- `engine/shaders/` — GLSL  
+- `engine/assets/` — sample models/textures   
+- `builds/` — organized build outputs (desktop/web/vs)  
+- `examples/json-ops/` — sample JSON Ops  
+- `docs/` — JSON Ops documentation  
 
 ---
 
 ## Samples
 
-Use the Samples menu or load recipes manually:
 - `examples/json-ops/three-point-lighting.json`  
 - `examples/json-ops/isometric-hero.json`  
-- `examples/json-ops/studio-turntable.json`
+- `examples/json-ops/studio-turntable.json`  
 - `examples/json-ops/turntable-cli.json`  
 
 ---
 
-## Who Itâ€™s For & When It Wins
+## Who It’s For & When It Wins
 
-### Who Itâ€™s For
-- **Engineering/product teams** needing repeatable viewport renders in CI/CD (game studios, CAD/PLM, digital twins).  
-- **Developers & technical artists** embedding a viewer in docs, portals, or internal tools.  
-- **ML/vision pipelines** requiring deterministic outputs.  
-- **Educators & labs** needing portable viewers with headless capabilities.  
+### Who It’s For
+- **Engineering/product teams** needing repeatable viewport renders in CI/CD  
+- **Developers/technical artists** embedding lightweight viewers in docs or portals  
+- **AI & ML teams** needing deterministic datasets or synthetic sweeps  
+- **Educators & labs** needing portable, zero-install 3D visualization  
 
 ### When It Wins
-- Automation pipelines (JSON Ops + headless)  
-- Embedding in web/docs with zero install  
-- Quick inspection without full DCC complexity  
-- Deterministic sharing across teams  
+- Automated pipelines (JSON Ops + headless CLI)  
+- Cross-platform reproducibility (desktop ↔ web)  
+- Shareable links with zero install  
+- **AI-supported workflows** that demand scalable, scriptable rendering  
 
 ---
 
-## Why Use This Viewer (Strengths)
+## Why Use Glint3D (Strengths)
 
-- Lightweight speed, reproducible workflows, headless rendering  
-- Desktop + web parity with embeddable SDK  
-- Shareable JSON Ops state and deep links  
-- Modern PBR, grid/gizmos, perf HUD  
-- Automation-first with optional AI assistants  
-- Extensible importers, texture pipeline, and open-source codebase  
+- **AI-supported automation**: easy integration with pipelines, agents, or CI/CD  
+- **Lightweight & reproducible**: no heavy DCC installs or GPU dependency  
+- **Web + desktop parity**: same results everywhere  
+- **Instant sharing**: JSON Ops snapshots + deep links  
+- **Modern rendering**: PBR materials, diagnostics, perf HUD  
 
 ---
 
 ## Not In Scope
 - Not a modeling/animation suite  
-- Not a full DCC replacement â€” complements your pipeline  
+- Not a full DCC replacement — complements existing pipelines  
 
 ---
 
 ## Graphics API Evolution Roadmap
 
 ### Current: OpenGL/WebGL2 Foundation
-- **Desktop**: OpenGL 3.3+ core profile with complete feature set
-- **Web**: WebGL 2.0 with shader compatibility and asset preloading
-- **Status**: Stable, production-ready, cross-platform compatibility
+- **Desktop**: OpenGL 3.3+  
+- **Web**: WebGL 2.0  
+- **Status**: Stable cross-platform baseline  
 
 ### Next: Vulkan/WebGPU Migration (Planned)
-- **Desktop Vulkan**: Modern low-level graphics API for maximum performance
-- **Web WebGPU**: Next-generation web graphics with compute shader support
-- **Benefits**: Explicit resource management, better multi-threading, compute integration
-- **Timeline**: Architecture preparation in progress, migration planned for future releases
+- **Desktop Vulkan**: modern low-level API  
+- **Web WebGPU**: next-gen graphics with compute  
+- **Benefits**: explicit resource management, multi-threading, compute integration  
 
-### Future: Advanced Rendering Techniques
-- **Gaussian Splatting**: Point-based rendering for photorealistic real-time scenes
-- **Neural Radiance Fields (NeRF)**: AI-powered view synthesis and scene representation
-- **Hybrid Approaches**: Combining traditional rasterization with neural rendering methods
-
-### Development Philosophy
-When contributing to Glint3D, please consider the graphics API evolution:
-- Design render interfaces to be API-agnostic where possible
-- Avoid OpenGL-specific optimizations that won't translate to Vulkan/WebGPU
-- Consider explicit resource management patterns for future APIs
-- Plan for compute shader integration in pipeline design
+### Future: Advanced Rendering
+- **Gaussian Splatting**: photorealistic point-based rendering  
+- **Neural Radiance Fields (NeRF)**: AI-supported view synthesis  
+- **Hybrid Pipelines**: raster + neural methods  
 
 ---
 
 ## Roadmap (Phased)
 
-### Phase 1 â€“ Core Foundations  
-- Engine core (OpenGL/WebGL2, raster renderer)  
+### Phase 1 – Core Foundations  
+- Raster renderer (OpenGL/WebGL2)  
 - CPU raytracer (BVH + optional denoise)  
-- JSON Ops v1 (deterministic load, transform, lights, camera, render)  
+- JSON Ops v1  
 - Headless CLI rendering  
 
-### Phase 2 â€“ Usability  
+### Phase 2 – Usability  
 - Desktop ImGui UI, gizmos, perf HUD  
-- Web React/Tailwind wrapper, drag & drop, JSON console  
+- Web React/Tailwind wrapper  
 - Importer registry (OBJ baseline, Assimp optional)  
-- Texture cache + optional KTX2/Basis  
+- Texture cache + KTX2/Basis support  
 
-### Phase 3 â€“ Collaboration  
-- Web SDK for embedding (`viewer.js`)  
-- Shareable links + deep state reproduction  
+### Phase 3 – Collaboration  
+- Web SDK for embedding  
+- Shareable links + deep state  
 - Golden-test CI/CD mode  
-- Pipeline hooks (GitHub/GitLab templates)  
+- Pipeline hooks (CI templates)  
 
-### Phase 4 â€“ AI Augmentation (Optional)  
-- Diagnostics assistant (â€œWhy is it black?â€)  
-- Natural-language â†’ JSON Ops bridge  
-- Perf Coach with AI recommendations  
+### Phase 4 – AI Support  
+- Diagnostics assistant  
+- Natural-language → JSON Ops bridge  
+- Perf Coach with AI-backed recommendations  
 
-### Phase 5 â€" Graphics Evolution
-- **Vulkan/WebGPU Migration**: Modern graphics APIs with compute support
-- **Neural Rendering**: Integration of Gaussian splatting and NeRF techniques
-- **Advanced Pipeline**: Next-generation rendering features and performance
+### Phase 5 – Graphics Evolution  
+- Vulkan/WebGPU backends  
+- Neural rendering (splats/NeRF)  
+- Advanced hybrid pipelines  
 
 ---
 
 ## Feature Checklist by Phase
-
-(See roadmap above for checkboxes and milestones.)
+*(matches roadmap above)*
 
 ---
 
 ## Use Cases
 
 - **Engineering/Dev**: CI/CD golden tests, automated validation, thumbnails  
-- **Web/docs**: embeddable viewers, shareable links, reproducible labs  
-- **Art/creative**: lookdev previews, perf checks, reference viewer  
-- **ML/research**: deterministic datasets, synthetic sweeps, benchmarking  
+- **Web/docs**: embeddable viewers, reproducible labs, shareable states  
+- **Creative/lookdev**: quick previews, perf checks, lightweight viewer  
+- **ML/research**: deterministic datasets, sweeps, benchmarking  
 
 ---
 
-## Refactor TODOs (Codeâ€‘level)
-(See detailed engineering plan.)
+## Refactor TODOs (Code-level)
+*(see engineering notes; focus on RHI abstraction, unified MaterialCore, SSR refraction, hybrid mode)*
 
 ---
 
 ## Implementation Notes
-(Strict JSON parsing, headless FBO path, optional denoiser, importer fallbacks, AI integration guarded.)
+- Strict JSON parsing  
+- Headless FBO path  
+- Optional denoiser  
+- Importer fallbacks  
+- AI support guarded by build flags  
 
 ---
 
 ## Testing Strategy
 
-Comprehensive test organization with hierarchical structure under `tests/`:
-
 ```bash
 # Run all test categories
 tests/scripts/run_all_tests.sh
-
-# Run specific test categories
-tests/scripts/run_unit_tests.sh        # C++ unit tests
-tests/scripts/run_integration_tests.sh # JSON ops integration tests  
-tests/scripts/run_security_tests.sh    # Security vulnerability tests
-tests/scripts/run_golden_tests.sh      # Visual regression tests
 ```
 
-**Test Categories:**
-- **Unit tests** (`tests/unit/`): Core system functionality (camera presets, path security)
-- **Integration tests** (`tests/integration/`): JSON ops workflows organized by feature area  
-- **Security tests** (`tests/security/`): Path traversal protection and attack vectors
-- **Golden image tests** (`tests/golden/`): Visual regression with SSIM comparison
-- **Test assets** (`tests/data/`): Standardized models and fixtures  
+Categories:
+- **Unit tests** (`tests/unit/`)  
+- **Integration tests** (`tests/integration/`)  
+- **Security tests** (`tests/security/`)  
+- **Golden image tests** (`tests/golden/`) with SSIM/PSNR  
+- **Test assets** (`tests/data/`)  
 
 ---
 
 ## Modern Technologies to Consider
-- ECS (EnTT), render graph, RapidJSON/nlohmann, KTX2/Basis  
-- Tooling: CMake + vcpkg, GitHub Actions, Tracy, spdlog, clang-tidy  
-- UI/UX: ImGui (desktop), React/TypeScript (web)  
+- ECS (EnTT), lightweight RenderGraph  
+- RapidJSON / nlohmann JSON  
+- Tracy profiler, spdlog  
+- clang-tidy, GitHub Actions CI  
+- ImGui (desktop), React/TypeScript (web)  
 
 ---
 
 ## Milestone Checklists
 
 ### MVP
-- JSON Ops v1 bridge, offscreen FBO render, gizmo rotate/scale  
-- Headless CLI end-to-end  
+- JSON Ops v1 bridge  
+- Offscreen FBO render  
+- Headless CLI  
 - Cross-platform desktop builds  
 
 ### Quality
-- Unit + golden tests, clang-tidy, crash handling  
+- Unit + golden tests  
+- clang-tidy, crash handling  
 
 ### Features
-- IBL/HDR, denoiser, glTF polish + KTX2  
+- IBL/HDR  
+- Denoiser integration  
+- glTF/KTX2 polish  
 
 ---
 
@@ -382,4 +366,4 @@ tests/scripts/run_golden_tests.sh      # Visual regression tests
   {"op":"render","out":"out/hero.png","width":1280,"height":720}
 ]
 ```
--  `schemas/` — JSON schemas (e.g., json_ops_v1.json)   
+- `schemas/` — JSON schemas (e.g., json_ops_v1.json)  
