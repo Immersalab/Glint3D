@@ -55,6 +55,8 @@ struct UIState {
     
     // Objects list for hierarchy UI
     std::vector<std::string> objectNames;
+    // Optional: parent indices for tree UI (-1 = root). If empty or size mismatch, UI renders flat.
+    std::vector<int> objectParentIndex;
     
     // Light details for UI editing
     struct LightUI {
@@ -153,6 +155,9 @@ enum class UICommand {
     ImportAsset,          // Unified import for models and JSON scenes
     ExportScene,
     OpenFile
+    ,
+    // Hierarchy operations
+    ReparentObject
 };
 
 struct UICommandData {
@@ -160,6 +165,7 @@ struct UICommandData {
     std::string stringParam;
     float floatParam = 0.0f;
     int intParam = 0;
+    int intParam2 = 0;
     glm::vec3 vec3Param{0.0f};
     bool boolParam = false;
 };

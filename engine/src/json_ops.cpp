@@ -441,8 +441,12 @@ bool JsonOpsExecutor::apply(const std::string& json, std::string& error)
                 transform[3] = glm::vec4(newPos, 1.0f);
             }
 
-            // Apply the transformation
-            const_cast<SceneObject*>(targetObj)->modelMatrix = transform;
+            // Apply the transformation to local matrix and update hierarchy
+            const_cast<SceneObject*>(targetObj)->localMatrix = transform;
+            int objIndex = m_scene.findObjectIndex(name);
+            if (objIndex != -1) {
+                m_scene.updateWorldTransform(objIndex);
+            }
             return true;
         }
         else if (op == "render_image") {
@@ -505,6 +509,20 @@ bool JsonOpsExecutor::apply(const std::string& json, std::string& error)
             std::string name = obj["name"].GetString();
             bool success = m_scene.deleteObject(name);
             if (!success) { error = "remove: object '" + name + "' not found"; return false; }
+            return true;
+        }
+        else if (op == "reparent") {
+            if (!obj.HasMember("child") || !obj["child"].IsString()) { error = "reparent: missing 'child'"; return false; }
+            std::string childName = obj["child"].GetString();
+            
+            std::string parentName = "";
+            if (obj.HasMember("parent") && obj["parent"].IsString()) {
+                parentName = obj["parent"].GetString();
+            }
+            // If parent is not specified or empty, reparent to root (parent = "")
+            
+            bool success = m_scene.reparentObject(childName, parentName);
+            if (!success) { error = "reparent: failed to reparent '" + childName + "' to '" + parentName + "'"; return false; }
             return true;
         }
         else if (op == "orbit_camera") {

@@ -1,5 +1,6 @@
 #include "imgui_ui_layer.h"
 #include "ui_bridge.h"
+#include "panels/scene_tree_panel.h"
 #include "gl_platform.h"
 #include "render_utils.h"
 #include <GLFW/glfw3.h>
@@ -152,14 +153,14 @@ void ImGuiUILayer::render(const UIState& state)
     // Render main menu bar
     renderMainMenuBar(state);
     
+    // Left Scene Tree panel (terminal-style)
+    panels::RenderSceneTree(state, onCommand);
+
     // Render settings panel
     if (m_showSettingsPanel) {
         renderSettingsPanel(state);
     }
-    // Render scene hierarchy panel
-    if (m_showHierarchyPanel) {
-        renderSceneHierarchyPanel(state);
-    }
+    // Scene hierarchy is now integrated into the settings panel
     
     // Render performance HUD
     if (m_showPerfHUD) {
@@ -272,10 +273,6 @@ void ImGuiUILayer::renderMainMenuBar(const UIState& state)
                 if (onCommand) onCommand(cmd);
             }
             
-            bool showHierarchy = m_showHierarchyPanel;
-            if (ImGui::MenuItem("Scene Hierarchy", nullptr, showHierarchy)) {
-                m_showHierarchyPanel = !m_showHierarchyPanel;
-            }
             
             if (ImGui::MenuItem("Performance HUD", "F2", m_showPerfHUD)) {
                 UICommandData cmd;
@@ -324,23 +321,40 @@ void ImGuiUILayer::renderMainMenuBar(const UIState& state)
             
             ImGui::Separator();
             
-            if (ImGui::BeginMenu("Add Light")) {
-                if (ImGui::MenuItem("Point Light")) {
+            // Camera Settings
+            if (ImGui::BeginMenu("Camera")) {
+                // Camera speed
+                ImGui::Text("Movement Speed");
+                ImGui::SetNextItemWidth(150);
+                if (ImGui::SliderFloat("##camera_speed", const_cast<float*>(&state.cameraSpeed), 0.01f, 2.0f, "%.2f")) {
                     UICommandData cmd;
-                    cmd.command = UICommand::AddLight;
-                    cmd.stringParam = "point";
-                    cmd.vec3Param = glm::vec3(0.0f, 2.0f, 0.0f); // Default position
+                    cmd.command = UICommand::SetCameraSpeed;
+                    cmd.floatParam = state.cameraSpeed;
                     if (onCommand) onCommand(cmd);
                 }
-                if (ImGui::MenuItem("Directional Light")) {
+                
+                // Mouse sensitivity
+                ImGui::Text("Mouse Sensitivity");
+                ImGui::SetNextItemWidth(150);
+                if (ImGui::SliderFloat("##mouse_sensitivity", const_cast<float*>(&state.sensitivity), 0.01f, 1.0f, "%.2f")) {
                     UICommandData cmd;
-                    cmd.command = UICommand::AddLight;
-                    cmd.stringParam = "directional";
-                    cmd.vec3Param = glm::vec3(0.0f, 5.0f, 0.0f); // Default position
+                    cmd.command = UICommand::SetMouseSensitivity;
+                    cmd.floatParam = state.sensitivity;
                     if (onCommand) onCommand(cmd);
                 }
+                
+                // Control options
+                bool requireRMB = state.requireRMBToMove;
+                if (ImGui::Checkbox("Hold RMB to move camera", &requireRMB)) {
+                    UICommandData cmd; 
+                    cmd.command = UICommand::SetRequireRMBToMove; 
+                    cmd.boolParam = requireRMB; 
+                    if (onCommand) onCommand(cmd);
+                }
+                
                 ImGui::EndMenu();
             }
+            
             
             ImGui::EndMenu();
         }
@@ -409,106 +423,6 @@ void ImGuiUILayer::renderMainMenuBar(const UIState& state)
 #endif
 }
 
-void ImGuiUILayer::renderSceneHierarchyPanel(const UIState& state)
-{
-#ifndef WEB_USE_HTML_UI
-    ImGuiIO& io = ImGui::GetIO();
-    float leftW = 260.0f;
-    ImGui::SetNextWindowPos(ImVec2(16.0f, 16.0f), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(leftW, io.DisplaySize.y - 220.0f), ImGuiCond_FirstUseEver);
-    if (ImGui::Begin("Scene Hierarchy")) {
-        // Header
-        ImGui::Text("Objects (%d)", state.objectCount);
-        ImGui::Separator();
-
-        static int renamingIndex = -1;
-        static char renameBuf[256] = "";
-
-        // Enhanced keyboard shortcuts for objects
-        if (ImGui::IsWindowFocused()) {
-            // Delete key: Delete selected object
-            if (ImGui::Shortcut(ImGuiKey_Delete, ImGuiInputFlags_Repeat)) {
-                if (state.selectedObjectIndex >= 0 && state.selectedObjectIndex < (int)state.objectNames.size()) {
-                    UICommandData cmd; 
-                    cmd.command = UICommand::RemoveObject; 
-                    cmd.intParam = state.selectedObjectIndex; 
-                    if (onCommand) onCommand(cmd);
-                }
-            }
-            
-        }
-
-        // List objects
-        for (int i = 0; i < (int)state.objectNames.size(); ++i) {
-            ImGui::PushID(i);
-            bool selected = (i == state.selectedObjectIndex);
-            if (renamingIndex == i) {
-                ImGui::SetNextItemWidth(-1);
-                if (ImGui::InputText("##rename", renameBuf, sizeof(renameBuf), ImGuiInputTextFlags_EnterReturnsTrue)) {
-                    UICommandData cmd; cmd.command = UICommand::RenameObject; cmd.intParam = i; cmd.stringParam = std::string(renameBuf); if (onCommand) onCommand(cmd); renamingIndex = -1;
-                }
-                if (!ImGui::IsItemActive() && ImGui::IsMouseClicked(0)) { renamingIndex = -1; }
-            } else {
-                // Simple ASCII icon + name for wide font compatibility
-                std::string label = "*  " + state.objectNames[i];
-                if (ImGui::Selectable(label.c_str(), selected)) {
-                    UICommandData cmd; cmd.command = UICommand::SelectObject; cmd.intParam = i; if (onCommand) onCommand(cmd);
-                }
-                if (ImGui::BeginPopupContextItem()) {
-                    if (ImGui::MenuItem("Select")) { UICommandData cmd; cmd.command = UICommand::SelectObject; cmd.intParam = i; if (onCommand) onCommand(cmd);}            
-                    if (ImGui::MenuItem("Rename", "F2")) { renamingIndex = i; std::snprintf(renameBuf, sizeof(renameBuf), "%s", state.objectNames[i].c_str()); }
-                    if (ImGui::MenuItem("Duplicate", "Ctrl+D")) { UICommandData cmd; cmd.command = UICommand::DuplicateObject; cmd.intParam = i; if (onCommand) onCommand(cmd);}            
-                    if (ImGui::MenuItem("Delete", "Del")) { UICommandData cmd; cmd.command = UICommand::RemoveObject; cmd.intParam = i; if (onCommand) onCommand(cmd);}                 
-                    ImGui::EndPopup();
-                }
-            }
-            ImGui::PopID();
-        }
-
-        // Lights listing
-        ImGui::Separator();
-        ImGui::Text("Lights (%d)", state.lightCount);
-        
-        // Enhanced keyboard shortcuts for lights when focused on this section
-        if (ImGui::IsWindowFocused() && state.selectedLightIndex >= 0) {
-            // Delete key: Delete selected light
-            if (ImGui::Shortcut(ImGuiKey_Delete, ImGuiInputFlags_Repeat)) {
-                if (state.selectedLightIndex >= 0 && state.selectedLightIndex < (int)state.lights.size()) {
-                    UICommandData cmd; 
-                    cmd.command = UICommand::DeleteLight; 
-                    cmd.intParam = state.selectedLightIndex; 
-                    if (onCommand) onCommand(cmd);
-                }
-            }
-        }
-        
-        for (int i = 0; i < (int)state.lights.size(); ++i) {
-            ImGui::PushID(10000 + i);
-            const auto& L = state.lights[i];
-            const char* typePrefix = (L.type == 2) ? "[S]" : (L.type == 1 ? "[D]" : "[P]");
-            char buf[128];
-            std::snprintf(buf, sizeof(buf), "%s  Light %d", typePrefix, i + 1);
-            bool selected = (i == state.selectedLightIndex);
-            if (ImGui::Selectable(buf, selected)) {
-                UICommandData cmd; cmd.command = UICommand::SelectLight; cmd.intParam = i; if (onCommand) onCommand(cmd);
-            }
-            if (ImGui::BeginPopupContextItem()) {
-                if (ImGui::MenuItem("Select")) { UICommandData cmd; cmd.command = UICommand::SelectLight; cmd.intParam = i; if (onCommand) onCommand(cmd); }
-                if (ImGui::MenuItem("Delete", "Del")) { UICommandData cmd; cmd.command = UICommand::DeleteLight; cmd.intParam = i; if (onCommand) onCommand(cmd); }
-                ImGui::EndPopup();
-            }
-            ImGui::PopID();
-        }
-        
-        // Add light buttons
-        ImGui::Spacing();
-        if (ImGui::Button("Add Point Light", ImVec2(-1, 20))) {
-            UICommandData cmd; cmd.command = UICommand::AddPointLight; if (onCommand) onCommand(cmd);
-        }
-    }
-    ImGui::End();
-#endif
-}
 
 void ImGuiUILayer::renderSettingsPanel(const UIState& state)
 {
@@ -521,82 +435,120 @@ void ImGuiUILayer::renderSettingsPanel(const UIState& state)
     ImGui::SetNextWindowSize(ImVec2(rightW, io.DisplaySize.y - consoleH - 32.0f), ImGuiCond_FirstUseEver);
     
     ImGuiWindowFlags window_flags = ImGuiWindowFlags_None;
-    if (ImGui::Begin("Settings & Diagnostics", nullptr, window_flags)) {
+    if (ImGui::Begin("Settings", nullptr, window_flags)) {
         
-        // Camera Settings Section
-        if (ImGui::CollapsingHeader("Camera Settings", ImGuiTreeNodeFlags_DefaultOpen)) {
+        // Render Image Section (moved to top)
+        if (ImGui::CollapsingHeader("Render Image##section", ImGuiTreeNodeFlags_DefaultOpen)) {
             ImGui::Spacing();
             
-            // Camera speed with improved layout
-            ImGui::Text("Movement Speed");
-            ImGui::SetNextItemWidth(-1);
-            if (ImGui::SliderFloat("##camera_speed", const_cast<float*>(&state.cameraSpeed), 0.01f, 2.0f, "%.2f")) {
-                UICommandData cmd;
-                cmd.command = UICommand::SetCameraSpeed;
-                cmd.floatParam = state.cameraSpeed;
-                if (onCommand) onCommand(cmd);
+            // Output path setting
+            ImGui::Text("Output Path for Renders");
+            static char renderOutputPathBuffer[256] = "";
+            static bool renderBufferInitialized = false;
+            
+            // Initialize with default path on first use
+            if (!renderBufferInitialized) {
+                std::string defaultPath = "D:\\class\\Glint3D\\renders\\";
+                #ifdef _WIN32
+                strncpy_s(renderOutputPathBuffer, sizeof(renderOutputPathBuffer), defaultPath.c_str(), _TRUNCATE);
+                #else
+                strncpy(renderOutputPathBuffer, defaultPath.c_str(), sizeof(renderOutputPathBuffer) - 1);
+                renderOutputPathBuffer[sizeof(renderOutputPathBuffer) - 1] = '\0';
+                #endif
+                renderBufferInitialized = true;
             }
             
-            // Mouse sensitivity
-            ImGui::Text("Mouse Sensitivity");
             ImGui::SetNextItemWidth(-1);
-            if (ImGui::SliderFloat("##mouse_sensitivity", const_cast<float*>(&state.sensitivity), 0.01f, 1.0f, "%.2f")) {
-                UICommandData cmd;
-                cmd.command = UICommand::SetMouseSensitivity;
-                cmd.floatParam = state.sensitivity;
-                if (onCommand) onCommand(cmd);
+            if (ImGui::InputText("##render_output_path", renderOutputPathBuffer, sizeof(renderOutputPathBuffer))) {
+                // Store the path for later use
             }
             
-            // Control options
-            bool requireRMB = state.requireRMBToMove;
-            if (ImGui::Checkbox("Hold RMB to move camera", &requireRMB)) {
-                UICommandData cmd; 
-                cmd.command = UICommand::SetRequireRMBToMove; 
-                cmd.boolParam = requireRMB; 
+            ImGui::SameLine();
+            if (ImGui::SmallButton("Reset##render_default")) {
+                std::string defaultPath = "D:\\class\\Glint3D\\renders\\";
+                #ifdef _WIN32
+                strncpy_s(renderOutputPathBuffer, sizeof(renderOutputPathBuffer), defaultPath.c_str(), _TRUNCATE);
+                #else
+                strncpy(renderOutputPathBuffer, defaultPath.c_str(), sizeof(renderOutputPathBuffer) - 1);
+                renderOutputPathBuffer[sizeof(renderOutputPathBuffer) - 1] = '\0';
+                #endif
+            }
+            
+            // Render button
+            // Use an ID suffix to avoid conflicting with the section header label
+            if (ImGui::Button("Render Image##render_button", ImVec2(-1, 0))) {
+                UICommandData cmd;
+                cmd.command = UICommand::RenderToPNG;
+                cmd.stringParam = std::string(renderOutputPathBuffer);
+                cmd.intParam = 800;  // width
+                cmd.floatParam = 600.0f;  // height
                 if (onCommand) onCommand(cmd);
             }
             
             ImGui::Spacing();
         }
         
-        // File & Render Settings Section  
-        if (ImGui::CollapsingHeader("File & Render Settings", ImGuiTreeNodeFlags_DefaultOpen)) {
+        // Scene Settings (hierarchy moved to left panel)
+        if (ImGui::CollapsingHeader("Scene Settings", ImGuiTreeNodeFlags_DefaultOpen)) {
             ImGui::Spacing();
+            // Lights listing
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Text("Lights (%d)", state.lightCount);
             
-            // Import/Export buttons
-            ImGui::Text("Import/Export");
-            if (ImGui::Button("Import Asset", ImVec2((ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) / 2, 0))) {
-                UICommandData cmd;
-                cmd.command = UICommand::ImportAsset;
-                if (onCommand) onCommand(cmd);
+            // Enhanced keyboard shortcuts for lights when focused on this section
+            if (ImGui::IsWindowFocused() && state.selectedLightIndex >= 0) {
+                // Delete key: Delete selected light
+                if (ImGui::Shortcut(ImGuiKey_Delete, ImGuiInputFlags_Repeat)) {
+                    if (state.selectedLightIndex >= 0 && state.selectedLightIndex < (int)state.lights.size()) {
+                        UICommandData cmd; 
+                        cmd.command = UICommand::DeleteLight; 
+                        cmd.intParam = state.selectedLightIndex; 
+                        if (onCommand) onCommand(cmd);
+                    }
+                }
+            }
+            
+            for (int i = 0; i < (int)state.lights.size(); ++i) {
+                ImGui::PushID(10000 + i);
+                const auto& L = state.lights[i];
+                const char* typePrefix = (L.type == 2) ? "[S]" : (L.type == 1 ? "[D]" : "[P]");
+                const char* typeName = (L.type == 2) ? "Spot" : (L.type == 1 ? "Dir" : "Point");
+                char buf[128];
+                std::snprintf(buf, sizeof(buf), "%s  %s Light %d", typePrefix, typeName, i + 1);
+                bool selected = (i == state.selectedLightIndex);
+                if (ImGui::Selectable(buf, selected)) {
+                    UICommandData cmd; cmd.command = UICommand::SelectLight; cmd.intParam = i; if (onCommand) onCommand(cmd);
+                }
+                if (ImGui::BeginPopupContextItem()) {
+                    if (ImGui::MenuItem("Select")) { UICommandData cmd; cmd.command = UICommand::SelectLight; cmd.intParam = i; if (onCommand) onCommand(cmd); }
+                    if (ImGui::MenuItem("Delete", "Del")) { UICommandData cmd; cmd.command = UICommand::DeleteLight; cmd.intParam = i; if (onCommand) onCommand(cmd); }
+                    ImGui::EndPopup();
+                }
+                ImGui::PopID();
+            }
+            
+            // Add light buttons in a compact layout
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Text("Add Lights:");
+            if (ImGui::Button("Point", ImVec2((ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x * 2) / 3, 0))) {
+                UICommandData cmd; cmd.command = UICommand::AddPointLight; if (onCommand) onCommand(cmd);
             }
             ImGui::SameLine();
-            
-            if (ImGui::Button("Export Scene", ImVec2(-1, 0))) {
-                UICommandData cmd;
-                cmd.command = UICommand::ExportScene;
-                if (onCommand) onCommand(cmd);
+            if (ImGui::Button("Directional", ImVec2((ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) / 2, 0))) {
+                UICommandData cmd; cmd.command = UICommand::AddDirectionalLight; if (onCommand) onCommand(cmd);
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Spot", ImVec2(-1, 0))) {
+                UICommandData cmd; cmd.command = UICommand::AddSpotLight; if (onCommand) onCommand(cmd);
             }
             
             ImGui::Spacing();
-            ImGui::Separator();
-            ImGui::Spacing();
-
-            // MSAA sample count selection
-            ImGui::Text("MSAA Samples");
-            ImGui::SetNextItemWidth(-1);
-            int currentSamples = state.msaaSamples;
-            const char* items[] = { "1", "2", "4", "8", "16" };
-            int values[] = { 1, 2, 4, 8, 16 };
-            int idx = 0;
-            for (int i = 0; i < 5; ++i) { if (values[i] == currentSamples) { idx = i; break; } }
-            if (ImGui::Combo("##msaa_samples", &idx, items, IM_ARRAYSIZE(items))) {
-                UICommandData cmd; cmd.command = UICommand::SetMSAASamples; cmd.intParam = values[idx];
-                if (onCommand) onCommand(cmd);
-            }
-            
-            ImGui::Spacing();
-            ImGui::Separator();
+        }
+        
+        // Environment & Lighting Section  
+        if (ImGui::CollapsingHeader("Environment & Lighting", ImGuiTreeNodeFlags_DefaultOpen)) {
             ImGui::Spacing();
             
             // Environment/IBL controls
@@ -683,18 +635,18 @@ void ImGuiUILayer::renderSettingsPanel(const UIState& state)
                         UICommandData cmd; cmd.command = UICommand::ApplyJsonOps; cmd.stringParam = payload; if (onCommand) onCommand(cmd);
                     }
                 }
+
+                // Load HDR/EXR environment button (only show when HDRI is selected)
+                if (ImGui::Button("Load HDR/EXR Environment", ImVec2(-1, 0))) {
+                    UICommandData cmd;
+                    cmd.command = UICommand::LoadHDREnvironment;
+                    // Use current renderer state, or default if empty
+                    std::string path = state.backgroundHDRPath.empty() ? "engine/assets/img/studio_small_08_4k.exr" : state.backgroundHDRPath;
+                    cmd.stringParam = path;
+                    if (onCommand) onCommand(cmd);
+                }
             }
             ImGui::Spacing();
-
-            // HDR/EXR environment loading button
-            if (ImGui::Button("Load HDR/EXR Environment", ImVec2(-1, 0))) {
-                UICommandData cmd;
-                cmd.command = UICommand::LoadHDREnvironment;
-                // Use current renderer state, or default if empty
-                std::string path = state.backgroundHDRPath.empty() ? "engine/assets/img/studio_small_08_4k.exr" : state.backgroundHDRPath;
-                cmd.stringParam = path;
-                if (onCommand) onCommand(cmd);
-            }
             
             // Skybox intensity slider
             ImGui::Text("Skybox Intensity");
@@ -715,54 +667,6 @@ void ImGuiUILayer::renderSettingsPanel(const UIState& state)
                 UICommandData cmd;
                 cmd.command = UICommand::SetIBLIntensity;
                 cmd.floatParam = iblIntensity;
-                if (onCommand) onCommand(cmd);
-            }
-            
-            ImGui::Spacing();
-            ImGui::Separator();
-            ImGui::Spacing();
-            
-            // Output path setting
-            ImGui::Text("Output Path for Renders");
-            static char outputPathBuffer[256] = "";
-            static bool bufferInitialized = false;
-            
-            // Initialize with default path on first use
-            if (!bufferInitialized) {
-                std::string defaultPath = RenderUtils::getDefaultOutputPath();
-                #ifdef _WIN32
-                strncpy_s(outputPathBuffer, sizeof(outputPathBuffer), defaultPath.c_str(), _TRUNCATE);
-                #else
-                strncpy(outputPathBuffer, defaultPath.c_str(), sizeof(outputPathBuffer) - 1);
-                outputPathBuffer[sizeof(outputPathBuffer) - 1] = '\0';
-                #endif
-                bufferInitialized = true;
-            }
-            
-            ImGui::SetNextItemWidth(-1);
-            if (ImGui::InputText("##output_path", outputPathBuffer, sizeof(outputPathBuffer))) {
-                // Store the path for later use
-            }
-            
-            ImGui::SameLine();
-            if (ImGui::SmallButton("Default")) {
-                std::string defaultPath = RenderUtils::getDefaultOutputPath();
-                #ifdef _WIN32
-                strncpy_s(outputPathBuffer, sizeof(outputPathBuffer), defaultPath.c_str(), _TRUNCATE);
-                #else
-                strncpy(outputPathBuffer, defaultPath.c_str(), sizeof(outputPathBuffer) - 1);
-                outputPathBuffer[sizeof(outputPathBuffer) - 1] = '\0';
-                #endif
-            }
-            
-            // Render button
-            if (ImGui::Button("Render Image", ImVec2(-1, 0))) {
-                UICommandData cmd;
-                cmd.command = UICommand::RenderToPNG;
-                // Process the output path to ensure it uses default directory if needed
-                cmd.stringParam = RenderUtils::processOutputPath(std::string(outputPathBuffer));
-                cmd.intParam = 800;  // width
-                cmd.floatParam = 600.0f;  // height
                 if (onCommand) onCommand(cmd);
             }
             
@@ -829,181 +733,96 @@ void ImGuiUILayer::renderSettingsPanel(const UIState& state)
             ImGui::Spacing();
         }
         
-        // Lighting Section
-        if (ImGui::CollapsingHeader("Lighting")) {
-            ImGui::Spacing();
-            
-            // Add Point Light button
-            if (ImGui::Button("Add Point Light", ImVec2(-1, 0))) {
-                UICommandData cmd;
-                cmd.command = UICommand::AddPointLight;
-                if (onCommand) onCommand(cmd);
-            }
-            
-            // Add Directional Light button
-            if (ImGui::Button("Add Directional Light", ImVec2(-1, 0))) {
-                UICommandData cmd;
-                cmd.command = UICommand::AddDirectionalLight;
-                if (onCommand) onCommand(cmd);
-            }
-            // Add Spot Light button
-            if (ImGui::Button("Add Spot Light", ImVec2(-1, 0))) {
-                UICommandData cmd;
-                cmd.command = UICommand::AddSpotLight;
-                if (onCommand) onCommand(cmd);
-            }
-            
-            ImGui::Separator();
-            
-            // Light controls (if any lights exist)
-            if (state.lightCount > 0) {
-                ImGui::Text("Lights (%d):", state.lightCount);
+        // Light Properties Section (shows when a light is selected)
+        if (state.selectedLightIndex >= 0 && state.selectedLightIndex < (int)state.lights.size()) {
+            if (ImGui::CollapsingHeader("Light Properties", ImGuiTreeNodeFlags_DefaultOpen)) {
+                ImGui::Spacing();
+                
+                const auto& L = state.lights[state.selectedLightIndex];
+                ImGui::Text("Light %d Properties:", state.selectedLightIndex + 1);
+                const char* typeLabel = (L.type == 2) ? "Spot" : (L.type == 1 ? "Directional" : "Point");
+                ImGui::Text("Type: %s", typeLabel);
 
-                static int selectedLight = -1;
-                // keep selection in sync if list size shrinks
-                if (selectedLight >= state.lightCount) selectedLight = -1;
-                for (int i = 0; i < state.lightCount; i++) {
-                    ImGui::PushID(i);
-                    // Build display name with type
-                    const auto& L = (i < (int)state.lights.size()) ? state.lights[i] : UIState::LightUI{};
-                    const char* typeName = (L.type == 1) ? "Directional" : "Point";
-                    std::string lightName = std::string(typeName) + " Light " + std::to_string(i + 1);
-                    bool selected = (selectedLight == i);
-                    if (ImGui::Selectable(lightName.c_str(), selected)) {
-                        selectedLight = i;
+                bool enabled = L.enabled;
+                if (ImGui::Checkbox("Enabled", &enabled)) {
+                    UICommandData cmd;
+                    cmd.command = UICommand::SetLightEnabled;
+                    cmd.intParam = state.selectedLightIndex;
+                    cmd.boolParam = enabled;
+                    if (onCommand) onCommand(cmd);
+                }
+
+                float intensity = L.intensity;
+                if (ImGui::SliderFloat("Intensity", &intensity, 0.0f, 10.0f, "%.2f")) {
+                    UICommandData cmd;
+                    cmd.command = UICommand::SetLightIntensity;
+                    cmd.intParam = state.selectedLightIndex;
+                    cmd.floatParam = intensity;
+                    if (onCommand) onCommand(cmd);
+                }
+
+                if (L.type == 1) {
+                    // Directional
+                    glm::vec3 dir = L.direction;
+                    if (ImGui::InputFloat3("Direction", &dir.x)) {
                         UICommandData cmd;
-                        cmd.command = UICommand::SelectLight;
-                        cmd.intParam = i;
+                        cmd.command = UICommand::SetLightDirection;
+                        cmd.intParam = state.selectedLightIndex;
+                        cmd.vec3Param = dir;
                         if (onCommand) onCommand(cmd);
                     }
-                    
-                    // Context menu for light operations
-                    if (ImGui::BeginPopupContextItem()) {
-                        if (ImGui::MenuItem("Delete Light")) {
-                            UICommandData cmd;
-                            cmd.command = UICommand::DeleteLight;
-                            cmd.intParam = i;
-                            if (onCommand) onCommand(cmd);
-                            selectedLight = -1;
-                        }
-                        ImGui::EndPopup();
+                } else if (L.type == 0) {
+                    // Point
+                    glm::vec3 pos = L.position;
+                    if (ImGui::InputFloat3("Position", &pos.x)) {
+                        UICommandData cmd;
+                        cmd.command = UICommand::SetLightPosition;
+                        cmd.intParam = state.selectedLightIndex;
+                        cmd.vec3Param = pos;
+                        if (onCommand) onCommand(cmd);
                     }
-                    
-                    ImGui::PopID();
+                } else if (L.type == 2) {
+                    // Spot
+                    glm::vec3 pos = L.position;
+                    if (ImGui::InputFloat3("Position", &pos.x)) {
+                        UICommandData cmd;
+                        cmd.command = UICommand::SetLightPosition;
+                        cmd.intParam = state.selectedLightIndex;
+                        cmd.vec3Param = pos;
+                        if (onCommand) onCommand(cmd);
+                    }
+                    glm::vec3 dir = L.direction;
+                    if (ImGui::InputFloat3("Direction", &dir.x)) {
+                        UICommandData cmd;
+                        cmd.command = UICommand::SetLightDirection;
+                        cmd.intParam = state.selectedLightIndex;
+                        cmd.vec3Param = dir;
+                        if (onCommand) onCommand(cmd);
+                    }
+                    float inner = L.innerConeDeg;
+                    float outer = L.outerConeDeg;
+                    if (ImGui::SliderFloat("Inner Cone (deg)", &inner, 0.0f, 89.0f, "%.1f") ) {
+                        if (inner > outer) inner = outer;
+                        UICommandData cmd;
+                        cmd.command = UICommand::SetLightInnerCone;
+                        cmd.intParam = state.selectedLightIndex;
+                        cmd.floatParam = inner;
+                        if (onCommand) onCommand(cmd);
+                    }
+                    if (ImGui::SliderFloat("Outer Cone (deg)", &outer, 0.0f, 89.0f, "%.1f") ) {
+                        if (outer < inner) outer = inner;
+                        UICommandData cmd;
+                        cmd.command = UICommand::SetLightOuterCone;
+                        cmd.intParam = state.selectedLightIndex;
+                        cmd.floatParam = outer;
+                        if (onCommand) onCommand(cmd);
+                    }
                 }
                 
-                // Light properties editing
-                if (selectedLight >= 0 && selectedLight < (int)state.lights.size()) {
-                    const auto& L = state.lights[selectedLight];
-                    ImGui::Separator();
-                    ImGui::Text("Light %d Properties:", selectedLight + 1);
-                    const char* typeLabel = (L.type == 2) ? "Spot" : (L.type == 1 ? "Directional" : "Point");
-                    ImGui::Text("Type: %s", typeLabel);
-
-                    bool enabled = L.enabled;
-                    if (ImGui::Checkbox("Enabled", &enabled)) {
-                        UICommandData cmd;
-                        cmd.command = UICommand::SetLightEnabled;
-                        cmd.intParam = selectedLight;
-                        cmd.boolParam = enabled;
-                        if (onCommand) onCommand(cmd);
-                    }
-
-                    float intensity = L.intensity;
-                    if (ImGui::SliderFloat("Intensity", &intensity, 0.0f, 10.0f, "%.2f")) {
-                        UICommandData cmd;
-                        cmd.command = UICommand::SetLightIntensity;
-                        cmd.intParam = selectedLight;
-                        cmd.floatParam = intensity;
-                        if (onCommand) onCommand(cmd);
-                    }
-
-                    if (L.type == 1) {
-                        // Directional
-                        glm::vec3 dir = L.direction;
-                        if (ImGui::InputFloat3("Direction", &dir.x)) {
-                            UICommandData cmd;
-                            cmd.command = UICommand::SetLightDirection;
-                            cmd.intParam = selectedLight;
-                            cmd.vec3Param = dir;
-                            if (onCommand) onCommand(cmd);
-                        }
-                    } else if (L.type == 0) {
-                        // Point
-                        glm::vec3 pos = L.position;
-                        if (ImGui::InputFloat3("Position", &pos.x)) {
-                            UICommandData cmd;
-                            cmd.command = UICommand::SetLightPosition;
-                            cmd.intParam = selectedLight;
-                            cmd.vec3Param = pos;
-                            if (onCommand) onCommand(cmd);
-                        }
-                    } else if (L.type == 2) {
-                        // Spot
-                        glm::vec3 pos = L.position;
-                        if (ImGui::InputFloat3("Position", &pos.x)) {
-                            UICommandData cmd;
-                            cmd.command = UICommand::SetLightPosition;
-                            cmd.intParam = selectedLight;
-                            cmd.vec3Param = pos;
-                            if (onCommand) onCommand(cmd);
-                        }
-                        glm::vec3 dir = L.direction;
-                        if (ImGui::InputFloat3("Direction", &dir.x)) {
-                            UICommandData cmd;
-                            cmd.command = UICommand::SetLightDirection;
-                            cmd.intParam = selectedLight;
-                            cmd.vec3Param = dir;
-                            if (onCommand) onCommand(cmd);
-                        }
-                        float inner = L.innerConeDeg;
-                        float outer = L.outerConeDeg;
-                        if (ImGui::SliderFloat("Inner Cone (deg)", &inner, 0.0f, 89.0f, "%.1f") ) {
-                            if (inner > outer) inner = outer;
-                            UICommandData cmd;
-                            cmd.command = UICommand::SetLightInnerCone;
-                            cmd.intParam = selectedLight;
-                            cmd.floatParam = inner;
-                            if (onCommand) onCommand(cmd);
-                        }
-                        if (ImGui::SliderFloat("Outer Cone (deg)", &outer, 0.0f, 89.0f, "%.1f") ) {
-                            if (outer < inner) outer = inner;
-                            UICommandData cmd;
-                            cmd.command = UICommand::SetLightOuterCone;
-                            cmd.intParam = selectedLight;
-                            cmd.floatParam = outer;
-                            if (onCommand) onCommand(cmd);
-                        }
-                    }
-                }
+                ImGui::Spacing();
             }
-            
-            ImGui::Spacing();
         }
         
-        // Diagnostic Options Section
-        if (ImGui::CollapsingHeader("Diagnostics")) {
-            ImGui::Spacing();
-            
-            bool showPerfHUD = m_showPerfHUD;
-            if (ImGui::Checkbox("Show Performance HUD", &showPerfHUD)) {
-                UICommandData cmd;
-                cmd.command = UICommand::TogglePerfHUD;
-                if (onCommand) onCommand(cmd);
-            }
-            
-            ImGui::Spacing();
-            ImGui::Separator();
-            ImGui::Text("ImageIO");
-            #ifdef EXR_ENABLED
-                ImGui::Text("EXR support: Enabled");
-            #else
-                ImGui::Text("EXR support: Disabled");
-            #endif
-            ImGui::Text("HDR/EXR Path: %s", state.backgroundHDRPath.empty() ? "<none>" : state.backgroundHDRPath.c_str());
-
-            ImGui::Spacing();
-        }
     }
     ImGui::End();
 #endif
@@ -1499,7 +1318,7 @@ void ImGuiUILayer::renderHelpDialogs()
             
             ImGui::Spacing();
             ImGui::Separator();
-            ImGui::Text("© 2024 Glint3D Project");
+            ImGui::Text("© 2025 Glint3D Project");
         }
         ImGui::End();
     }

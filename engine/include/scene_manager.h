@@ -14,7 +14,12 @@ struct SceneObject
 {
     std::string name;
     GLuint   VAO = 0, VBO_positions = 0, VBO_normals = 0, VBO_uvs = 0, VBO_tangents = 0, EBO = 0;
-    glm::mat4 modelMatrix{ 1.0f };
+    glm::mat4 modelMatrix{ 1.0f };        // World transform (computed from hierarchy)
+    
+    // Hierarchy support
+    int parentIndex = -1;  // -1 for root objects
+    std::vector<int> childIndices;
+    glm::mat4 localMatrix{ 1.0f };        // Local transform relative to parent
 
     ObjLoader objLoader;
     Texture* texture = nullptr;       // legacy diffuse
@@ -48,6 +53,19 @@ public:
                         const glm::vec3* deltaRotDeg = nullptr);
     bool duplicateObject(const std::string& sourceName, const std::string& newName, const glm::vec3& newPosition);
     bool moveObject(const std::string& name, const glm::vec3& delta);
+    
+    // Hierarchy management
+    bool reparentObject(int childIndex, int newParentIndex);
+    bool reparentObject(const std::string& childName, const std::string& newParentName);
+    std::vector<int> getParentIndices() const;
+    
+    // Transform hierarchy
+    void updateWorldTransforms();
+    void updateWorldTransform(int objectIndex);
+    glm::mat4 getWorldMatrix(int objectIndex) const;
+    void setLocalMatrix(int objectIndex, const glm::mat4& localMatrix);
+    void setLocalMatrix(const std::string& name, const glm::mat4& localMatrix);
+    glm::mat4 getLocalMatrix(int objectIndex) const;
     
     // Selection
     void setSelectedObjectIndex(int index) { m_selectedObjectIndex = index; }

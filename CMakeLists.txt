@@ -50,6 +50,7 @@ set(APP_SOURCES
     ${SRC_DIR}/brdf.cpp
     ${SRC_DIR}/file_dialog.cpp
     ${SRC_DIR}/image_io.cpp
+    ${SRC_DIR}/panels/scene_tree_panel.cpp
 )
 
 # Core library: expose engine without the app entry
@@ -89,6 +90,7 @@ set(CORE_SOURCES
     ${SRC_DIR}/brdf.cpp
     ${SRC_DIR}/file_dialog.cpp
     ${SRC_DIR}/image_io.cpp
+    ${SRC_DIR}/panels/scene_tree_panel.cpp
 )
 
 set(IMGUI_SOURCES

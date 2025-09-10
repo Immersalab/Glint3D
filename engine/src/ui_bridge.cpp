@@ -122,6 +122,8 @@ UIState UIBridge::buildUIState() const
     for (const auto& obj : m_scene.getObjects()) {
         state.objectNames.push_back(obj.name);
     }
+    // Get hierarchy information from SceneManager
+    state.objectParentIndex = m_scene.getParentIndices();
     
     // Light state  
     state.lightCount = (int)m_lights.getLightCount();
@@ -168,6 +170,22 @@ void UIBridge::handleUICommand(const UICommandData& command)
                 if (!command.stringParam.empty()) {
                     bool ok = openFilePath(command.stringParam);
                     if (!ok) addConsoleMessage("Open failed: " + command.stringParam);
+                }
+            }
+            break;
+        case UICommand::ReparentObject:
+            {
+                int child = command.intParam;
+                int newParent = command.intParam2;
+                
+                if (m_scene.reparentObject(child, newParent)) {
+                    std::string childName = (child >= 0 && child < static_cast<int>(m_scene.getObjects().size())) 
+                        ? m_scene.getObjects()[child].name : "unknown";
+                    std::string parentName = (newParent >= 0 && newParent < static_cast<int>(m_scene.getObjects().size()))
+                        ? m_scene.getObjects()[newParent].name : "root";
+                    addConsoleMessage("Reparented '" + childName + "' to '" + parentName + "'");
+                } else {
+                    addConsoleMessage("Reparenting failed - check console for details");
                 }
             }
             break;

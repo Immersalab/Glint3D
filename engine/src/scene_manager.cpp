@@ -36,10 +36,11 @@ bool SceneManager::loadObject(const std::string& name, const std::string& path,
     // Load mesh data
     obj.objLoader.load(path.c_str());
 
-    // Set transform
+    // Set transform (initially same for both local and world since it's a root object)
     glm::mat4 translateMat = glm::translate(glm::mat4(1.0f), position);
     glm::mat4 scaleMat = glm::scale(glm::mat4(1.0f), scale);
-    obj.modelMatrix = translateMat * scaleMat;
+    obj.localMatrix = translateMat * scaleMat;
+    obj.modelMatrix = obj.localMatrix;  // World = local for root objects
 
     // Setup OpenGL resources
     setupObjectOpenGL(obj);
@@ -85,14 +86,52 @@ bool SceneManager::removeObject(const std::string& name)
         return false;
     }
     
+    int index = std::distance(m_objects.begin(), it);
+    
+    // Reparent children to the object's parent before removing
+    int parentIndex = it->parentIndex;
+    for (int childIndex : it->childIndices) {
+        if (childIndex < static_cast<int>(m_objects.size())) {
+            m_objects[childIndex].parentIndex = parentIndex;
+            
+            // Add children to the parent's child list
+            if (parentIndex != -1) {
+                m_objects[parentIndex].childIndices.push_back(childIndex);
+            }
+        }
+    }
+    
+    // Remove from parent's children list
+    if (it->parentIndex != -1) {
+        SceneObject& parent = m_objects[it->parentIndex];
+        auto parentIt = std::find(parent.childIndices.begin(), parent.childIndices.end(), index);
+        if (parentIt != parent.childIndices.end()) {
+            parent.childIndices.erase(parentIt);
+        }
+    }
+    
     cleanupObjectOpenGL(*it);
     
     // Update selection if removing selected object
-    int index = std::distance(m_objects.begin(), it);
     if (m_selectedObjectIndex == index) {
         m_selectedObjectIndex = -1;
     } else if (m_selectedObjectIndex > index) {
         m_selectedObjectIndex--;
+    }
+    
+    // Update all indices after removal
+    for (auto& obj : m_objects) {
+        // Update parent index
+        if (obj.parentIndex > index) {
+            obj.parentIndex--;
+        }
+        
+        // Update child indices
+        for (auto& childIdx : obj.childIndices) {
+            if (childIdx > index) {
+                childIdx--;
+            }
+        }
     }
     
     m_objects.erase(it);
@@ -134,7 +173,8 @@ bool SceneManager::duplicateObject(const std::string& sourceName, const std::str
             transform = glm::scale(transform, *deltaScale);
         }
         
-        newObj.modelMatrix = transform;
+        newObj.localMatrix = transform;
+        newObj.modelMatrix = transform;  // For root objects, world = local
     }
     
     // Setup new OpenGL resources (don't share VAO/VBO)
@@ -151,7 +191,10 @@ bool SceneManager::moveObject(const std::string& name, const glm::vec3& delta)
         return false;
     }
     
-    obj->modelMatrix = glm::translate(obj->modelMatrix, delta);
+    // Move the local transform and update world transforms
+    obj->localMatrix = glm::translate(obj->localMatrix, delta);
+    int index = findObjectIndex(name);
+    updateWorldTransform(index);
     return true;
 }
 
@@ -259,7 +302,8 @@ bool SceneManager::duplicateObject(const std::string& sourceName, const std::str
     SceneObject newObj = *source;
     newObj.name = newName;
     
-    // Set new position
+    // Set new position (for root objects, local = world)
+    newObj.localMatrix[3] = glm::vec4(newPosition, 1.0f);
     newObj.modelMatrix[3] = glm::vec4(newPosition, 1.0f);
     
     // Clear OpenGL handles (they will be regenerated)
@@ -479,4 +523,172 @@ std::string SceneManager::toJson() const
     doc.Accept(writer);
     
     return buffer.GetString();
+}
+
+bool SceneManager::reparentObject(int childIndex, int newParentIndex)
+{
+    // Validate indices
+    if (childIndex < 0 || childIndex >= static_cast<int>(m_objects.size())) {
+        std::cerr << "Invalid child index: " << childIndex << std::endl;
+        return false;
+    }
+    
+    if (newParentIndex != -1 && (newParentIndex < 0 || newParentIndex >= static_cast<int>(m_objects.size()))) {
+        std::cerr << "Invalid parent index: " << newParentIndex << std::endl;
+        return false;
+    }
+    
+    // Prevent self-parenting
+    if (childIndex == newParentIndex) {
+        std::cerr << "Cannot parent object to itself" << std::endl;
+        return false;
+    }
+    
+    // Prevent cyclic parenting (child cannot become parent of its ancestor)
+    if (newParentIndex != -1) {
+        int ancestor = newParentIndex;
+        while (ancestor != -1) {
+            if (ancestor == childIndex) {
+                std::cerr << "Cyclic parenting detected - operation would create a cycle" << std::endl;
+                return false;
+            }
+            ancestor = m_objects[ancestor].parentIndex;
+        }
+    }
+    
+    SceneObject& child = m_objects[childIndex];
+    
+    // Preserve world transform by converting to appropriate local transform
+    glm::mat4 currentWorldMatrix = child.modelMatrix;
+    
+    // Remove from old parent's children list
+    if (child.parentIndex != -1) {
+        SceneObject& oldParent = m_objects[child.parentIndex];
+        auto it = std::find(oldParent.childIndices.begin(), oldParent.childIndices.end(), childIndex);
+        if (it != oldParent.childIndices.end()) {
+            oldParent.childIndices.erase(it);
+        }
+    }
+    
+    // Set new parent
+    child.parentIndex = newParentIndex;
+    
+    // Calculate new local transform to preserve world position
+    if (newParentIndex == -1) {
+        // Reparenting to root: local = world
+        child.localMatrix = currentWorldMatrix;
+    } else {
+        // Reparenting to parent: local = inverse(parent_world) * world
+        glm::mat4 parentWorld = getWorldMatrix(newParentIndex);
+        child.localMatrix = glm::inverse(parentWorld) * currentWorldMatrix;
+    }
+    
+    // Add to new parent's children list
+    if (newParentIndex != -1) {
+        m_objects[newParentIndex].childIndices.push_back(childIndex);
+    }
+    
+    // Update transforms
+    updateWorldTransform(childIndex);
+    
+    return true;
+}
+
+bool SceneManager::reparentObject(const std::string& childName, const std::string& newParentName)
+{
+    int childIndex = findObjectIndex(childName);
+    if (childIndex == -1) {
+        std::cerr << "Child object '" << childName << "' not found" << std::endl;
+        return false;
+    }
+    
+    int parentIndex = -1;
+    if (!newParentName.empty()) {
+        parentIndex = findObjectIndex(newParentName);
+        if (parentIndex == -1) {
+            std::cerr << "Parent object '" << newParentName << "' not found" << std::endl;
+            return false;
+        }
+    }
+    
+    return reparentObject(childIndex, parentIndex);
+}
+
+std::vector<int> SceneManager::getParentIndices() const
+{
+    std::vector<int> parentIndices;
+    parentIndices.reserve(m_objects.size());
+    
+    for (const auto& obj : m_objects) {
+        parentIndices.push_back(obj.parentIndex);
+    }
+    
+    return parentIndices;
+}
+
+void SceneManager::updateWorldTransforms()
+{
+    // Update all objects, starting with roots
+    for (int i = 0; i < static_cast<int>(m_objects.size()); ++i) {
+        if (m_objects[i].parentIndex == -1) {
+            updateWorldTransform(i);
+        }
+    }
+}
+
+void SceneManager::updateWorldTransform(int objectIndex)
+{
+    if (objectIndex < 0 || objectIndex >= static_cast<int>(m_objects.size())) {
+        return;
+    }
+    
+    SceneObject& obj = m_objects[objectIndex];
+    
+    if (obj.parentIndex == -1) {
+        // Root object: world = local
+        obj.modelMatrix = obj.localMatrix;
+    } else {
+        // Child object: world = parent_world * local
+        const glm::mat4& parentWorld = getWorldMatrix(obj.parentIndex);
+        obj.modelMatrix = parentWorld * obj.localMatrix;
+    }
+    
+    // Recursively update all children
+    for (int childIndex : obj.childIndices) {
+        updateWorldTransform(childIndex);
+    }
+}
+
+glm::mat4 SceneManager::getWorldMatrix(int objectIndex) const
+{
+    if (objectIndex < 0 || objectIndex >= static_cast<int>(m_objects.size())) {
+        return glm::mat4(1.0f);
+    }
+    return m_objects[objectIndex].modelMatrix;
+}
+
+void SceneManager::setLocalMatrix(int objectIndex, const glm::mat4& localMatrix)
+{
+    if (objectIndex < 0 || objectIndex >= static_cast<int>(m_objects.size())) {
+        return;
+    }
+    
+    m_objects[objectIndex].localMatrix = localMatrix;
+    updateWorldTransform(objectIndex); // Update this object and all its children
+}
+
+void SceneManager::setLocalMatrix(const std::string& name, const glm::mat4& localMatrix)
+{
+    int index = findObjectIndex(name);
+    if (index != -1) {
+        setLocalMatrix(index, localMatrix);
+    }
+}
+
+glm::mat4 SceneManager::getLocalMatrix(int objectIndex) const
+{
+    if (objectIndex < 0 || objectIndex >= static_cast<int>(m_objects.size())) {
+        return glm::mat4(1.0f);
+    }
+    return m_objects[objectIndex].localMatrix;
 }
