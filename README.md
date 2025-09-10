@@ -8,6 +8,9 @@ Runs on desktop (GLFW/GLAD/ImGui) and web (WebGL2 via Emscripten) with a new Rea
 > It runs the same on **desktop and in the browser**, so teams can **view, test, embed, and share** 3D scenes anywhere.  
 > Unlike heavy 3D tools, it focuses on **deterministic JSON Ops** and **headless rendering** for CI/CD and bulk rendering.  
 > **Optional AI** adds friendly diagnostics and naturalâ€‘language scene setup without sacrificing determinism.
+>
+> <img width="1918" height="1022" alt="image" src="https://github.com/user-attachments/assets/339167ae-2f39-4b92-8111-5668ffe989cd" />
+
 
 ---
 
