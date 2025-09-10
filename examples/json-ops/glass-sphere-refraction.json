@@ -1,0 +1,19 @@
+[
+  { "op": "set_camera", "position": [0, 0, 6], "target": [0, 0, 0], "fov_deg": 45 },
+  { "op": "add_light", "type": "directional", "direction": [-1, -1, -1], "color": [1, 1, 1], "intensity": 1.0 },
+  { "op": "add_light", "type": "point", "position": [5, 5, 5], "color": [0.8, 0.8, 1.0], "intensity": 0.5 },
+  { "op": "load", "path": "assets/models/sphere.obj", "name": "GlassSphere", "transform": { "position": [0, 0, 0], "scale": [1, 1, 1] } },
+  { "op": "set_material", "target": "GlassSphere", "material": { 
+    "color": [0.9, 0.95, 1.0], 
+    "roughness": 0.0, 
+    "metallic": 0.0,
+    "ior": 1.5,
+    "transmission": 0.9
+  }},
+  { "op": "load", "path": "assets/models/sphere.obj", "name": "BackgroundSphere", "transform": { "position": [0, 0, -8], "scale": [2, 2, 2] } },
+  { "op": "set_material", "target": "BackgroundSphere", "material": { 
+    "color": [1.0, 0.2, 0.2], 
+    "roughness": 0.8, 
+    "metallic": 0.0
+  }}
+]

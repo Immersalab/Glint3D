@@ -97,6 +97,14 @@ glm::vec3 Raytracer::traceRay(const Ray& ray, const Light& lights, int depth) co
         hitPoint, normal, viewDir, mat, lights, *this
     );
 
+    // Handle transparent materials (refraction)
+    if (mat.transmission > 0.01f) {
+        glm::vec3 refractedColor = computeRefraction(hitPoint, ray.direction, normal, mat, lights, depth);
+        
+        // Mix base color with refracted color based on transmission
+        color = glm::mix(color, refractedColor, mat.transmission);
+    }
+    
     // Reflective contribution based on material properties
     float effectiveReflectivity = std::max(hitObject->reflectivity, mat.metallic * 0.9f);
     if (effectiveReflectivity > 0.01f)
@@ -116,6 +124,11 @@ glm::vec3 Raytracer::traceRay(const Ray& ray, const Light& lights, int depth) co
         float reflectionStrength = effectiveReflectivity;
         if (mat.metallic > 0.5f) {
             reflectionStrength = std::min(1.0f, effectiveReflectivity * 1.5f);
+        }
+
+        // For transparent materials, reduce reflection strength to avoid over-brightening
+        if (mat.transmission > 0.01f) {
+            reflectionStrength *= (1.0f - mat.transmission * 0.5f);
         }
 
         color = glm::mix(color, reflectedColor, reflectionStrength);
@@ -263,4 +276,54 @@ glm::vec3 Raytracer::sampleGlossyReflection(
     }
     
     return totalReflectedColor;
+}
+
+glm::vec3 Raytracer::computeRefraction(
+    const glm::vec3& hitPoint,
+    const glm::vec3& incident,
+    const glm::vec3& normal,
+    const Material& material,
+    const Light& lights,
+    int depth) const
+{
+    // Determine media transition (entering or exiting material)
+    float ior1, ior2;
+    glm::vec3 adjustedNormal;
+    refraction::determineMediaTransition(incident, normal, material.ior, ior1, ior2, adjustedNormal);
+    
+    // Calculate Fresnel reflectance
+    float cosTheta = std::abs(glm::dot(-incident, adjustedNormal));
+    float fresnelReflectance = refraction::fresnelSchlick(cosTheta, ior1, ior2);
+    
+    // Attempt refraction
+    glm::vec3 refractedDir;
+    bool hasRefraction = refraction::refract(incident, adjustedNormal, ior1, ior2, refractedDir);
+    
+    glm::vec3 finalColor(0.0f);
+    
+    if (hasRefraction) {
+        // Compute refracted ray contribution
+        Ray refractedRay(hitPoint - adjustedNormal * 0.001f, refractedDir);
+        glm::vec3 refractedColor = traceRay(refractedRay, lights, depth + 1);
+        
+        // Mix reflection and refraction based on Fresnel
+        if (fresnelReflectance < 1.0f) {
+            // Compute reflection ray
+            glm::vec3 reflectedDir = glm::reflect(incident, adjustedNormal);
+            Ray reflectedRay(hitPoint + adjustedNormal * 0.001f, reflectedDir);
+            glm::vec3 reflectedColor = traceRay(reflectedRay, lights, depth + 1);
+            
+            // Blend reflection and refraction
+            finalColor = fresnelReflectance * reflectedColor + (1.0f - fresnelReflectance) * refractedColor;
+        } else {
+            finalColor = refractedColor;
+        }
+    } else {
+        // Total internal reflection - only reflection
+        glm::vec3 reflectedDir = glm::reflect(incident, adjustedNormal);
+        Ray reflectedRay(hitPoint + adjustedNormal * 0.001f, reflectedDir);
+        finalColor = traceRay(reflectedRay, lights, depth + 1);
+    }
+    
+    return finalColor;
 }

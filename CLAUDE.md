@@ -196,16 +196,381 @@ glint --ops examples/json-ops/directional-light-test.json --render output.png --
 - **Web integration**: Emscripten exports for `app_apply_ops_json()`, `app_scene_to_json()`
 - **State sharing**: URL-based state encoding for shareable scenes
 
-#### 4. Rendering Pipeline
+#### 4. Dual Rendering Pipeline
 - **OpenGL rasterization**: PBR shaders, multiple render modes (point/wire/solid)
 - **CPU raytracer** (`raytracer.cpp`): BVH acceleration, material conversion, optional denoising (OIDN)
 - **Offscreen rendering** (`render_offscreen.cpp`): Headless PNG output for automation
+
+**⚠️ CRITICAL: Dual rendering architecture requires explicit mode selection for advanced materials**
 
 #### 5. UI Architecture
 - **Desktop UI**: ImGui panels integrated directly into Application
 - **Web UI**: React/Tailwind app (`web/`) communicating via JSON Ops bridge  
 - **UI abstraction**: `app_state.h` provides read-only state snapshot for UI layers
 - **Command pattern**: `app_commands.h` for UI → Application actions
+
+## Dual Rendering Architecture (IMPORTANT)
+
+Glint3D implements **two completely separate rendering pipelines** with different material capabilities. Understanding this is crucial for proper material setup and debugging.
+
+### Rendering Pipeline Comparison
+
+| Feature | **Rasterized** (Default) | **Raytraced** (--raytrace) |
+|---------|-------------------------|----------------------------|
+| **Performance** | Real-time | Offline (30+ seconds) |
+| **Transparency** | Alpha blending only | ✅ Full refraction + TIR |
+| **Materials** | PBR + legacy Phong | Legacy Material struct only |
+| **IOR Usage** | F0 calculation only | ✅ Full Snell's law physics |
+| **Transmission** | ❌ **NOT SUPPORTED** | ✅ **FULL SUPPORT** |
+| **Fresnel Effects** | Basic at normal incidence | ✅ Angle-dependent mixing |
+| **Total Internal Reflection** | ❌ Not available | ✅ Automatic at critical angle |
+| **Shader System** | `pbr.frag`, `standard.frag` | CPU-based raytracing |
+
+### Material Property Flow
+
+```cpp
+JSON Ops: { "ior": 1.5, "transmission": 0.9 }
+           ↓
+SceneObject dual storage:
+├── material.ior = 1.5          ← Used by RAYTRACER (Snell's law)
+├── material.transmission = 0.9  ← Used by RAYTRACER (opacity)  
+├── ior = 1.5                   ← Used by RASTERIZER (F0 only)
+└── baseColorFactor = color     ← Used by RASTERIZER (albedo)
+```
+
+### Shader Selection Logic (Rasterized Pipeline)
+
+```cpp
+// In RenderSystem::renderObjectsBatched()
+bool usePBR = (obj.baseColorTex || obj.mrTex || obj.normalTex);
+Shader* shader = usePBR && m_pbrShader ? m_pbrShader.get() : m_basicShader.get();
+```
+
+- **PBR Shader** (`pbr.vert/frag`): Has `uniform float ior` but **NO** `uniform float transmission`
+- **Basic Shader** (`standard.vert/frag`): Legacy Blinn-Phong only
+
+### Critical Usage Notes
+
+#### ❌ Common Mistake - Missing --raytrace Flag
+```bash
+# WRONG: Uses rasterizer (no refraction, looks like regular sphere)
+./glint.exe --ops glass-scene.json --render output.png
+
+# Output: Opaque sphere with basic lighting, no glass effects
+```
+
+#### ✅ Correct Usage for Glass Materials
+```bash
+# CORRECT: Uses raytracer (full refraction with Fresnel and TIR)
+./glint.exe --ops glass-scene.json --render output.png --raytrace
+
+# Output: Realistic glass with:
+# - Refraction based on IOR (Snell's law)
+# - Fresnel reflection/transmission mixing
+# - Total internal reflection at grazing angles
+# - Proper caustics and light bending
+```
+
+### Material System Architecture
+
+#### SceneObject Material Storage
+```cpp
+struct SceneObject {
+    // Legacy material (used by RAYTRACER)
+    Material material;
+    ├── float ior;              // 1.0-3.0 (air=1.0, glass=1.5, diamond=2.42)
+    ├── float transmission;     // 0.0-1.0 (0=opaque, 1=fully transparent) 
+    ├── glm::vec3 diffuse;      // Base color for lighting
+    ├── float roughness;        // Surface roughness for reflections
+    └── float metallic;         // Metallic vs dielectric
+    
+    // PBR fields (used by RASTERIZER)  
+    glm::vec4 baseColorFactor;  // sRGB color + alpha
+    float metallicFactor;       // 0.0-1.0
+    float roughnessFactor;      // 0.0-1.0
+    float ior;                  // For F0=(n1-n2)²/(n1+n2)² calculation only
+};
+```
+
+### Refraction Implementation Details
+
+#### Raytracer Features (refraction.cpp)
+- **Snell's Law**: `n₁sin(θ₁) = n₂sin(θ₂)` for accurate ray bending
+- **Total Internal Reflection**: Automatic detection when `sin(θ₂) > 1.0`
+- **Fresnel Equations**: Schlick's approximation for reflection/refraction mixing
+- **Media Transition**: Automatic entering/exiting material detection
+- **Ray Depth**: Supports multiple bounces for complex glass objects
+
+#### JSON Ops Material Assignment
+```json
+{
+  "op": "set_material",
+  "target": "GlassSphere", 
+  "material": {
+    "color": [0.95, 0.98, 1.0],
+    "roughness": 0.0,
+    "metallic": 0.0,
+    "ior": 1.5,           // Crown glass
+    "transmission": 0.9    // 90% transparent
+  }
+}
+```
+
+### Debugging Glass Materials
+
+#### 1. Verify Raytracer Activation
+Look for this debug output when using `--raytrace`:
+```
+[RenderSystem] Screen quad initialized for raytracing
+[RenderSystem] Raytracing texture initialized (512x512)
+[RenderSystem] Loading N objects into raytracer
+[DEBUG] Tracing row 0 of 512...
+```
+
+#### 2. Check Material Loading
+Add debug output in `raytracer.cpp` if materials aren't loading correctly:
+```cpp
+std::cout << "[DEBUG] Material: ior=" << mat.ior 
+          << ", transmission=" << mat.transmission << std::endl;
+```
+
+#### 3. Common Material Values
+- **Water**: `ior: 1.33, transmission: 0.85`
+- **Crown Glass**: `ior: 1.5, transmission: 0.9`  
+- **Flint Glass**: `ior: 1.6, transmission: 0.9`
+- **Diamond**: `ior: 2.42, transmission: 0.95`
+- **Ice**: `ior: 1.31, transmission: 0.8`
+
+### Architecture Limitations
+
+#### Rasterized Pipeline Constraints
+- **No Screen-Space Refraction**: Would require depth buffer reconstruction
+- **No Multi-Layer Transparency**: Limited to single alpha blend pass
+- **No Caustics**: Requires light transport simulation
+- **Basic Fresnel**: Only F0 term, no angle-dependent effects
+
+#### Future Enhancements
+- **Hybrid Pipeline**: Auto-enable raytracing for transmission > 0
+- **Screen-Space Refraction**: Add to PBR shader for real-time glass
+- **Material Validation**: Warn when using transmission without raytracing
+
+---
+
+## Rendering System Refactoring Plan
+
+**Status**: Architecture redesign planned for v0.4.0  
+**Goal**: Modern, flexible, AI-friendly renderer with unified materials and backend abstraction
+
+### Current System Problems
+- **Dual Material Storage**: PBR + legacy causing conversion drift
+- **Pipeline Fragmentation**: Raster (no refraction) vs Ray (full physics)
+- **Backend Lock-in**: Direct OpenGL calls, hard to port to Vulkan/WebGPU
+- **Manual Mode Selection**: Users must remember `--raytrace` for glass
+- **No Pass System**: Interleaved rendering logic, hard to extend
+
+### Target Architecture
+
+#### **RHI (Render Hardware Interface)**
+```cpp
+// Thin abstraction for GPU operations
+class RHI {
+    virtual bool init(const RhiInit& desc) = 0;
+    virtual void beginFrame() = 0; 
+    virtual void draw(const DrawDesc& desc) = 0;
+    virtual void readback(const ReadbackDesc& desc) = 0;
+    virtual void endFrame() = 0;
+};
+
+// Implementations:
+// - RhiGL (desktop OpenGL)
+// - RhiWebGL2 (web)  
+// - RhiVulkan (future)
+// - RhiWebGPU (future)
+```
+
+#### **MaterialCore (Unified BSDF)**
+```cpp
+struct MaterialCore {
+    glm::vec4 baseColor;           // sRGB + alpha
+    float metallic;                // 0=dielectric, 1=metal
+    float roughness;               // 0=mirror, 1=rough
+    float normalStrength;          // Normal map intensity
+    glm::vec3 emissive;           // Self-emission
+    float ior;                     // Index of refraction
+    float transmission;            // Transparency factor
+    float thickness;               // Volume thickness
+    float attenuationDistance;     // Beer-Lambert falloff
+    float clearcoat;               // Clear coat strength
+    float clearcoatRoughness;      // Clear coat roughness
+};
+// Used by BOTH raster and ray pipelines - no conversion needed
+```
+
+#### **RenderGraph (Minimal Pass System)**
+```cpp
+class RenderPass {
+    virtual void setup(const PassContext& ctx) = 0;
+    virtual void execute(const PassContext& ctx) = 0; 
+    virtual void teardown(const PassContext& ctx) = 0;
+};
+
+// Raster Pipeline:
+// GBufferPass → LightingPass → SSRRefractionPass → PostPass → ReadbackPass
+
+// Ray Pipeline:  
+// IntegratorPass → DenoisePass → TonemapPass → ReadbackPass
+```
+
+#### **Hybrid Auto Mode**
+```cpp
+enum class RenderMode { Raster, Ray, Auto };
+
+// Auto mode heuristics:
+bool needsRaytracing = false;
+for (const auto& material : scene.materials) {
+    if (material.transmission > 0.01f && 
+        (material.thickness > 0.0f || material.ior > 1.05f)) {
+        needsRaytracing = true;
+        break;
+    }
+}
+
+// CLI: --mode raster|ray|auto
+// Auto: raster for preview, ray for final quality
+```
+
+### Migration Tasks (20 Sequential Steps)
+
+#### **Phase 1: Foundation (Tasks 1-3)**
+1. **Define RHI Interface** - Abstract GPU operations (`engine/rhi/RHI.h`)
+2. **Implement RhiGL** - Desktop OpenGL backend (`engine/rhi/RhiGL.cpp`)  
+3. **Thread Raster Through RHI** - Replace direct GL calls
+
+#### **Phase 2: Unified Materials (Tasks 4-5)**
+4. **Introduce MaterialCore** - Single material struct
+5. **Adapt Raytracer to MaterialCore** - Remove PBR→legacy conversion
+
+#### **Phase 3: Pass System (Tasks 6-7)**
+6. **Add Minimal RenderGraph** - Pass-based rendering
+7. **Wire Material Uniforms** - Prep shaders for transmission
+
+#### **Phase 4: Screen-Space Refraction (Tasks 8-9)**
+8. **Implement SSR-T** - Real-time refraction in raster pipeline
+9. **Roughness-Aware Blur** - Micro-roughness approximation
+
+#### **Phase 5: Hybrid Pipeline (Tasks 10-12)**
+10. **Auto Mode + CLI** - Intelligent pipeline selection
+11. **Align BSDF Models** - Consistent shading across pipelines
+12. **Clearcoat & Attenuation** - Advanced material features
+
+#### **Phase 6: Production Features (Tasks 13-15)**
+13. **Auxiliary Readback** - Depth, normals, instance IDs
+14. **Deterministic Rendering** - Seeded outputs + metadata
+15. **Golden Test Suite** - Regression validation
+
+#### **Phase 7: Platform Support (Tasks 16-18)**
+16. **WebGL2 Compliance** - ES 3.0 compatibility
+17. **Performance Profiling** - Per-pass timing hooks
+18. **Error Handling** - Graceful fallbacks
+
+#### **Phase 8: Cleanup (Tasks 19-20)**
+19. **Architecture Documentation** - Developer guide
+20. **Legacy Code Removal** - Dead code cleanup
+
+### Implementation Guidelines
+
+#### **For Graphics Engineers**
+```bash
+# Quick Start
+cmake -S . -B builds/desktop/cmake/Debug -DCMAKE_BUILD_TYPE=Debug
+cmake --build builds/desktop/cmake/Debug --config Debug
+
+# Test current system
+./builds/desktop/cmake/Debug/glint.exe --ops examples/json-ops/basic.json --render out.png
+./builds/desktop/cmake/Debug/glint.exe --ops examples/json-ops/glass-sphere-refraction.json --render out.png --raytrace
+```
+
+#### **Key Files to Understand**
+- `engine/src/render_system.cpp` - Current dual pipeline logic
+- `engine/include/scene_manager.h` - SceneObject with dual materials  
+- `engine/shaders/pbr.frag` - Rasterized PBR shader
+- `engine/src/raytracer.cpp` - CPU raytracing pipeline
+- `engine/src/json_ops.cpp` - Material property parsing
+
+#### **Acceptance Criteria Per Task**
+Each task has specific success criteria:
+- **Task 1**: Headers compile, no integration
+- **Task 3**: Raster renders match golden images (±FP noise)
+- **Task 8**: Glass materials refract in raster mode
+- **Task 15**: Validator passes on 5 canonical scenes
+
+#### **Screen-Space Refraction (SSR-T) Overview**
+```glsl
+// In pbr.frag - simplified concept
+vec3 refractionDirection = refract(-viewDir, normal, 1.0/material.ior);
+vec2 refractionUV = screenUV + refractionDirection.xy * refractionStrength;
+vec3 refractedColor = texture(sceneColor, refractionUV).rgb;
+
+// Fresnel mixing
+float fresnel = fresnelSchlick(dot(normal, viewDir), 1.0, material.ior);
+finalColor = mix(refractedColor, reflectedColor, fresnel);
+```
+
+### Expected Outcomes
+
+#### **User Experience**
+- Glass materials work in both raster and ray modes
+- No need to remember `--raytrace` flag (auto mode)
+- Consistent material behavior across pipelines
+- Real-time preview with offline-quality final renders
+
+#### **Developer Experience**  
+- Single MaterialCore struct (no dual storage)
+- Clean RHI abstraction (easy Vulkan/WebGPU porting)
+- Modular pass system (easy to add new effects)
+- Comprehensive test suite (regression protection)
+
+#### **Performance**
+- Real-time refraction via SSR-T (<16ms frame budget)
+- GPU backend abstraction with minimal overhead
+- Hybrid mode balances quality vs performance automatically
+
+### Migration Timeline
+- **Phase 1-2**: 1 week (foundation + materials)
+- **Phase 3-4**: 1 week (passes + SSR-T)  
+- **Phase 5-6**: 1 week (hybrid + production)
+- **Phase 7-8**: 3 days (platform + cleanup)
+- **Total**: ~3.5 weeks for complete refactor
+
+### External Dependencies
+
+The refactored system uses proven, lightweight packages organized in `engine/external/`:
+
+#### **Core Dependencies** (Always Required)
+- **fmt + spdlog**: Fast, structured logging with minimal overhead
+- **cgltf**: Lightweight, robust glTF 2.0 loader (replacing heavy Assimp)
+- **tinyexr**: HDR/floating-point image support for environment maps
+- **stb libraries**: Already integrated - PNG/JPG loading and writing
+
+#### **Shader Pipeline** (Future-Proofing)
+- **shaderc**: GLSL → SPIR-V compilation for cross-platform shaders
+- **SPIRV-Cross**: SPIR-V → GLSL ES/MSL/HLSL cross-compilation
+- **SPIRV-Reflect**: Automatic UBO layout detection and binding inference
+
+#### **Backend Abstraction** (Future)
+- **volk**: Vulkan function loader (when adding Vulkan backend)
+- **VMA**: Vulkan Memory Allocator (painless Vulkan memory management)
+- **Dawn** or **wgpu-native**: WebGPU desktop implementation
+
+#### **Optional Acceleration** (Desktop Only)
+- **Intel Embree**: 2-10x faster CPU ray tracing vs custom BVH
+- **Intel OIDN**: Already integrated - AI-based denoising
+
+#### **Build Strategy**
+- **Web Preview**: <2MB WASM, raster+SSR-T only, basic materials
+- **Desktop Final**: ~50MB executable, hybrid ray/raster, full features
+
+See `engine/external/README.md` for detailed dependency documentation and integration instructions.
 
 ### Directory Structure
 ```

@@ -8,6 +8,7 @@
 #include "light.h"  
 #include "microfacet_sampling.h"
 #include "raytracer_lighting.h"
+#include "refraction.h"
 #include <glm/glm.hpp>
 
 class Raytracer
@@ -50,5 +51,15 @@ private:
         const Light& lights,
         int depth,
         microfacet::SeededRNG& rng
+    ) const;
+    
+    // Helper method for refraction
+    glm::vec3 computeRefraction(
+        const glm::vec3& hitPoint,
+        const glm::vec3& incident,
+        const glm::vec3& normal,
+        const Material& material,
+        const Light& lights,
+        int depth
     ) const;
 };

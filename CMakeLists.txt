@@ -50,6 +50,7 @@ set(APP_SOURCES
     ${SRC_DIR}/brdf.cpp
     ${SRC_DIR}/microfacet_sampling.cpp
     ${SRC_DIR}/raytracer_lighting.cpp
+    ${SRC_DIR}/refraction.cpp
     ${SRC_DIR}/file_dialog.cpp
     ${SRC_DIR}/image_io.cpp
     ${SRC_DIR}/panels/scene_tree_panel.cpp
@@ -92,6 +93,7 @@ set(CORE_SOURCES
     ${SRC_DIR}/brdf.cpp
     ${SRC_DIR}/microfacet_sampling.cpp
     ${SRC_DIR}/raytracer_lighting.cpp
+    ${SRC_DIR}/refraction.cpp
     ${SRC_DIR}/file_dialog.cpp
     ${SRC_DIR}/image_io.cpp
     ${SRC_DIR}/panels/scene_tree_panel.cpp

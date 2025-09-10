@@ -383,6 +383,12 @@ bool JsonOpsExecutor::apply(const std::string& json, std::string& error)
             if (matObj.HasMember("ior") && matObj["ior"].IsNumber()) {
                 float ior = (float)matObj["ior"].GetDouble();
                 const_cast<SceneObject*>(targetObj)->ior = ior;
+                const_cast<SceneObject*>(targetObj)->material.ior = ior;
+            }
+
+            if (matObj.HasMember("transmission") && matObj["transmission"].IsNumber()) {
+                float transmission = (float)matObj["transmission"].GetDouble();
+                const_cast<SceneObject*>(targetObj)->material.transmission = transmission;
             }
 
             if (matObj.HasMember("specular") && matObj["specular"].IsArray()) {

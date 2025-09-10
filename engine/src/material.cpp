@@ -9,7 +9,9 @@ Material::Material(
     const glm::vec3& ambient,
     float shininess,
     float roughness,
-    float metallic
+    float metallic,
+    float ior,
+    float transmission
 )
     : diffuse(diffuse)
     , specular(specular)
@@ -17,6 +19,8 @@ Material::Material(
     , shininess(shininess)
     , roughness(roughness)
     , metallic(metallic)
+    , ior(ior)
+    , transmission(transmission)
 {
     // constructor body can be empty if no extra logic is needed
 }

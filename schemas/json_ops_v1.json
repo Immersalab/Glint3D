@@ -102,6 +102,8 @@
             "color": { "$ref": "#/definitions/vec3" },
             "roughness": { "type": "number" },
             "metallic": { "type": "number" },
+            "ior": { "type": "number", "minimum": 1.0 },
+            "transmission": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
             "specular": { "$ref": "#/definitions/vec3" },
             "ambient": { "$ref": "#/definitions/vec3" }
           },

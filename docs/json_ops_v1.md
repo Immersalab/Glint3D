@@ -38,7 +38,15 @@ Operations
 
 4) set_material
    - Purpose: Assign material parameters inline to an object.
-   - Fields: `op`, `target`, `material` with any of `color`, `roughness`, `metallic`, `specular`, `ambient`
+   - Fields: `op`, `target`, `material` with any of:
+     - `color`: vec3 - Base albedo color
+     - `roughness`: float - Surface roughness (0=mirror, 1=rough) 
+     - `metallic`: float - Metallic factor (0=dielectric, 1=metal)
+     - `ior`: float - Index of refraction (1.0=air, 1.5=glass, 2.42=diamond)
+     - `transmission`: float - Transparency factor (0=opaque, 1=transparent) ⚠️ **REQUIRES --raytrace**
+     - `specular`: vec3 - Legacy specular color
+     - `ambient`: vec3 - Legacy ambient color
+   - **IMPORTANT**: `ior` and `transmission` properties only produce realistic glass effects with the `--raytrace` flag. Without raytracing, transmission is ignored and ior only affects basic Fresnel F0.
 
 5) add_light
    - Purpose: Add a light (`point` | `directional` | `spot`).
