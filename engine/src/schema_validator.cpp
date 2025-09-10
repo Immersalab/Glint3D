@@ -243,7 +243,11 @@ std::string SchemaValidator::getEmbeddedSchemaV1_3() {
       "type": "object",
       "required": ["op", "name"],
       "properties": {
-        "op": { "const": "delete" },
+        "op": { 
+          "const": "delete",
+          "deprecated": true,
+          "description": "DEPRECATED: Use 'remove' instead. This operation is an alias for 'remove'."
+        },
         "name": { "type": "string" }
       },
       "additionalProperties": false
@@ -265,7 +269,10 @@ std::string SchemaValidator::getEmbeddedSchemaV1_3() {
       "type": "object",
       "required": ["op", "name"],
       "properties": {
-        "op": { "const": "remove" },
+        "op": { 
+          "const": "remove",
+          "description": "Remove an object from the scene. This is the canonical operation; 'delete' is deprecated."
+        },
         "name": { "type": "string" }
       },
       "additionalProperties": false

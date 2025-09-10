@@ -16,7 +16,7 @@
   },
   {
     "op": "load_hdr_environment",
-    "path": "engine/assets/img/default_env.hdr"
+    "path": "engine/assets/img/studio_small_08_4k.exr"
   },
   {
     "op": "set_ibl_intensity",

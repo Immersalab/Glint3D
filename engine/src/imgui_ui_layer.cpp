@@ -3,6 +3,7 @@
 #include "gl_platform.h"
 #include "render_utils.h"
 #include <GLFW/glfw3.h>
+#include "file_dialog.h"
 #include <vector>
 #include <string>
 #include <cstring>
@@ -39,6 +40,35 @@ namespace {
         for (size_t i = start; i < s_history.size(); ++i) {
             out << s_history[i] << "\n";
         }
+    }
+    
+    // Helper function to escape strings for JSON
+    static std::string escapeJsonString(const std::string& input) {
+        std::string escaped;
+        escaped.reserve(input.length() + input.length() / 4); // Reserve extra space for escapes
+        
+        for (char c : input) {
+            switch (c) {
+                case '"':  escaped += "\\\""; break;
+                case '\\': escaped += "\\\\"; break;
+                case '\b': escaped += "\\b"; break;
+                case '\f': escaped += "\\f"; break;
+                case '\n': escaped += "\\n"; break;
+                case '\r': escaped += "\\r"; break;
+                case '\t': escaped += "\\t"; break;
+                default:
+                    if (c >= 0 && c < 0x20) {
+                        // Control characters
+                        char buf[8];
+                        snprintf(buf, sizeof(buf), "\\u%04x", static_cast<unsigned char>(c));
+                        escaped += buf;
+                    } else {
+                        escaped += c;
+                    }
+                    break;
+            }
+        }
+        return escaped;
     }
 }
 
@@ -572,11 +602,11 @@ void ImGuiUILayer::renderSettingsPanel(const UIState& state)
             // Environment/IBL controls
             ImGui::Text("Environment & Lighting");
 
-            // Background controls: Solid / Gradient / HDR (stub)
+            // Background controls: Solid / Gradient / HDR/EXR
             ImGui::Separator();
             ImGui::Text("Background");
             int bgMode = static_cast<int>(state.backgroundMode);
-            const char* bgItems[] = { "Solid", "Gradient", "HDR (stub)" };
+            const char* bgItems[] = { "Solid", "Gradient", "HDR/EXR" };
             ImGui::SetNextItemWidth(-1);
             if (ImGui::Combo("##background_mode", &bgMode, bgItems, IM_ARRAYSIZE(bgItems))) {
                 // Apply default op for selected mode with current values
@@ -592,8 +622,8 @@ void ImGuiUILayer::renderSettingsPanel(const UIState& state)
                     UICommandData cmd; cmd.command = UICommand::ApplyJsonOps; cmd.stringParam = std::string(buf); if (onCommand) onCommand(cmd);
                 } else if (bgMode == 2) {
                     // HDR stub: send current path or placeholder
-                    std::string path = state.backgroundHDRPath.empty() ? std::string("engine/assets/img/default_env.hdr") : state.backgroundHDRPath;
-                    std::string payload = std::string("[{\"op\":\"set_background\",\"hdr\":\"") + path + "\"}]";
+                    std::string path = state.backgroundHDRPath.empty() ? std::string("engine/assets/img/studio_small_08_4k.exr") : state.backgroundHDRPath;
+                    std::string payload = std::string("[{\"op\":\"set_background\",\"hdr\":\"") + escapeJsonString(path) + "\"}]";
                     UICommandData cmd; cmd.command = UICommand::ApplyJsonOps; cmd.stringParam = payload; if (onCommand) onCommand(cmd);
                 }
             }
@@ -623,10 +653,10 @@ void ImGuiUILayer::renderSettingsPanel(const UIState& state)
                     UICommandData cmd; cmd.command = UICommand::ApplyJsonOps; cmd.stringParam = std::string(buf); if (onCommand) onCommand(cmd);
                 }
             } else if (bgMode == 2) {
-                // HDR path input (stub)
+                // HDR/EXR path input
                 static char hdrBuf[256] = "";
                 if (std::strlen(hdrBuf) == 0) {
-                    std::string init = state.backgroundHDRPath.empty() ? std::string("engine/assets/img/default_env.hdr") : state.backgroundHDRPath;
+                    std::string init = state.backgroundHDRPath.empty() ? std::string("engine/assets/img/studio_small_08_4k.exr") : state.backgroundHDRPath;
                     #ifdef _WIN32
                     strncpy_s(hdrBuf, sizeof(hdrBuf), init.c_str(), _TRUNCATE);
                     #else
@@ -634,18 +664,35 @@ void ImGuiUILayer::renderSettingsPanel(const UIState& state)
                     #endif
                 }
                 ImGui::SetNextItemWidth(-1);
-                if (ImGui::InputText("HDR Path (stub)", hdrBuf, sizeof(hdrBuf))) {
-                    std::string payload = std::string("[{\"op\":\"set_background\",\"hdr\":\"") + std::string(hdrBuf) + "\"}]";
+                if (ImGui::InputText("HDR/EXR Path", hdrBuf, sizeof(hdrBuf))) {
+                    std::string payload = std::string("[{\"op\":\"set_background\",\"hdr\":\"") + escapeJsonString(std::string(hdrBuf)) + "\"}]";
                     UICommandData cmd; cmd.command = UICommand::ApplyJsonOps; cmd.stringParam = payload; if (onCommand) onCommand(cmd);
+                }
+
+                // Browse button for selecting HDR/EXR file
+                if (ImGui::Button("Browse HDR/EXR...")) {
+                    auto filters = FileDialog::getImageFilters();
+                    std::string sel = FileDialog::openFile("Select HDR/EXR Environment", filters, "");
+                    if (!sel.empty()) {
+                        #ifdef _WIN32
+                        strncpy_s(hdrBuf, sizeof(hdrBuf), sel.c_str(), _TRUNCATE);
+                        #else
+                        std::strncpy(hdrBuf, sel.c_str(), sizeof(hdrBuf)-1); hdrBuf[sizeof(hdrBuf)-1] = '\0';
+                        #endif
+                        std::string payload = std::string("[{\"op\":\"set_background\",\"hdr\":\"") + escapeJsonString(sel) + "\"}]";
+                        UICommandData cmd; cmd.command = UICommand::ApplyJsonOps; cmd.stringParam = payload; if (onCommand) onCommand(cmd);
+                    }
                 }
             }
             ImGui::Spacing();
 
-            // HDR environment loading button
-            if (ImGui::Button("Load HDR Environment", ImVec2(-1, 0))) {
+            // HDR/EXR environment loading button
+            if (ImGui::Button("Load HDR/EXR Environment", ImVec2(-1, 0))) {
                 UICommandData cmd;
                 cmd.command = UICommand::LoadHDREnvironment;
-                cmd.stringParam = "engine/assets/img/default_env.hdr"; // placeholder path
+                // Use current renderer state, or default if empty
+                std::string path = state.backgroundHDRPath.empty() ? "engine/assets/img/studio_small_08_4k.exr" : state.backgroundHDRPath;
+                cmd.stringParam = path;
                 if (onCommand) onCommand(cmd);
             }
             
@@ -945,6 +992,16 @@ void ImGuiUILayer::renderSettingsPanel(const UIState& state)
                 if (onCommand) onCommand(cmd);
             }
             
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Text("ImageIO");
+            #ifdef EXR_ENABLED
+                ImGui::Text("EXR support: Enabled");
+            #else
+                ImGui::Text("EXR support: Disabled");
+            #endif
+            ImGui::Text("HDR/EXR Path: %s", state.backgroundHDRPath.empty() ? "<none>" : state.backgroundHDRPath.c_str());
+
             ImGui::Spacing();
         }
     }
@@ -1387,8 +1444,8 @@ void ImGuiUILayer::renderHelpDialogs()
                 ImGui::BulletText("set_material - Modify materials: {\"op\":\"set_material\", \"target\":\"Obj\", \"material\":{\"color\":[1,0,0], \"roughness\":0.5}}");
                 ImGui::BulletText("set_background - Solid: {\"op\":\"set_background\", \"color\":[0.2,0.4,0.8]}");
                 ImGui::BulletText("set_background - Gradient: {\"op\":\"set_background\", \"top\":[0.1,0.1,0.2], \"bottom\":[0.0,0.0,0.0]}");
-                ImGui::BulletText("set_background - HDR (stub): {\"op\":\"set_background\", \"hdr\":\"assets/env/studio.hdr\"}");
-                ImGui::BulletText("load_hdr_environment - Load HDR for IBL: {\"op\":\"load_hdr_environment\", \"path\":\"assets/env/studio.hdr\"}");
+                ImGui::BulletText("set_background - HDR/EXR: {\"op\":\"set_background\", \"hdr\":\"assets/env/studio.hdr|assets/env/studio.exr\"}");
+                ImGui::BulletText("load_hdr_environment - Load HDR/EXR for IBL: {\"op\":\"load_hdr_environment\", \"path\":\"assets/env/studio.hdr|assets/env/studio.exr\"}");
                 ImGui::BulletText("set_skybox_intensity - Set skybox brightness: {\"op\":\"set_skybox_intensity\", \"value\":1.5}");
                 ImGui::BulletText("set_ibl_intensity - Set IBL strength: {\"op\":\"set_ibl_intensity\", \"value\":2.0}");
                 ImGui::BulletText("exposure - Adjust exposure: {\"op\":\"exposure\", \"value\":-1.0}");

@@ -186,6 +186,18 @@ void RenderSystem::render(const SceneManager& scene, const Light& lights)
         m_stats.drawCalls += 1;
     }
     
+    // If using HDR background mode, render environment map as skybox background
+    if (m_bgMode == BackgroundMode::HDR && !m_showSkybox && m_iblSystem) {
+        GLuint envMap = m_iblSystem->getEnvironmentMap();
+        if (envMap != 0 && m_skybox) {
+            // Use the IBL environment map as the skybox texture
+            m_skybox->setEnvironmentMap(envMap);
+            m_skybox->render(m_viewMatrix, m_projectionMatrix);
+            // counts as one draw call
+            m_stats.drawCalls += 1;
+        }
+    }
+    
     // Choose render path based on mode
     switch (m_renderMode) {
         case RenderMode::Raytrace:
@@ -310,6 +322,17 @@ bool RenderSystem::loadSkybox(const std::string& path)
     if (!m_skybox->init()) return false;
     setShowSkybox(true);
     return true;
+}
+
+void RenderSystem::setBackgroundHDR(const std::string& hdrPath)
+{
+    m_bgHDRPath = hdrPath;
+    m_bgMode = BackgroundMode::HDR;
+    
+    // Automatically load the HDR environment into the IBL system
+    if (m_iblSystem && !hdrPath.empty()) {
+        loadHDREnvironment(hdrPath);
+    }
 }
 
 bool RenderSystem::loadHDREnvironment(const std::string& hdrPath)

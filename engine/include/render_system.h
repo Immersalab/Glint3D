@@ -108,7 +108,7 @@ public:
     const glm::vec3& getBackgroundColor() const { return m_backgroundColor; }
     void setBackgroundSolid(const glm::vec3& c) { m_backgroundColor = c; m_bgMode = BackgroundMode::Solid; }
     void setBackgroundGradient(const glm::vec3& top, const glm::vec3& bottom) { m_bgTop = top; m_bgBottom = bottom; m_bgMode = BackgroundMode::Gradient; }
-    void setBackgroundHDR(const std::string& hdrPath) { m_bgHDRPath = hdrPath; m_bgMode = BackgroundMode::HDR; }
+    void setBackgroundHDR(const std::string& hdrPath);
     BackgroundMode getBackgroundMode() const { return m_bgMode; }
     glm::vec3 getBackgroundTopColor() const { return m_bgTop; }
     glm::vec3 getBackgroundBottomColor() const { return m_bgBottom; }

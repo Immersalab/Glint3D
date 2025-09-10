@@ -114,6 +114,36 @@ web/src/
 - **Mobile**: Touch controls and responsive design not optimized
 - **Accessibility**: Screen reader and keyboard navigation need improvement
 
+### Environment Setup (Optional)
+For easier command-line usage, you can set up `glint` as a global command:
+
+**Windows:**
+```bash
+# Run setup script (creates wrapper and adds to PATH)
+setup_glint_env.bat
+```
+
+**Linux/macOS:**
+```bash
+# Run setup script (creates wrapper and adds to PATH)
+source setup_glint_env.sh
+```
+
+After setup, you can use `glint` from any directory instead of the full path:
+```bash
+# Before setup
+./builds/desktop/cmake/Release/glint.exe --ops examples/json-ops/sphere_basic.json --render output.png
+
+# After setup  
+glint --ops examples/json-ops/sphere_basic.json --render output.png
+```
+
+The setup scripts:
+- Create a `glint` wrapper that automatically finds Release/Debug executables
+- Add the project root to your PATH environment variable
+- Ensure proper working directory for asset path resolution
+- Work from any directory while maintaining correct asset paths
+
 ### Running Examples
 ```bash
 # Headless rendering with JSON Ops
@@ -124,6 +154,10 @@ web/src/
 
 # CLI with denoise (if OIDN available)  
 ./builds/desktop/cmake/Debug/glint.exe --ops examples/json-ops/studio-turntable.json --render output.png --denoise
+
+# Using global command (after environment setup)
+glint --ops examples/json-ops/sphere_basic.json --render output.png --w 512 --h 512
+glint --ops examples/json-ops/directional-light-test.json --render output.png --denoise
 ```
 
 ---
@@ -347,6 +381,46 @@ tests/scripts/run_golden_tests.sh      # Visual regression tests
 3. Build Desktop + Web  
 4. Run tests (unit + golden). If goldens change intentionally, use the regen workflow to produce candidates and update `tests/golden/references/*.png`.  
 5. Update docs/schema/recipes
+
+---
+
+## Graphics API Evolution Strategy
+
+### Current Implementation: OpenGL/WebGL2
+- **Desktop**: OpenGL 3.3+ core profile with mature feature set
+- **Web**: WebGL 2.0 with automatic shader translation (#version 330 core → #version 300 es)
+- **Architecture**: RHI (Render Hardware Interface) abstraction layer already in place
+
+### Planned Migration: Vulkan/WebGPU
+- **Desktop Target**: Vulkan API for explicit GPU control and better multi-threading
+- **Web Target**: WebGPU for next-generation web graphics with compute shader support
+- **Timeline**: Architecture preparation ongoing, migration planned for future releases
+
+### Future Vision: Neural Rendering
+- **Gaussian Splatting**: Point-based rendering for photorealistic real-time scenes
+- **Neural Radiance Fields (NeRF)**: AI-powered view synthesis and scene representation
+- **Hybrid Pipeline**: Integration of traditional rasterization with neural techniques
+
+### Development Guidelines for Graphics Evolution
+When implementing new features, consider the upcoming graphics API transition:
+
+1. **API Abstraction**: Use the existing RHI layer; avoid direct OpenGL calls in Engine Core
+2. **Resource Management**: Design with explicit lifetime patterns suitable for Vulkan
+3. **Compute Integration**: Plan shader features to work with compute pipelines
+4. **Cross-Platform Design**: Ensure compatibility patterns that translate across APIs
+5. **Performance Patterns**: Avoid OpenGL-specific optimizations that won't carry forward
+
+### Current RHI Status
+- **Abstraction Layer**: Foundation exists for multi-API support
+- **Shader System**: Designed for cross-compilation (GLSL → HLSL/SPIR-V ready)
+- **Engine Core**: Already decoupled from specific graphics API dependencies
+- **Asset Pipeline**: Designed to support future rendering techniques
+
+### Implementation Priority
+- Phase 1: Complete current OpenGL/WebGL2 feature parity
+- Phase 2: RHI expansion and Vulkan/WebGPU prototyping  
+- Phase 3: Neural rendering technique integration
+- Phase 4: Performance optimization and advanced pipeline features
 
 ---
 

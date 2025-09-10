@@ -1,6 +1,6 @@
 #include "ibl_system.h"
 #include "shader.h"
-#include "stb_image.h"
+#include "image_io.h"
 #include <iostream>
 #include <cmath>
 
@@ -368,31 +368,28 @@ void IBLSystem::createShaders()
 
 GLuint IBLSystem::loadHDRTexture(const std::string& path)
 {
-    stbi_set_flip_vertically_on_load(true);
-    int width, height, nrComponents;
-    float* data = stbi_loadf(path.c_str(), &width, &height, &nrComponents, 0);
-    
-    if (!data) {
-        std::cerr << "Failed to load HDR image: " << path << std::endl;
+    ImageIO::ImageDataFloat img;
+    if (!ImageIO::LoadImageFloat(path, img, /*flipY=*/true)) {
+        std::cerr << "Failed to load HDR/EXR image: " << path << std::endl;
         return 0;
     }
 
     GLuint hdrTexture;
     glGenTextures(1, &hdrTexture);
     glBindTexture(GL_TEXTURE_2D, hdrTexture);
-    
-    if (nrComponents == 3) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGB, GL_FLOAT, data);
-    } else if (nrComponents == 4) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, data);
+
+    if (img.channels == 3) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, img.width, img.height, 0, GL_RGB, GL_FLOAT, img.pixels.data());
+    } else {
+        // Default to RGBA for 4 or other channel counts (TinyEXR returns 4)
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, img.width, img.height, 0, GL_RGBA, GL_FLOAT, img.pixels.data());
     }
-    
+
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    stbi_image_free(data);
     return hdrTexture;
 }
 
@@ -403,9 +400,15 @@ bool IBLSystem::loadHDREnvironment(const std::string& hdrPath)
         return false;
     }
 
+    // Save current viewport
+    GLint prevViewport[4] = {0, 0, 0, 0};
+    glGetIntegerv(GL_VIEWPORT, prevViewport);
+
     // Load HDR equirectangular map
     GLuint hdrTexture = loadHDRTexture(hdrPath);
     if (hdrTexture == 0) {
+        // Restore viewport before returning
+        glViewport(prevViewport[0], prevViewport[1], prevViewport[2], prevViewport[3]);
         return false;
     }
 
@@ -457,11 +460,18 @@ bool IBLSystem::loadHDREnvironment(const std::string& hdrPath)
     // Cleanup HDR texture
     glDeleteTextures(1, &hdrTexture);
     
+    // Restore original viewport
+    glViewport(prevViewport[0], prevViewport[1], prevViewport[2], prevViewport[3]);
+    
     return true;
 }
 
 void IBLSystem::generateIrradianceMap()
 {
+    // Save current viewport
+    GLint prevViewport[4] = {0, 0, 0, 0};
+    glGetIntegerv(GL_VIEWPORT, prevViewport);
+    
     glGenTextures(1, &m_irradianceMap);
     glBindTexture(GL_TEXTURE_CUBE_MAP, m_irradianceMap);
     for (unsigned int i = 0; i < 6; ++i) {
@@ -501,10 +511,17 @@ void IBLSystem::generateIrradianceMap()
         renderCube();
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    
+    // Restore original viewport
+    glViewport(prevViewport[0], prevViewport[1], prevViewport[2], prevViewport[3]);
 }
 
 void IBLSystem::generatePrefilterMap()
 {
+    // Save current viewport
+    GLint prevViewport[4] = {0, 0, 0, 0};
+    glGetIntegerv(GL_VIEWPORT, prevViewport);
+    
     glGenTextures(1, &m_prefilterMap);
     glBindTexture(GL_TEXTURE_CUBE_MAP, m_prefilterMap);
     for (unsigned int i = 0; i < 6; ++i) {
@@ -553,10 +570,17 @@ void IBLSystem::generatePrefilterMap()
         }
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    
+    // Restore original viewport
+    glViewport(prevViewport[0], prevViewport[1], prevViewport[2], prevViewport[3]);
 }
 
 void IBLSystem::generateBRDFLUT()
 {
+    // Save current viewport
+    GLint prevViewport[4] = {0, 0, 0, 0};
+    glGetIntegerv(GL_VIEWPORT, prevViewport);
+    
     glGenTextures(1, &m_brdfLUT);
     glBindTexture(GL_TEXTURE_2D, m_brdfLUT);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, 512, 512, 0, GL_RG, GL_FLOAT, 0);
@@ -576,6 +600,9 @@ void IBLSystem::generateBRDFLUT()
     renderQuad();
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    
+    // Restore original viewport
+    glViewport(prevViewport[0], prevViewport[1], prevViewport[2], prevViewport[3]);
 }
 
 void IBLSystem::bindIBLTextures() const

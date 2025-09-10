@@ -14,7 +14,7 @@ Core Requirements
 - [x] Render modes: point, wireframe, solid, raytrace (CPU)
 - [x] Camera: free-fly, orbit, presets (front/back/left/right/top/bottom/isometric)
 - [x] Lights: directional, point, spot (intensity/color); simple IBL optional
-- [x] Background: solid color, optional HDR skybox/IBL
+- [x] Background: solid color, optional HDR/EXR skybox/IBL
 - [x] Offscreen render target with MSAA resolve, readback to PNG
 - [x] Deterministic controls: seed, tone mapping (linear/Reinhard/Filmic/ACES), exposure
 
@@ -32,10 +32,10 @@ Camera - COMPLETE
 - Status: Free-fly implemented. Presets implemented (front/back/left/right/top/bottom/iso FL/iso BR) with correct orientation; target-centric orbit with damping implemented; frame object calculates bounds-based distance.
 
 Lighting - COMPLETE
-- Status: Point, Directional, and Spot lights supported. PBR + Standard shaders handle point attenuation, directional lighting (no attenuation), and spot lights with inverse-square attenuation and smooth cone falloff (inner/outer). UI supports add/select/delete, enable/disable, intensity; per-type edits: position (point/spot), direction (directional/spot), and inner/outer cone angles (spot). IBL fully implemented with HDR environment loading, irradiance convolution, prefilter generation, and BRDF LUT integration.
+- Status: Point, Directional, and Spot lights supported. PBR + Standard shaders handle point attenuation, directional lighting (no attenuation), and spot lights with inverse-square attenuation and smooth cone falloff (inner/outer). UI supports add/select/delete, enable/disable, intensity; per-type edits: position (point/spot), direction (directional/spot), and inner/outer cone angles (spot). IBL fully implemented with HDR/EXR environment loading, irradiance convolution, prefilter generation, and BRDF LUT integration.
 
 Background - COMPLETE
-- Status: Procedural gradient skybox integrated and toggleable; solid color background settable via ops/renderer. HDR environment loading with full IBL pipeline implemented including irradiance maps, prefiltered environment maps, and BRDF lookup tables. UI controls for skybox and IBL intensity scaling.
+- Status: Procedural gradient skybox integrated and toggleable; solid color background settable via ops/renderer. HDR/EXR environment loading with full IBL pipeline implemented including irradiance maps, prefiltered environment maps, and BRDF lookup tables. UI controls for skybox and IBL intensity scaling.
 
 Offscreen - COMPLETE
 - Status: Headless render to PNG supports MSAA via multisampled FBO with resolve into a single-sample color target. Onscreen rendering uses the same MSAA offscreen path with resolve to default framebuffer.
@@ -116,7 +116,7 @@ Plan
 - Implementation Time: 8 hours
 
 Implementation Details
-- **HDR Loader**: Complete .hdr format support via stb_image `stbi_loadf()` with proper floating-point texture handling
+ - **HDR/EXR Loader**: Thin ImageIO layer abstracts image loading. .hdr via stb_image `stbi_loadf()`; .exr via TinyEXR (optional, enabled when vendored). Proper float texture handling and centralized Y-flip.
 - **IBL System Architecture**: New `IBLSystem` class with equirectangular-to-cubemap conversion pipeline
 - **Convolution Passes**: 
   - Irradiance convolution for diffuse IBL (32x32 cubemap with cosine-weighted hemisphere sampling)
@@ -128,7 +128,7 @@ Implementation Details
 - **Schema Updates**: Complete JSON schema validation, documentation, and help text integration
 
 Acceptance Tests
-- HDR loading validates file format and generates proper cubemap environment
+- HDR/EXR loading validates file format and generates proper cubemap environment
 - Convolution passes produce mathematically correct irradiance/prefilter maps
 - BRDF LUT integration works with varying roughness and viewing angles
 - UI controls affect final rendered output with proper intensity scaling
@@ -198,6 +198,13 @@ Plan
 - Added: Sphere geometry asset (assets/models/sphere.obj, 162 vertices, ~1600 faces)
 - Updated: BRDF visual tests to use spheres instead of cubes for better specular lobe visualization
 - Created: `examples/json-ops/pbr_sphere_grid.json` - complete roughness (0.1→0.9) × metallic (0.0→1.0) matrix
+
+2025-09-10 - ImageIO Layer + EXR Support (optional)
+- Added: `engine/include/image_io.h`, `engine/src/image_io.cpp` to abstract image loading
+- Implemented: .hdr via stb_image; .exr via TinyEXR (RGBA float)
+- Refactored: `engine/src/ibl_system.cpp` to use ImageIO instead of direct stb usage
+- CMake: `ENABLE_EXR` option; auto-enables EXR when `engine/Libraries/include/tinyexr.h` and `engine/Libraries/include/miniz.h` and `engine/Libraries/src/miniz.c` are present; defines `EXR_ENABLED`
+- Notes: When EXR disabled, `.exr` loads return false and UI/ops should handle gracefully; `.hdr` remains fully supported
 - Generated: `renders/pbr_sphere_grid.png` showing Cook–Torrance BRDF behavior on curved surfaces
 - Added: Unit test `tests/unit/brdf_test.cpp` for N·L≤0 and N·V≤0 returning zero
 - Benefits: Spherical geometry demonstrates specular lobes, Fresnel effects, and surface curvature interactions more naturally than cubic geometry
@@ -361,6 +368,46 @@ Implementation Status
 - Location: engine/src/main.cpp, engine/src/cli_parser.cpp
 - Implemented: --ops, --render, --w, --h, --denoise, --raytrace, --strict-schema, --schema-version v1.3, --log quiet|warn|info|debug, --asset-root; robust exit codes
 - Missing (future): --seed <int>, --tone, --exposure, --gamma, --samples <1|2|4|8>, AI/NL helpers
+
+### Environment Setup (Optional)
+For easier command-line usage, you can set up `glint` as a global command:
+
+**Windows:**
+```bash
+# Run setup script (creates wrapper and adds to PATH)
+setup_glint_env.bat
+```
+
+**Linux/macOS:**
+```bash
+# Run setup script (creates wrapper and adds to PATH)
+source setup_glint_env.sh
+```
+
+After setup, you can use `glint` from any directory instead of the full path:
+```bash
+# Before setup
+./builds/desktop/cmake/Release/glint.exe --ops examples/json-ops/sphere_basic.json --render output.png
+
+# After setup  
+glint --ops examples/json-ops/sphere_basic.json --render output.png
+```
+
+The setup scripts:
+- Create a `glint` wrapper that automatically finds Release/Debug executables
+- Add the project root to your PATH environment variable
+- Ensure proper working directory for asset path resolution
+- Work from any directory while maintaining correct asset paths
+
+### Usage Examples
+```bash
+# Traditional usage with full paths
+./builds/desktop/cmake/Release/glint.exe --ops examples/json-ops/directional-light-test.json --render output.png --w 256 --h 256
+
+# With environment setup (global command)
+glint --ops examples/json-ops/sphere_basic.json --render output.png --w 512 --h 512
+glint --ops examples/json-ops/directional-light-test.json --render output.png --denoise
+```
 
 Exit Codes (for CI robustness)
 - 0: success
@@ -801,12 +848,49 @@ CI Integration (implemented)
 
 ---
 
+## GRAPHICS API EVOLUTION ROADMAP
+
+### Current State: OpenGL/WebGL2
+- **Desktop**: OpenGL 3.3+ core profile with full feature set
+- **Web**: WebGL 2.0 with shader compatibility layer (#version 300 es)
+- **Limitations**: Single graphics API, platform-specific optimizations limited
+
+### Phase 1: Vulkan/WebGPU Migration (Planned)
+- **Vulkan Desktop**: Modern low-level graphics API for high-performance rendering
+- **WebGPU Web**: Next-generation web graphics standard with compute shader support
+- **Benefits**: 
+  - Better multi-threading support
+  - Explicit resource management
+  - Compute shader integration for advanced effects
+  - Cross-platform consistency and performance
+
+### Phase 2: Advanced Rendering Techniques (Future)
+- **Gaussian Splatting**: Point-based real-time rendering for photorealistic scenes
+- **Neural Radiance Fields (NeRF)**: AI-powered view synthesis and scene representation
+- **Hybrid Approaches**: Integration of traditional rasterization with neural rendering
+
+### Development Considerations
+When developing new features, keep the graphics API evolution in mind:
+- **Abstraction Layer**: Design render interfaces to be API-agnostic where possible
+- **Resource Management**: Consider explicit lifetime management patterns
+- **Compute Integration**: Plan for compute shader usage in future pipeline stages
+- **Performance Patterns**: Avoid OpenGL-specific optimizations that won't translate
+
+### Implementation Notes
+- Current RHI (Render Hardware Interface) abstraction provides foundation for API migration
+- Shader system designed with cross-compilation in mind (GLSL → HLSL/SPIR-V)
+- Engine Core kept independent of specific graphics API calls
+- Asset pipeline designed to support future rendering techniques
+
+---
+
 ## ROADMAP
 
 - M1 (Core parity): Directional light, camera presets, JSON Ops v1 completion for core ops, strict schema in CLI, baseline golden tests.
 - M2 (Quality): MSAA offscreen + UI, orbit/framing, scene tree and selection panel, drag-drop, recent files, expanded HUD.
 - M3 (Lighting): Spot lights, HDR skybox loading, IBL stubs and integration, tone mapping/exposure controls and CLI flags.
 - M4 (Polish and Web): Embed SDK hardening, asset resolution (--asset-root), deterministic seed in raytracer and raster; packaging scripts.
+- **M5 (Graphics Evolution)**: Vulkan/WebGPU migration, compute shader integration, foundation for neural rendering techniques.
 
 ---
 

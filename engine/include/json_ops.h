@@ -33,6 +33,9 @@ public:
     
     // Check if strict schema validation is enabled
     bool isStrictSchemaEnabled() const;
+    
+    // Canonicalize JSON operations (e.g., convert 'delete' to 'remove')
+    std::string canonicalize(const std::string& json, std::string& error);
 
 private:
     SceneManager& m_scene;

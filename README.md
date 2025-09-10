@@ -240,6 +240,33 @@ Use the Samples menu or load recipes manually:
 
 ---
 
+## Graphics API Evolution Roadmap
+
+### Current: OpenGL/WebGL2 Foundation
+- **Desktop**: OpenGL 3.3+ core profile with complete feature set
+- **Web**: WebGL 2.0 with shader compatibility and asset preloading
+- **Status**: Stable, production-ready, cross-platform compatibility
+
+### Next: Vulkan/WebGPU Migration (Planned)
+- **Desktop Vulkan**: Modern low-level graphics API for maximum performance
+- **Web WebGPU**: Next-generation web graphics with compute shader support
+- **Benefits**: Explicit resource management, better multi-threading, compute integration
+- **Timeline**: Architecture preparation in progress, migration planned for future releases
+
+### Future: Advanced Rendering Techniques
+- **Gaussian Splatting**: Point-based rendering for photorealistic real-time scenes
+- **Neural Radiance Fields (NeRF)**: AI-powered view synthesis and scene representation
+- **Hybrid Approaches**: Combining traditional rasterization with neural rendering methods
+
+### Development Philosophy
+When contributing to Glint3D, please consider the graphics API evolution:
+- Design render interfaces to be API-agnostic where possible
+- Avoid OpenGL-specific optimizations that won't translate to Vulkan/WebGPU
+- Consider explicit resource management patterns for future APIs
+- Plan for compute shader integration in pipeline design
+
+---
+
 ## Roadmap (Phased)
 
 ### Phase 1 â€“ Core Foundations  
@@ -264,6 +291,11 @@ Use the Samples menu or load recipes manually:
 - Diagnostics assistant (â€œWhy is it black?â€)  
 - Natural-language â†’ JSON Ops bridge  
 - Perf Coach with AI recommendations  
+
+### Phase 5 â€" Graphics Evolution
+- **Vulkan/WebGPU Migration**: Modern graphics APIs with compute support
+- **Neural Rendering**: Integration of Gaussian splatting and NeRF techniques
+- **Advanced Pipeline**: Next-generation rendering features and performance
 
 ---
 

@@ -16,6 +16,7 @@
 #include <rapidjson/error/en.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
+#include <rapidjson/prettywriter.h>
 #include <algorithm>
 #include <cctype>
 #include <limits>
@@ -108,6 +109,57 @@ bool JsonOpsExecutor::validateSchema(const std::string& json, std::string& error
     }
     
     return true;
+}
+
+std::string JsonOpsExecutor::canonicalize(const std::string& json, std::string& error)
+{
+    using namespace rapidjson;
+    error.clear();
+    
+    // Parse JSON
+    Document d;
+    ParseResult ok = d.Parse(json.c_str());
+    if (!ok) {
+        error = std::string("JSON parse error: ") + GetParseError_En(ok.Code()) +
+                " at offset " + std::to_string(ok.Offset());
+        return "";
+    }
+    
+    // Canonicalize operations function
+    auto canonicalizeOp = [](Value& obj) {
+        if (obj.IsObject() && obj.HasMember("op") && obj["op"].IsString()) {
+            std::string op = obj["op"].GetString();
+            if (op == "delete") {
+                obj["op"].SetString("remove");
+            }
+        }
+    };
+    
+    // Handle different JSON structures
+    if (d.IsArray()) {
+        // Array of operations
+        for (rapidjson::SizeType i = 0; i < d.Size(); ++i) {
+            canonicalizeOp(d[i]);
+        }
+    } else if (d.IsObject()) {
+        if (d.HasMember("ops") && d["ops"].IsArray()) {
+            // Envelope format with ops array
+            auto& opsArray = d["ops"];
+            for (rapidjson::SizeType i = 0; i < opsArray.Size(); ++i) {
+                canonicalizeOp(opsArray[i]);
+            }
+        } else {
+            // Single operation object
+            canonicalizeOp(d);
+        }
+    }
+    
+    // Convert back to string
+    StringBuffer buffer;
+    PrettyWriter<StringBuffer> writer(buffer);
+    d.Accept(writer);
+    
+    return buffer.GetString();
 }
 
 

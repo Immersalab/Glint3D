@@ -49,6 +49,7 @@ set(APP_SOURCES
     ${SRC_DIR}/triangle.cpp
     ${SRC_DIR}/brdf.cpp
     ${SRC_DIR}/file_dialog.cpp
+    ${SRC_DIR}/image_io.cpp
 )
 
 # Core library: expose engine without the app entry
@@ -87,6 +88,7 @@ set(CORE_SOURCES
     ${SRC_DIR}/json_ops.cpp
     ${SRC_DIR}/brdf.cpp
     ${SRC_DIR}/file_dialog.cpp
+    ${SRC_DIR}/image_io.cpp
 )
 
 set(IMGUI_SOURCES
@@ -296,6 +298,31 @@ else()
         else()
             message(WARNING "ENABLE_KTX2=ON but libktx not found. KTX2 at runtime will be disabled.")
         endif()
+    endif()
+endif()
+
+# Optional: EXR support via TinyEXR + miniz (header/libs must be vendored)
+option(ENABLE_EXR "Enable OpenEXR loading via TinyEXR" ON)
+if (ENABLE_EXR)
+    set(TINYEXR_HEADER "${CMAKE_SOURCE_DIR}/engine/Libraries/include/tinyexr.h")
+    set(MINIZ_HEADER   "${CMAKE_SOURCE_DIR}/engine/Libraries/include/miniz.h")
+    set(MINIZ_SOURCE   "${CMAKE_SOURCE_DIR}/engine/Libraries/src/miniz.c")
+    if (EXISTS ${TINYEXR_HEADER} AND EXISTS ${MINIZ_HEADER} AND EXISTS ${MINIZ_SOURCE})
+        message(STATUS "TinyEXR/miniz found: enabling EXR support")
+        target_compile_definitions(glint PRIVATE EXR_ENABLED=1)
+        target_compile_definitions(glint_core PRIVATE EXR_ENABLED=1)
+        # Add modular miniz sources if present
+        set(_MINIZ_EXTRA_SRC)
+        foreach(f miniz_tdef.c miniz_tinfl.c miniz_zip.c)
+            if (EXISTS "${CMAKE_SOURCE_DIR}/engine/Libraries/src/${f}")
+                list(APPEND _MINIZ_EXTRA_SRC "${CMAKE_SOURCE_DIR}/engine/Libraries/src/${f}")
+            endif()
+        endforeach()
+        target_sources(glint PRIVATE ${MINIZ_SOURCE} ${_MINIZ_EXTRA_SRC})
+        target_sources(glint_core PRIVATE ${MINIZ_SOURCE} ${_MINIZ_EXTRA_SRC})
+        # Includes already contain engine/Libraries/include
+    else()
+        message(WARNING "TinyEXR/miniz not found under engine/Libraries; EXR support disabled. Place tinyexr.h, miniz.h in engine/Libraries/include and miniz.c in engine/Libraries/src")
     endif()
 endif()
 

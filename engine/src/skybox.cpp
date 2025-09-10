@@ -269,3 +269,14 @@ void Skybox::cleanup()
     }
     m_initialized = false;
 }
+
+void Skybox::setEnvironmentMap(GLuint envMap)
+{
+    // Use the provided environment map instead of our own cubemap texture
+    // Don't delete the original cubemap since it might be needed later
+    if (envMap != 0) {
+        m_cubemapTexture = envMap;
+        m_useGradient = false; // Disable gradient mode when using external environment
+        m_enabled = true; // Enable skybox when environment map is set
+    }
+}

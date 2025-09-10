@@ -33,6 +33,9 @@ public:
     void setIntensity(float intensity) { m_intensity = intensity; }
     float getIntensity() const { return m_intensity; }
     
+    // Use external environment map (e.g., from IBL system)
+    void setEnvironmentMap(GLuint envMap);
+    
     // Cleanup
     void cleanup();
 
