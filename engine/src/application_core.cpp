@@ -656,7 +656,7 @@ void ApplicationCore::createDefaultScene()
     // Load a default object only when running with the UI so the viewport isn't empty
     // Note: path is relative to runtime working directory containing the assets folder
     if (!m_headless)
-        m_scene->loadObject("Cube", "assets/models/cube.obj", glm::vec3(0.0f, 0.0f, -4.0f), glm::vec3(1.0f));
+        m_scene->loadObject("Sphere", "assets/models/sphere.obj", glm::vec3(0.0f, 0.0f, -4.0f), glm::vec3(1.0f));
 }
 
 void ApplicationCore::cleanupGL()
