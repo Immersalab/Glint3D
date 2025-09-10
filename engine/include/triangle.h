@@ -55,7 +55,24 @@ public:
 
         /* hit! */
         tOut = t;
-        nOut = normal;  // already normalized
+        
+        // Calculate hit point for smooth normal computation
+        glm::vec3 hitPoint = r.origin + t * r.direction;
+        
+        // For spherical objects, use smooth normal (normalized position from center)
+        // Check if this looks like a sphere by seeing if vertices are roughly equidistant from origin
+        float d0 = glm::length(v0);
+        float d1 = glm::length(v1);
+        float d2 = glm::length(v2);
+        float avgDist = (d0 + d1 + d2) / 3.0f;
+        float maxDiff = std::max({std::abs(d0 - avgDist), std::abs(d1 - avgDist), std::abs(d2 - avgDist)});
+        
+        if (maxDiff < avgDist * 0.1f && avgDist > 0.5f) { // Looks like sphere vertices
+            nOut = glm::normalize(hitPoint); // Smooth sphere normal
+        } else {
+            nOut = normal;  // Use face normal for other geometry
+        }
+        
         return true;
     }
 

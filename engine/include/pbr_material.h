@@ -10,6 +10,7 @@ struct PBRMaterial
     glm::vec4 baseColorFactor{1.0f}; // sRGB base color + alpha
     float metallicFactor{1.0f};
     float roughnessFactor{1.0f};
+    float ior{1.5f};                 // Index of refraction for F0 computation (default glass)
 
     std::string baseColorTex;   // color/albedo (sRGB)
     std::string normalTex;      // tangent-space normal

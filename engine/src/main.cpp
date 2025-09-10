@@ -130,6 +130,12 @@ int main(int argc, char** argv)
         app->setRaytraceMode(true);
     }
     
+    // Configure reflection samples per pixel
+    if (parseResult.options.reflectionSpp != 8) { // Only log if not default
+        Logger::debug("Setting reflection samples per pixel to " + std::to_string(parseResult.options.reflectionSpp));
+    }
+    app->setReflectionSpp(parseResult.options.reflectionSpp);
+    
     // Configure schema validation
     if (parseResult.options.strictSchema) {
         Logger::debug("Enabling strict schema validation for " + parseResult.options.schemaVersion);

@@ -283,6 +283,16 @@ bool ApplicationCore::isRaytraceMode() const
     return m_renderer->getRenderMode() == RenderMode::Raytrace;
 }
 
+void ApplicationCore::setReflectionSpp(int spp) 
+{
+    m_renderer->setReflectionSpp(spp);
+}
+
+int ApplicationCore::getReflectionSpp() const 
+{
+    return m_renderer->getReflectionSpp();
+}
+
 void ApplicationCore::handleMouseMove(double xpos, double ypos)
 {
     if (m_firstMouse) {

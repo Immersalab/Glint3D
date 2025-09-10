@@ -43,6 +43,10 @@ public:
     void setRaytraceMode(bool enabled);
     bool isRaytraceMode() const;
     
+    // Reflection samples per pixel support
+    void setReflectionSpp(int spp);
+    int getReflectionSpp() const;
+    
     // Schema validation support
     void setStrictSchema(bool enabled, const std::string& version = "v1.3");
     bool isStrictSchemaEnabled() const;

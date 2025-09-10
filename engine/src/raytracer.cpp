@@ -92,65 +92,33 @@ glm::vec3 Raytracer::traceRay(const Ray& ray, const Light& lights, int depth) co
 
     const Material& mat = hitObject->material;
 
-    glm::vec3 color(0.0f);
+    // Use the new modular lighting system
+    glm::vec3 color = raytracer::LightingSystem::computeLighting(
+        hitPoint, normal, viewDir, mat, lights, *this
+    );
 
-    // Global ambient
-    color += mat.ambient * glm::vec3(lights.m_globalAmbient);
-
-    // For each light
-    for (const auto& light : lights.m_lights)
+    // Reflective contribution based on material properties
+    float effectiveReflectivity = std::max(hitObject->reflectivity, mat.metallic * 0.9f);
+    if (effectiveReflectivity > 0.01f)
     {
-        if (!light.enabled)
-            continue;
+        // Create RNG for this pixel (deterministic based on ray origin and direction)
+        uint32_t pixelSeed = m_seed;
+        // Mix in ray origin and direction for deterministic per-pixel seeds
+        pixelSeed ^= std::hash<float>{}(hitPoint.x + hitPoint.y + hitPoint.z);
+        pixelSeed ^= std::hash<float>{}(ray.direction.x + ray.direction.y + ray.direction.z);
+        microfacet::SeededRNG rng(pixelSeed);
+        
+        glm::vec3 reflectedColor = sampleGlossyReflection(
+            hitPoint, viewDir, normal, mat, lights, depth, rng
+        );
 
-        glm::vec3 lightDir = glm::normalize(light.position - hitPoint);
-        float lightDist = glm::length(light.position - hitPoint);
-
-        // Shadow ray
-        Ray shadowRay(hitPoint + normal * 0.001f, lightDir);
-        bool inShadow = false;
-        float shadowT;
-
-        if (bvhRoot)
-        {
-            const Triangle* blocker = nullptr;
-            if (bvhRoot->intersectAny(shadowRay, blocker, shadowT) && shadowT < lightDist)
-                inShadow = true;
-        }
-        else
-        {
-            for (const auto& tri : triangles)
-            {
-                float t;
-                glm::vec3 dummyNormal;
-                if (tri.intersect(shadowRay, t, dummyNormal) && t < lightDist)
-                {
-                    inShadow = true;
-                    break;
-                }
-            }
+        // For metals, reflection is more prominent
+        float reflectionStrength = effectiveReflectivity;
+        if (mat.metallic > 0.5f) {
+            reflectionStrength = std::min(1.0f, effectiveReflectivity * 1.5f);
         }
 
-        if (!inShadow)
-        {
-            // Cook–Torrance BRDF (Beckmann D, Cook–Torrance G, Schlick F)
-            // Use material diffuse as baseColor/albedo; metallic drives specular vs diffuse split
-            glm::vec3 brdf = brdf::cookTorrance(normal, viewDir, lightDir, mat.diffuse, mat.roughness, mat.metallic);
-            float NdotL = glm::max(glm::dot(normal, lightDir), 0.0f);
-
-            // Scale by light radiance (color * intensity) and Lambert cosine term
-            color += brdf * (NdotL * light.intensity) * light.color;
-        }
-    }
-
-    // Reflective contribution
-    if (hitObject->reflectivity > 0.0f)
-    {
-        glm::vec3 reflectedDir = glm::reflect(ray.direction, normal);
-        Ray reflectedRay(hitPoint + normal * 0.001f, glm::normalize(reflectedDir));
-        glm::vec3 reflectedColor = traceRay(reflectedRay, lights, depth + 1);
-
-        color = glm::mix(color, reflectedColor, hitObject->reflectivity);
+        color = glm::mix(color, reflectedColor, reflectionStrength);
     }
 
     // Leave color in linear space; screen shader applies tone mapping and gamma
@@ -234,4 +202,65 @@ void Raytracer::loadModel(const ObjLoader& obj, const glm::mat4& M, float refl, 
         triPtrs.push_back(&tri);
 
     bvhRoot = buildBVH(triPtrs);
+}
+
+glm::vec3 Raytracer::sampleGlossyReflection(
+    const glm::vec3& hitPoint,
+    const glm::vec3& viewDir,
+    const glm::vec3& normal,
+    const Material& material,
+    const Light& lights,
+    int depth,
+    microfacet::SeededRNG& rng) const
+{
+    // Check for perfect mirror fallback
+    if (microfacet::shouldUsePerfectMirror(material.roughness))
+    {
+        // Perfect mirror reflection
+        glm::vec3 reflectedDir = glm::reflect(-viewDir, normal);
+        Ray reflectedRay(hitPoint + normal * 0.001f, glm::normalize(reflectedDir));
+        return traceRay(reflectedRay, lights, depth + 1);
+    }
+    
+    // Glossy reflection with multiple samples
+    glm::vec3 totalReflectedColor(0.0f);
+    int validSamples = 0;
+    
+    // Generate stratified microfacet normals
+    std::vector<glm::vec3> microfacetNormals = microfacet::sampleBeckmannNormalsStratified(
+        normal, material.roughness, m_reflectionSpp, rng
+    );
+    
+    for (const glm::vec3& microfacetNormal : microfacetNormals)
+    {
+        // Compute reflection direction using the microfacet normal
+        glm::vec3 reflectedDir = microfacet::reflect(-viewDir, microfacetNormal);
+        
+        // Ensure the reflected ray is above the surface (avoid self-intersection)
+        if (glm::dot(reflectedDir, normal) > 0.0f)
+        {
+            Ray reflectedRay(hitPoint + normal * 0.001f, glm::normalize(reflectedDir));
+            glm::vec3 sampleColor = traceRay(reflectedRay, lights, depth + 1);
+            
+            // Weight the sample (in a full implementation, this would include the BRDF weight)
+            // For now, we use equal weighting for all valid samples
+            totalReflectedColor += sampleColor;
+            validSamples++;
+        }
+    }
+    
+    // Average the samples by valid sample count
+    if (validSamples > 0)
+    {
+        totalReflectedColor /= float(validSamples);
+    }
+    else
+    {
+        // Fallback to perfect mirror if no valid samples
+        glm::vec3 reflectedDir = glm::reflect(-viewDir, normal);
+        Ray reflectedRay(hitPoint + normal * 0.001f, glm::normalize(reflectedDir));
+        totalReflectedColor = traceRay(reflectedRay, lights, depth + 1);
+    }
+    
+    return totalReflectedColor;
 }

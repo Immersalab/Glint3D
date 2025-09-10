@@ -143,6 +143,10 @@ public:
     // Raytracing
     void setDenoiseEnabled(bool enabled) { m_denoiseEnabled = enabled; }
     bool isDenoiseEnabled() const { return m_denoiseEnabled; }
+    
+    // Reflection samples per pixel for glossy reflections
+    void setReflectionSpp(int spp);
+    int getReflectionSpp() const;
     bool denoise(std::vector<glm::vec3>& color,
                 const std::vector<glm::vec3>* normal = nullptr,
                 const std::vector<glm::vec3>* albedo = nullptr);
@@ -210,6 +214,7 @@ private:
     // Raytracer
     std::unique_ptr<Raytracer> m_raytracer;
     bool m_denoiseEnabled = false;
+    int m_reflectionSpp = 8; // Default reflection samples per pixel
     
     // Raytracing screen quad resources
     GLuint m_screenQuadVAO = 0;

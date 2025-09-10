@@ -380,6 +380,11 @@ bool JsonOpsExecutor::apply(const std::string& json, std::string& error)
                 const_cast<SceneObject*>(targetObj)->metallicFactor = metallic;
             }
 
+            if (matObj.HasMember("ior") && matObj["ior"].IsNumber()) {
+                float ior = (float)matObj["ior"].GetDouble();
+                const_cast<SceneObject*>(targetObj)->ior = ior;
+            }
+
             if (matObj.HasMember("specular") && matObj["specular"].IsArray()) {
                 glm::vec3 specular;
                 if (!getVec3(matObj["specular"], specular)) { error = "set_material: bad 'specular'"; return false; }

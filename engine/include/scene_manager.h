@@ -35,6 +35,7 @@ struct SceneObject
     glm::vec4 baseColorFactor{1.0f};
     float metallicFactor = 1.0f;
     float roughnessFactor = 1.0f;
+    float ior = 1.5f;                 // Index of refraction for F0 computation
 };
 
 class SceneManager 

@@ -1,0 +1,36 @@
+{
+  "ops": [
+    {
+      "op": "load",
+      "path": "assets/models/sphere.obj",
+      "name": "MirrorSphere",
+      "position": [0, 0, 0],
+      "scale": [1, 1, 1]
+    },
+    {
+      "op": "set_material",
+      "target": "MirrorSphere",
+      "material": {
+        "roughness": 0.005,
+        "metallic": 1.0
+      }
+    },
+    {
+      "op": "add_light",
+      "type": "directional",
+      "direction": [-1, -1, -1],
+      "color": [1.0, 1.0, 1.0],
+      "intensity": 3.0
+    },
+    {
+      "op": "set_camera",
+      "position": [0, 1, 3],
+      "target": [0, 0, 0],
+      "fov": 45
+    },
+    {
+      "op": "set_background",
+      "color": [0.2, 0.4, 0.8]
+    }
+  ]
+}

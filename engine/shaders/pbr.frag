@@ -30,6 +30,7 @@ uniform vec3 viewPos;
 uniform vec4 baseColorFactor; // rgba
 uniform float metallicFactor;
 uniform float roughnessFactor;
+uniform float ior;            // Index of refraction for F0 computation
 uniform bool  hasBaseColorMap;
 uniform bool  hasNormalMap;
 uniform bool  hasMRMap;
@@ -64,9 +65,18 @@ float calculateShadow(vec4 fragPosLightSpace) {
 
 // Helpers
 const float PI = 3.14159265359;
+
+// Compute F0 from index of refraction: F0 = ((ior-1)/(ior+1))^2
+float computeF0FromIOR(float ior) {
+    float f0_scalar = (ior - 1.0) / (ior + 1.0);
+    return f0_scalar * f0_scalar;
+}
+
+// Schlick Fresnel approximation: F = F0 + (1-F0)(1-V·H)^5
 vec3 fresnelSchlick(float cosTheta, vec3 F0) {
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
+
 vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness) {
     return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
 }
@@ -152,7 +162,15 @@ void main() {
     }
 
     vec3 V = normalize(viewPos - vWorldPos);
-    vec3 F0 = mix(vec3(0.04), albedo, metallic);
+    
+    // F0 derivation: For metallic workflow, mix between dielectric F0 and baseColor
+    // For non-metals (metallic=0), use either default 0.04 or compute from IOR
+    // For metals (metallic=1), use baseColor as F0
+    vec3 dielectricF0 = vec3(0.04); // Default for generic dielectrics
+    if (ior != 1.5 && metallic < 0.01) { // Custom IOR for non-metallic materials
+        dielectricF0 = vec3(computeF0FromIOR(ior));
+    }
+    vec3 F0 = mix(dielectricF0, albedo, metallic);
 
     vec3 Lo = vec3(0.0);
     // Disable shadowing until we implement a proper shadow map path

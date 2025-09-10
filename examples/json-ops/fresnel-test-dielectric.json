@@ -1,0 +1,79 @@
+[
+        {
+            "op": "load",
+            "path": "assets/models/sphere.obj",
+            "name": "dielectric_smooth",
+            "transform": { "position": [-3, 0, 0] }
+        },
+        {
+            "op": "set_material",
+            "target": "dielectric_smooth",
+            "material": {
+                "color": [0.8, 0.8, 0.8],
+                "metallic": 0.0,
+                "roughness": 0.0,
+                "ior": 1.5
+            }
+        },
+        {
+            "op": "duplicate",
+            "source": "dielectric_smooth",
+            "name": "dielectric_rough1",
+            "delta_position": [1.5, 0, 0]
+        },
+        {
+            "op": "set_material",
+            "target": "dielectric_rough1",
+            "material": {
+                "color": [0.8, 0.8, 0.8],
+                "metallic": 0.0,
+                "roughness": 0.3,
+                "ior": 1.5
+            }
+        },
+        {
+            "op": "duplicate",
+            "source": "dielectric_smooth",
+            "name": "dielectric_rough2",
+            "delta_position": [3, 0, 0]
+        },
+        {
+            "op": "set_material",
+            "target": "dielectric_rough2",
+            "material": {
+                "color": [0.8, 0.8, 0.8],
+                "metallic": 0.0,
+                "roughness": 0.6,
+                "ior": 1.5
+            }
+        },
+        {
+            "op": "duplicate",
+            "source": "dielectric_smooth",
+            "name": "dielectric_rough3",
+            "delta_position": [4.5, 0, 0]
+        },
+        {
+            "op": "set_material",
+            "target": "dielectric_rough3",
+            "material": {
+                "color": [0.8, 0.8, 0.8],
+                "metallic": 0.0,
+                "roughness": 1.0,
+                "ior": 1.5
+            }
+        },
+        {
+            "op": "add_light",
+            "type": "directional",
+            "direction": [-1, -1, -1],
+            "color": [1, 1, 1],
+            "intensity": 3.0
+        },
+        {
+            "op": "set_camera",
+            "position": [0, 0, 8],
+            "target": [0, 0, 0],
+            "up": [0, 1, 0]
+        }
+]

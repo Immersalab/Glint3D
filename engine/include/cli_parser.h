@@ -37,6 +37,7 @@ struct CLIOptions {
     
     int outputWidth = 1024;
     int outputHeight = 1024;
+    int reflectionSpp = 8; // Default reflection samples per pixel
     
     // Render settings
     RenderSettings renderSettings;

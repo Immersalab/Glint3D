@@ -68,6 +68,7 @@ CLIParseResult CLIParser::parse(int argc, char** argv)
     result.options.assetRoot = getValue("--asset-root");
     result.options.outputWidth = getIntValue("--w", 1024);
     result.options.outputHeight = getIntValue("--h", 1024);
+    result.options.reflectionSpp = getIntValue("--refl-spp", 8);
     int samplesVal = getIntValue("--samples", 1);
     
     // Parse render settings
@@ -254,6 +255,13 @@ CLIParseResult CLIParser::parse(int argc, char** argv)
         return result;
     }
     
+    // Validate reflection samples per pixel
+    if (result.options.reflectionSpp <= 0) {
+        result.exitCode = CLIExitCode::UnknownFlag;
+        result.errorMessage = "Reflection samples per pixel (--refl-spp) must be a positive integer";
+        return result;
+    }
+    
     return result;
 }
 
@@ -315,6 +323,7 @@ std::vector<std::string> CLIParser::getValidFlags()
         "--w",
         "--h",
         "--samples",
+        "--refl-spp",
         "--denoise",
         "--raytrace",
         "--strict-schema",

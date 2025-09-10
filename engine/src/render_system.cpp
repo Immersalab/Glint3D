@@ -605,6 +605,19 @@ void RenderSystem::updateProjectionMatrix(int windowWidth, int windowHeight)
                                          m_camera.nearClip, m_camera.farClip);
 }
 
+void RenderSystem::setReflectionSpp(int spp)
+{
+    m_reflectionSpp = std::max(1, spp); // Ensure at least 1 sample
+    if (m_raytracer) {
+        m_raytracer->setReflectionSpp(m_reflectionSpp);
+    }
+}
+
+int RenderSystem::getReflectionSpp() const
+{
+    return m_reflectionSpp;
+}
+
 bool RenderSystem::denoise(std::vector<glm::vec3>& color,
                           const std::vector<glm::vec3>* normal,
                           const std::vector<glm::vec3>* albedo)
@@ -817,6 +830,9 @@ void RenderSystem::renderRaytraced(const SceneManager& scene, const Light& light
     // Set the seed for deterministic rendering
     m_raytracer->setSeed(m_seed);
     
+    // Set reflection samples per pixel for glossy reflections
+    m_raytracer->setReflectionSpp(m_reflectionSpp);
+    
     const auto& objects = scene.getObjects();
     std::cout << "[RenderSystem] Loading " << objects.size() << " objects into raytracer\n";
     
@@ -825,7 +841,13 @@ void RenderSystem::renderRaytraced(const SceneManager& scene, const Light& light
         
         // Load object into raytracer with its transform and material
         float reflectivity = 0.1f; // Default reflectivity
-        if (obj.material.specular.r > 0.8f || obj.material.specular.g > 0.8f || obj.material.specular.b > 0.8f) {
+        
+        // For metallic materials, use metallic value as reflectivity multiplier
+        if (obj.material.metallic > 0.1f) {
+            reflectivity = 0.3f + (obj.material.metallic * 0.7f); // Range 0.3 to 1.0 based on metallic
+        }
+        // Legacy: high specular values also indicate reflective materials
+        else if (obj.material.specular.r > 0.8f || obj.material.specular.g > 0.8f || obj.material.specular.b > 0.8f) {
             reflectivity = 0.5f; // Higher reflectivity for shiny materials
         }
         
@@ -934,6 +956,7 @@ void RenderSystem::renderObject(const SceneObject& obj, const Light& lights)
         s->setVec4("baseColorFactor", obj.baseColorFactor);
         s->setFloat("metallicFactor", obj.metallicFactor);
         s->setFloat("roughnessFactor", obj.roughnessFactor);
+        s->setFloat("ior", obj.ior);
         s->setBool("hasBaseColorMap", obj.baseColorTex != nullptr);
         s->setBool("hasNormalMap", obj.normalTex != nullptr && obj.VBO_tangents != 0);
         s->setBool("hasMRMap", obj.mrTex != nullptr);
@@ -1068,13 +1091,13 @@ void RenderSystem::updateRenderStats(const SceneManager& scene)
         const auto& m = o.material;
         // Reduce precision to keep keys compact; 2 decimals is enough for grouping
         snprintf(buf, sizeof(buf),
-                 "D%.2f,%.2f,%.2f|S%.2f,%.2f,%.2f|A%.2f,%.2f,%.2f|Ns%.2f|R%.2f|M%.2f|BCF%.2f,%.2f,%.2f,%.2f|mr%.2f|rf%.2f|t%d%d%d",
+                 "D%.2f,%.2f,%.2f|S%.2f,%.2f,%.2f|A%.2f,%.2f,%.2f|Ns%.2f|R%.2f|M%.2f|BCF%.2f,%.2f,%.2f,%.2f|mr%.2f|rf%.2f|ior%.2f|t%d%d%d",
                  m.diffuse.x, m.diffuse.y, m.diffuse.z,
                  m.specular.x, m.specular.y, m.specular.z,
                  m.ambient.x, m.ambient.y, m.ambient.z,
                  m.shininess, m.roughness, m.metallic,
                  o.baseColorFactor.x, o.baseColorFactor.y, o.baseColorFactor.z, o.baseColorFactor.w,
-                 o.metallicFactor, o.roughnessFactor,
+                 o.metallicFactor, o.roughnessFactor, o.ior,
                  o.baseColorTex ? 1 : 0, o.normalTex ? 1 : 0, o.mrTex ? 1 : 0);
         return std::string(buf);
     };
@@ -1366,6 +1389,7 @@ void RenderSystem::renderObjectFast(const SceneObject& obj, const Light& lights,
         shader->setVec4("baseColorFactor", obj.baseColorFactor);
         shader->setFloat("metallicFactor", obj.metallicFactor);
         shader->setFloat("roughnessFactor", obj.roughnessFactor);
+        shader->setFloat("ior", obj.ior);
         shader->setBool("hasBaseColorMap", obj.baseColorTex != nullptr);
         shader->setBool("hasNormalMap", obj.normalTex != nullptr && obj.VBO_tangents != 0);
         shader->setBool("hasMRMap", obj.mrTex != nullptr);
