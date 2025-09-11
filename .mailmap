@@ -1,0 +1,11 @@
+# Canonical identity (what you want shown)
+Quinn Aho <quinnaho123@gmail.com>
+
+# Merge GitHub noreply alias into your canonical identity
+Quinn Aho <quinnaho123@gmail.com> QuinnAho <125616525+QuinnAho@users.noreply.github.com>
+
+# Merge your work identity into your canonical identity
+Quinn Aho <quinnaho123@gmail.com> QuinnAhoJHUAPL <quinn.aho@jhuapl.edu>
+
+# (Optional) If any commits appear as "GitHub <noreply@github.com>", fold them into you too
+Quinn Aho <quinnaho123@gmail.com> GitHub <noreply@github.com>
