@@ -19,6 +19,9 @@ Makefile
 *.obj
 # Allow OBJ model files in assets
 !assets/models/*.obj
+# Allow vendored libraries
+!engine/Libraries/lib/*.lib
+!engine/Libraries/lib/*.dll
 *.pdb
 *.exp
 *.log
