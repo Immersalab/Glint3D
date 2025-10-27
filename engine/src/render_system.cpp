@@ -8,6 +8,7 @@
 #include "ibl_system.h"
 #include "raytracer.h"
 #include "shader.h"
+#include "resource_paths.h"
 #include "gl_platform.h"
 #include <iostream>
 #include <vector>
@@ -17,6 +18,7 @@
 #include <unordered_map>
 #include <algorithm>
 #include <cstdio>
+#include <filesystem>
 
 // PNG writer
 #ifndef STB_IMAGE_WRITE_IMPLEMENTATION
@@ -27,6 +29,16 @@
 #ifdef OIDN_ENABLED
 #include <OpenImageDenoise/oidn.hpp>
 #endif
+
+namespace {
+    std::string resolveResourcePath(const std::string& path) {
+        std::filesystem::path candidate(path);
+        if (candidate.is_absolute()) {
+            return candidate.string();
+        }
+        return ResourcePaths::resolve(candidate.generic_string()).string();
+    }
+}
 
 RenderSystem::RenderSystem()
 {
@@ -54,26 +66,30 @@ bool RenderSystem::init(int windowWidth, int windowHeight)
     glClearColor(m_backgroundColor.r, m_backgroundColor.g, m_backgroundColor.b, 1.0f);
 
     // Load shaders
+    auto shaderPath = [](const char* relative) {
+        return ResourcePaths::resolve(relative).string();
+    };
+
     m_basicShader = std::make_unique<Shader>();
-    if (!m_basicShader->load("shaders/standard.vert", "shaders/standard.frag"))
+    if (!m_basicShader->load(shaderPath("shaders/standard.vert"), shaderPath("shaders/standard.frag")))
         std::cerr << "[RenderSystem] Failed to load standard shader.\n";
 
     m_pbrShader = std::make_unique<Shader>();
-    if (!m_pbrShader->load("shaders/pbr.vert", "shaders/pbr.frag"))
+    if (!m_pbrShader->load(shaderPath("shaders/pbr.vert"), shaderPath("shaders/pbr.frag")))
         std::cerr << "[RenderSystem] Failed to load PBR shader.\n";
 
     m_gridShader = std::make_unique<Shader>();
-    if (!m_gridShader->load("shaders/grid.vert", "shaders/grid.frag"))
+    if (!m_gridShader->load(shaderPath("shaders/grid.vert"), shaderPath("shaders/grid.frag")))
         std::cerr << "[RenderSystem] Failed to load grid shader.\n";
 
     // Gradient background shader (for background mode = Gradient)
     m_gradientShader = std::make_unique<Shader>();
-    if (!m_gradientShader->load("shaders/gradient.vert", "shaders/gradient.frag"))
+    if (!m_gradientShader->load(shaderPath("shaders/gradient.vert"), shaderPath("shaders/gradient.frag")))
         std::cerr << "[RenderSystem] Failed to load gradient shader.\n";
 
     // Load raytracing screen quad shader
     m_screenQuadShader = std::make_unique<Shader>();
-    if (!m_screenQuadShader->load("shaders/rayscreen.vert", "shaders/rayscreen.frag"))
+    if (!m_screenQuadShader->load(shaderPath("shaders/rayscreen.vert"), shaderPath("shaders/rayscreen.frag")))
         std::cerr << "[RenderSystem] Failed to load rayscreen shader.\n";
 
     // Init helpers
@@ -313,20 +329,24 @@ bool RenderSystem::loadSkybox(const std::string& path)
 
 void RenderSystem::setBackgroundHDR(const std::string& hdrPath)
 {
-    m_bgHDRPath = hdrPath;
+    const std::string resolved = resolveResourcePath(hdrPath);
+    m_bgHDRPath = resolved;
     m_bgMode = BackgroundMode::HDR;
     
     // Automatically load the HDR environment into the IBL system
-    if (m_iblSystem && !hdrPath.empty()) {
-        loadHDREnvironment(hdrPath);
+    if (m_iblSystem && !resolved.empty()) {
+        loadHDREnvironment(resolved);
     }
 }
 
 bool RenderSystem::loadHDREnvironment(const std::string& hdrPath)
 {
     if (!m_iblSystem) return false;
+
+    const std::string resolved = resolveResourcePath(hdrPath);
     
-    if (m_iblSystem->loadHDREnvironment(hdrPath)) {
+    if (m_iblSystem->loadHDREnvironment(resolved)) {
+        m_bgHDRPath = resolved;
         // Generate IBL maps
         m_iblSystem->generateIrradianceMap();
         m_iblSystem->generatePrefilterMap();

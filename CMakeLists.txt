@@ -11,6 +11,19 @@ option(ENABLE_KTX2 "Enable KTX2/Basis texture support via libktx" OFF)
 set(SRC_DIR engine/src)
 set(IMGUI_DIR engine)
 
+set(GLINT_RESOURCES_DIR "${CMAKE_SOURCE_DIR}/resources")
+file(TO_CMAKE_PATH "${GLINT_RESOURCES_DIR}" GLINT_RESOURCES_DIR_NORMALIZED)
+
+set(GLINT_GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
+file(MAKE_DIRECTORY "${GLINT_GENERATED_DIR}")
+
+set(GLINT_ICON_FILE "${GLINT_RESOURCES_DIR}/assets/icons/glint3d.ico")
+file(TO_CMAKE_PATH "${GLINT_ICON_FILE}" GLINT_ICON_FILE_NORMALIZED)
+set(GLINT_ICON_PATH "${GLINT_ICON_FILE_NORMALIZED}")
+
+set(GLINT_RC_FILE "${GLINT_GENERATED_DIR}/glint3d.rc")
+configure_file(resources/windows/glint3d.rc.in "${GLINT_RC_FILE}" @ONLY)
+
 set(APP_SOURCES
     ${SRC_DIR}/main.cpp
     ${SRC_DIR}/application_core.cpp
@@ -61,6 +74,7 @@ set(CORE_SOURCES
     ${SRC_DIR}/render_system.cpp
     ${SRC_DIR}/camera_controller.cpp
     ${SRC_DIR}/ui_bridge.cpp
+    ${SRC_DIR}/resource_paths.cpp
     ${SRC_DIR}/cli_parser.cpp
     ${SRC_DIR}/schema_validator.cpp
     ${SRC_DIR}/path_security.cpp
@@ -118,6 +132,7 @@ endif()
         engine/Libraries/include/stb
         engine/Libraries/include/imgui
         engine/Libraries/include/imgui/backends)
+    target_compile_definitions(glint_core PUBLIC GLINT_RESOURCE_ROOT="${GLINT_RESOURCES_DIR_NORMALIZED}")
 
     add_executable(glint
         ${APP_SOURCES}
@@ -133,6 +148,7 @@ endif()
         engine/Libraries/include/imgui
         engine/Libraries/include/imgui/backends
     )
+    target_compile_definitions(glint PRIVATE GLINT_RESOURCE_ROOT="${GLINT_RESOURCES_DIR_NORMALIZED}")
     target_link_libraries(glint PRIVATE glint_core)
 
     # OpenGL
@@ -193,8 +209,8 @@ endif()
         
         # Add Windows resource file for application icon and version info
         if (MSVC)
-            target_sources(glint PRIVATE engine/resources/glint3d.rc)
-            set_property(SOURCE engine/resources/glint3d.rc PROPERTY LANGUAGE RC)
+            target_sources(glint PRIVATE "${GLINT_RC_FILE}")
+            set_source_files_properties("${GLINT_RC_FILE}" PROPERTIES LANGUAGE RC)
         endif()
     endif()
 

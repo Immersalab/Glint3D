@@ -15,7 +15,7 @@ echo "Configuration: $CONFIG"
 echo ""
 
 # Step 1: Check for GLFW3 dependencies
-echo "[1/4] Checking dependencies..."
+echo "[1/5] Checking dependencies..."
 LIB_DIR="engine/Libraries/lib"
 
 # Check if GLFW is available (system or vendored)
@@ -55,8 +55,20 @@ else
     echo "GLFW3 found"
 fi
 
+# Check for Doxygen (optional)
+if ! command -v doxygen &> /dev/null; then
+    echo ""
+    echo "[INFO] Doxygen not found - documentation generation will be unavailable"
+    echo "Install Doxygen:"
+    echo "  Ubuntu/Debian: sudo apt-get install doxygen graphviz"
+    echo "  macOS: brew install doxygen graphviz"
+    echo "Then run: tools/generate-docs.sh"
+else
+    echo "Doxygen found: ready for documentation generation"
+fi
+
 echo ""
-echo "[2/4] Configuring CMake..."
+echo "[2/5] Configuring CMake..."
 cmake -S . -B builds/desktop/cmake -DCMAKE_BUILD_TYPE="$CONFIG"
 if [ $? -ne 0 ]; then
     echo "ERROR: CMake configuration failed"
@@ -64,7 +76,7 @@ if [ $? -ne 0 ]; then
 fi
 
 echo ""
-echo "[3/4] Building $CONFIG..."
+echo "[3/5] Building $CONFIG..."
 cmake --build builds/desktop/cmake --config "$CONFIG" -j
 if [ $? -ne 0 ]; then
     echo "ERROR: Build failed"
@@ -72,7 +84,7 @@ if [ $? -ne 0 ]; then
 fi
 
 echo ""
-echo "[4/4] Launching Glint3D..."
+echo "[4/5] Verifying executable..."
 EXE="builds/desktop/cmake/glint"
 if [ ! -f "$EXE" ]; then
     echo "ERROR: Executable not found at $EXE"
@@ -80,6 +92,7 @@ if [ ! -f "$EXE" ]; then
 fi
 
 echo ""
+echo "[5/5] Launching Glint3D..."
 echo "========================================"
 echo " Build Complete - Launching"
 echo "========================================"

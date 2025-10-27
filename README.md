@@ -9,7 +9,13 @@ cmake -S . -B builds/desktop/cmake -DCMAKE_BUILD_TYPE=Release
 cmake --build builds/desktop/cmake --config Release
 ```
 
-The executable expects to be launched from the repository root so shaders and assets resolve correctly.
+The executable expects to be launched from the repository root so resources resolve correctly, or set the `GLINT_RESOURCE_ROOT` environment variable to point at a relocated bundle.
+
+### Runtime Assets
+
+All runtime data lives under `resources/`:
+- `resources/shaders/` – GLSL programs loaded by the renderer.
+- `resources/assets/` – built-in textures, HDR maps, sample models, and icons.
 
 ## JSON Ops
 

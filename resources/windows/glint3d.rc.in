@@ -1,7 +1,9 @@
 #include <windows.h>
 
+#define GLINT_ICON_PATH "@GLINT_ICON_PATH@"
+
 // Application icon with resource ID 101
-101 ICON "glint3d.ico"
+101 ICON GLINT_ICON_PATH
 
 // Version information
 VS_VERSION_INFO VERSIONINFO
