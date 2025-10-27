@@ -32,6 +32,11 @@ echo ========================================
 echo Configuration: %CONFIG%
 echo.
 
+REM Navigate to repository root (parent of tools folder)
+cd /d "%~dp0.."
+echo Working directory: %CD%
+echo.
+
 REM Step 1: Check for GLFW3 dependencies
 echo [1/4] Checking dependencies...
 set LIB_DIR=engine\Libraries\lib
@@ -49,7 +54,11 @@ if not exist "%LIB_DIR%\glfw3.lib" (
 
 echo.
 echo [2/4] Configuring CMake...
-cmake -S . -B builds/desktop/cmake
+echo Using libraries from: engine/Libraries
+cmake -S . -B builds/desktop/cmake ^
+    -DCMAKE_PREFIX_PATH="%CD%\engine\Libraries" ^
+    -DGLFW3_INCLUDE_DIR="%CD%\engine\Libraries\include" ^
+    -DCMAKE_BUILD_TYPE=%CONFIG%
 if errorlevel 1 (
     echo ERROR: CMake configuration failed
     exit /b 1

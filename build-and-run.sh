@@ -25,15 +25,13 @@ echo "Configuration: $CONFIG"
 echo "Arguments: $ARGS"
 echo
 
-# Step 1: Find vcpkg toolchain if available
-VCPKG_TOOLCHAIN=""
-if [ -f "D:/ahoqp1/Repositories/Glint/vcpkg/scripts/buildsystems/vcpkg.cmake" ]; then
-    VCPKG_TOOLCHAIN="-DCMAKE_TOOLCHAIN_FILE=D:/ahoqp1/Repositories/Glint/vcpkg/scripts/buildsystems/vcpkg.cmake"
-fi
-
 # Step 1: Generate CMake project files
 echo "[1/3] Generating CMake project files..."
-cmake -S . -B builds/desktop/cmake -DCMAKE_BUILD_TYPE="$CONFIG" $VCPKG_TOOLCHAIN
+echo "Using libraries from: engine/Libraries"
+cmake -S . -B builds/desktop/cmake \
+    -DCMAKE_BUILD_TYPE="$CONFIG" \
+    -DCMAKE_PREFIX_PATH="$(pwd)/engine/Libraries" \
+    -DGLFW3_INCLUDE_DIR="$(pwd)/engine/Libraries/include"
 
 # Step 2: Build the project  
 echo
