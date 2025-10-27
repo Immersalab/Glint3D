@@ -35,7 +35,11 @@ echo.
 
 REM Step 1: Generate CMake project files
 echo [1/3] Generating CMake project files...
-cmake -S . -B builds/desktop/cmake
+echo Using libraries from: engine/Libraries
+cmake -S . -B builds/desktop/cmake ^
+    -DCMAKE_PREFIX_PATH="%CD%\engine\Libraries" ^
+    -DGLFW3_INCLUDE_DIR="%CD%\engine\Libraries\include" ^
+    -DCMAKE_BUILD_TYPE=%CONFIG%
 if errorlevel 1 (
     echo ERROR: CMake generation failed
     exit /b 1
