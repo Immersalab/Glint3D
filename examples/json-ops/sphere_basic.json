@@ -1,5 +1,0 @@
-[
-  { "op": "set_camera", "position": [0, 0, 6], "target": [0, 0, -4], "fov_deg": 45 },
-  { "op": "add_light", "position": [10, 15, 10], "color": [0.8, 0.8, 0.7], "intensity": 0.15 },
-  { "op": "load", "path": "assets/models/sphere.obj", "name": "Sphere", "transform": { "position": [0,0,-4], "scale": [1,1,1] } }
-]

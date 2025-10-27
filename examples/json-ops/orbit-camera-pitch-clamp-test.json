@@ -1,9 +1,0 @@
-[
-  {"op": "load", "path": "assets/models/cube.obj", "name": "TestCube", "transform": {"position": [0, 0, 0], "scale": [1, 1, 1]}},
-  {"op": "add_light", "type": "directional", "direction": [-0.3, -1, -0.3], "color": [1.0, 1.0, 1.0], "intensity": 1.0},
-  {"op": "set_camera", "position": [3, 0, 3], "target": [0, 0, 0], "fov_deg": 60},
-  {"op": "orbit_camera", "yaw": 0, "pitch": 100, "center": [0, 0, 0]},
-  {"op": "render_image", "path": "renders/orbit-pitch-clamp-over89.png", "width": 400, "height": 400},
-  {"op": "orbit_camera", "yaw": 0, "pitch": -100, "center": [0, 0, 0]},
-  {"op": "render_image", "path": "renders/orbit-pitch-clamp-under-89.png", "width": 400, "height": 400}
-]

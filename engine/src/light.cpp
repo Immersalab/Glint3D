@@ -234,30 +234,6 @@ void Light::initIndicator()
 // Initialize the indicator shader within the Light class
 bool Light::initIndicatorShader()
 {
-#ifdef __EMSCRIPTEN__
-    const char* vertexShaderSource = R"(
-        #version 300 es
-        layout(location = 0) in vec3 aPos;
-        uniform mat4 model;
-        uniform mat4 view;
-        uniform mat4 projection;
-        void main()
-        {
-            gl_Position = projection * view * model * vec4(aPos, 1.0);
-        }
-    )";
-
-    const char* fragmentShaderSource = R"(
-        #version 300 es
-        precision highp float;
-        out vec4 FragColor;
-        uniform vec3 indicatorColor;
-        void main()
-        {
-            FragColor = vec4(indicatorColor, 1.0);
-        }
-    )";
-#else
     const char* vertexShaderSource = R"(
         #version 330 core
         layout(location = 0) in vec3 aPos;
@@ -279,7 +255,6 @@ bool Light::initIndicatorShader()
             FragColor = vec4(indicatorColor, 1.0);
         }
     )";
-#endif
 
     // Compile vertex shader
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -411,16 +386,12 @@ void Light::renderIndicators(const glm::mat4& view, const glm::mat4& projection,
             glBindVertexArray(m_indicatorVAO);
             glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
             
-#ifndef __EMSCRIPTEN__
             GLint polyMode[2];
             glGetIntegerv(GL_POLYGON_MODE, polyMode);
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
             glLineWidth(2.0f);
             glDrawArrays(GL_TRIANGLES, 0, 36);
             glPolygonMode(GL_FRONT_AND_BACK, polyMode[0]);
-#else
-            glDrawArrays(GL_TRIANGLES, 0, 36);
-#endif
         } else if (m_lights[selectedIndex].type == LightType::DIRECTIONAL) {
             // Highlight directional light with thicker lines
             glm::mat4 model(1.0f);

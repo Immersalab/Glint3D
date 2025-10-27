@@ -1,6 +1,0 @@
-[
-  { "op": "set_camera", "position": [0, 2, 6], "target": [0, 0, 0], "fov_deg": 45 },
-  { "op": "add_light", "type": "spot", "position": [0, 3, 2], "direction": [0, -1, -0.25], "color": [1.0, 1.0, 1.0], "intensity": 3.0, "inner_deg": 15.0, "outer_deg": 30.0 },
-  { "op": "load", "path": "assets/models/cube.obj", "name": "Cube", "transform": { "position": [0, 0, -4], "scale": [1, 1, 1] } }
-]
-

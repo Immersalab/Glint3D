@@ -1,8 +1,6 @@
 #include "panels/scene_tree_panel.h"
 
-#ifndef WEB_USE_HTML_UI
 #include "imgui.h"
-#endif
 
 #include <unordered_set>
 #include <vector>
@@ -14,7 +12,6 @@ namespace panels {
 
 void RenderSceneTree(const UIState& state, const std::function<void(const UICommandData&)>& onCommand)
 {
-#ifndef WEB_USE_HTML_UI
     ImGuiIO& io = ImGui::GetIO();
     const float leftW = 300.0f;
     ImGui::SetNextWindowPos(ImVec2(16.0f, 45.0f), ImGuiCond_FirstUseEver);
@@ -61,9 +58,7 @@ void RenderSceneTree(const UIState& state, const std::function<void(const UIComm
     const char* EXPANDED = u8"▾";
     const char* COLLAPSED = u8"▸";
     bool unicode = true;
-#ifndef WEB_USE_HTML_UI
     if (!ImGui::GetFont()->FindGlyphNoFallback((ImWchar)0x2502)) unicode = false; // │
-#endif
     if (!unicode) { 
         VERT = "|   "; 
         TEE = "|-- "; 
@@ -252,7 +247,6 @@ void RenderSceneTree(const UIState& state, const std::function<void(const UIComm
     ImGui::EndChild();
 
     ImGui::End();
-#endif
 }
 
 } // namespace panels

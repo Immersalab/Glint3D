@@ -9,19 +9,13 @@
 #include "imgui_ui_layer.h"
 #include "RayUtils.h"
 #include "json_ops.h"
-#ifndef WEB_USE_HTML_UI
 #include "imgui.h"
-#endif
 #include "stb_image.h"
 #include <iostream>
 #include <memory>
 #include <limits>
 #include <cmath>
 #include <vector>
-
-#ifdef __EMSCRIPTEN__
-#include <emscripten/emscripten.h>
-#endif
 
 ApplicationCore::ApplicationCore()
 {
@@ -84,7 +78,6 @@ bool ApplicationCore::init(const std::string& windowTitle, int width, int height
     initCallbacks();
     
     // Initialize UI (skip for headless or web HTML UI)
-#ifndef WEB_USE_HTML_UI
     if (!m_headless) {
         // Create ImGui UI layer
         auto imguiLayer = std::make_unique<ImGuiUILayer>();
@@ -95,7 +88,6 @@ bool ApplicationCore::init(const std::string& windowTitle, int width, int height
             return false;
         }
     }
-#endif
     
     // Create default scene content
     createDefaultScene();
@@ -349,9 +341,7 @@ void ApplicationCore::handleMouseMove(double xpos, double ypos)
     // Handle camera rotation when RMB is pressed or RMB not required
     if (m_rightMousePressed || !m_requireRMBToMove) {
         // Respect ImGui capture unless RMB is held
-#ifndef WEB_USE_HTML_UI
         if (!m_rightMousePressed && ImGui::GetCurrentContext() && ImGui::GetIO().WantCaptureMouse) return;
-#endif
         m_camera->rotate((float)deltaX * m_camera->getSensitivity(), (float)deltaY * m_camera->getSensitivity());
     }
 }
@@ -361,12 +351,10 @@ void ApplicationCore::handleMouseButton(int button, int action, int mods)
     if (button == GLFW_MOUSE_BUTTON_LEFT) {
         m_leftMousePressed = (action == GLFW_PRESS);
         if (action == GLFW_PRESS) {
-#ifndef WEB_USE_HTML_UI
             // Skip scene picking if UI wants the mouse
             if (ImGui::GetCurrentContext() && ImGui::GetIO().WantCaptureMouse) {
                 return;
             }
-#endif
             // Gizmo axis grab has priority
             int selObj = m_scene->getSelectedObjectIndex();
             bool grabbed = false;
@@ -604,9 +592,7 @@ bool ApplicationCore::initGLFW(const std::string& windowTitle, int width, int he
     
     // Default framebuffer samples: keep single-sample; MSAA is handled via offscreen FBO
     glfwWindowHint(GLFW_SAMPLES, 1);
-#ifndef __EMSCRIPTEN__
     glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
-#endif
     
     // Create window
     if (m_headless) {
@@ -627,12 +613,7 @@ bool ApplicationCore::initGLFW(const std::string& windowTitle, int width, int he
 
 bool ApplicationCore::initGLAD()
 {
-#ifdef __EMSCRIPTEN__
-    // WebGL2 doesn't need GLAD
-    return true;
-#else
     return gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
-#endif
 }
 
 void ApplicationCore::initCallbacks()
@@ -664,9 +645,9 @@ void ApplicationCore::createDefaultScene()
     defaultCam.up = glm::vec3(0.0f, 1.0f, 0.0f);
     m_camera->setCameraState(defaultCam);
     // Load a default object only when running with the UI so the viewport isn't empty
-    // Note: path is relative to runtime working directory containing the assets folder
+    // Note: path is relative to runtime working directory containing the engine/assets folder
     if (!m_headless)
-        m_scene->loadObject("Sphere", "assets/models/sphere.obj", glm::vec3(0.0f, 0.0f, -4.0f), glm::vec3(1.0f));
+        m_scene->loadObject("Sphere", "engine/assets/models/sphere.obj", glm::vec3(0.0f, 0.0f, -4.0f), glm::vec3(1.0f));
 }
 
 void ApplicationCore::cleanupGL()
@@ -681,7 +662,6 @@ void ApplicationCore::setWindowIcon()
     // Try multiple possible icon paths for different build systems
     const std::vector<std::string> iconPaths = {
         "engine/assets/img/Glint3DIcon.png",    // CMake build from repo root
-        "assets/img/Glint3DIcon.png",           // Visual Studio build from repo root
         "../engine/assets/img/Glint3DIcon.png", // If running from build dir
         "../../engine/assets/img/Glint3DIcon.png" // Alternative build dir structure
     };

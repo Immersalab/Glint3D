@@ -1,7 +1,0 @@
-[
-  {"op":"load","path":"assets/models/cube.obj","name":"Hero","transform":{"position":[0,0,0],"scale":[1,1,1]}},
-  {"op":"set_material","target":"Hero","material":{"color":[0.9,0.25,0.25],"roughness":0.5}},
-  {"op":"add_light","type":"point","position":[4,6,4],"color":[1,1,1],"intensity":1.0},
-  {"op":"set_camera","position":[0,1,6],"target":[0,1,0],"fov_deg":45}
-]
-

@@ -10,11 +10,9 @@
 #include <cstring>
 #include <fstream>
 
-#ifndef WEB_USE_HTML_UI
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
-#endif
 
 namespace {
     static std::vector<std::string> s_history;
@@ -84,9 +82,6 @@ ImGuiUILayer::~ImGuiUILayer()
 
 bool ImGuiUILayer::init(int windowWidth, int windowHeight)
 {
-#ifdef WEB_USE_HTML_UI
-    return true; // No ImGui on web
-#else
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     
@@ -105,12 +100,7 @@ bool ImGuiUILayer::init(int windowWidth, int windowHeight)
     }
 
     ImGui_ImplGlfw_InitForOpenGL(window, true);
-    
-#ifdef __EMSCRIPTEN__
-    ImGui_ImplOpenGL3_Init("#version 300 es");
-#else
     ImGui_ImplOpenGL3_Init("#version 330");
-#endif
 
     // Load persistent console history
     load_history();
@@ -119,12 +109,10 @@ bool ImGuiUILayer::init(int windowWidth, int windowHeight)
     setupDarkTheme();
     
     return true;
-#endif
 }
 
 void ImGuiUILayer::shutdown()
 {
-#ifndef WEB_USE_HTML_UI
     if (ImGui::GetCurrentContext()) {
         // Save console history
         save_history();
@@ -132,14 +120,10 @@ void ImGuiUILayer::shutdown()
         ImGui_ImplGlfw_Shutdown();
         ImGui::DestroyContext();
     }
-#endif
 }
 
 void ImGuiUILayer::render(const UIState& state)
 {
-#ifdef WEB_USE_HTML_UI
-    return; // No ImGui rendering on web
-#else
     // Start ImGui frame
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -186,7 +170,6 @@ void ImGuiUILayer::render(const UIState& state)
         glfwMakeContextCurrent(backup_current_context);
     }
 #endif
-#endif
 }
 
 void ImGuiUILayer::handleResize(int width, int height)
@@ -211,7 +194,6 @@ void ImGuiUILayer::handleCommand(const UICommandData& cmd)
 
 void ImGuiUILayer::renderMainMenuBar(const UIState& state)
 {
-#ifndef WEB_USE_HTML_UI
     if (ImGui::BeginMainMenuBar()) {
         // File menu
         if (ImGui::BeginMenu("File")) {
@@ -420,13 +402,11 @@ void ImGuiUILayer::renderMainMenuBar(const UIState& state)
 
         ImGui::EndMainMenuBar();
     }
-#endif
 }
 
 
 void ImGuiUILayer::renderSettingsPanel(const UIState& state)
 {
-#ifndef WEB_USE_HTML_UI
     ImGuiIO& io = ImGui::GetIO();
     float rightW = 380.0f;
     float consoleH = 180.0f; // Slightly taller console at bottom
@@ -825,12 +805,10 @@ void ImGuiUILayer::renderSettingsPanel(const UIState& state)
         
     }
     ImGui::End();
-#endif
 }
 
 void ImGuiUILayer::renderPerformanceHUD(const UIState& state)
 {
-#ifndef WEB_USE_HTML_UI
     ImGui::SetNextWindowPos(ImVec2(16, 45), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowBgAlpha(0.90f);  // More visible background
     
@@ -912,12 +890,10 @@ void ImGuiUILayer::renderPerformanceHUD(const UIState& state)
         ImGui::EndGroup();
     }
     ImGui::End();
-#endif
 }
 
 void ImGuiUILayer::renderConsole(const UIState& state)
 {
-#ifndef WEB_USE_HTML_UI
     ImGuiIO& io = ImGui::GetIO();
     static float s_consoleHeight = 180.0f;  // User-resizable height
     float minH = 120.0f;
@@ -944,48 +920,11 @@ void ImGuiUILayer::renderConsole(const UIState& state)
             if (s_consoleHeight > maxH) s_consoleHeight = maxH;
         }
         
-        // Header with title and AI controls
+        // Header with title
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.43f, 0.69f, 0.89f, 1.00f));
         ImGui::Text("CONSOLE");
         ImGui::PopStyleColor();
-        ImGui::SameLine();
-        
-        // Push controls to the right
-        float remaining_width = ImGui::GetContentRegionAvail().x;
-        float ai_controls_width = 350.0f;
-        ImGui::SameLine(remaining_width - ai_controls_width);
-        
-        // AI controls in a more compact layout
-        bool useAI = state.useAI;
-        if (ImGui::Checkbox("AI", &useAI)) {
-            UICommandData cmd; 
-            cmd.command = UICommand::SetUseAI; 
-            cmd.boolParam = useAI; 
-            if (onCommand) onCommand(cmd);
-        }
-        
-        ImGui::SameLine();
-        ImGui::Text("Endpoint:");
-        ImGui::SameLine();
-        
-        static char endpointBuf[256] = "";
-        // Sync buffer if different
-        if (endpointBuf[0] == '\0' || std::string(endpointBuf) != state.aiEndpoint) {
-            std::snprintf(endpointBuf, sizeof(endpointBuf), "%s", 
-                         state.aiEndpoint.empty() ? "http://127.0.0.1:11434" : state.aiEndpoint.c_str());
-        }
-        
-        ImGui::SetNextItemWidth(200.0f);
-        ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.12f, 0.13f, 0.14f, 1.00f));  // Darker input
-        if (ImGui::InputText("##ai_endpoint", endpointBuf, sizeof(endpointBuf), 
-                            ImGuiInputTextFlags_EnterReturnsTrue)) {
-            UICommandData cmd; 
-            cmd.command = UICommand::SetAIEndpoint; 
-            cmd.stringParam = std::string(endpointBuf); 
-            if (onCommand) onCommand(cmd);
-        }
-        ImGui::PopStyleColor();
-        
+
         ImGui::Separator();
         
         // Console output with modern styling
@@ -1077,12 +1016,10 @@ void ImGuiUILayer::renderConsole(const UIState& state)
         }
     }
     ImGui::End();
-#endif
 }
 
 void ImGuiUILayer::setupDarkTheme()
 {
-#ifndef WEB_USE_HTML_UI
     ImGuiStyle& style = ImGui::GetStyle();
     ImVec4* colors = style.Colors;
     
@@ -1179,12 +1116,10 @@ void ImGuiUILayer::setupDarkTheme()
     style.AntiAliasedLines = true;
     style.AntiAliasedLinesUseTex = true;
     style.AntiAliasedFill = true;
-#endif
 }
 
 void ImGuiUILayer::renderHelpDialogs()
 {
-#ifndef WEB_USE_HTML_UI
     // Controls Help Dialog
     if (m_showControlsHelp) {
         ImGui::SetNextWindowSize(ImVec2(500, 400), ImGuiCond_FirstUseEver);
@@ -1322,5 +1257,4 @@ void ImGuiUILayer::renderHelpDialogs()
         }
         ImGui::End();
     }
-#endif
 }

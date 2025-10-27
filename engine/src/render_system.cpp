@@ -19,12 +19,10 @@
 #include <cstdio>
 
 // PNG writer
-#ifndef __EMSCRIPTEN__
 #ifndef STB_IMAGE_WRITE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #endif
 #include "stb_image_write.h"
-#endif
 
 #ifdef OIDN_ENABLED
 #include <OpenImageDenoise/oidn.hpp>
@@ -51,9 +49,7 @@ bool RenderSystem::init(int windowWidth, int windowHeight)
     // Initialize OpenGL state
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_MULTISAMPLE);
-#ifndef __EMSCRIPTEN__
     if (m_framebufferSRGBEnabled) glEnable(GL_FRAMEBUFFER_SRGB); else glDisable(GL_FRAMEBUFFER_SRGB);
-#endif
     glViewport(0, 0, windowWidth, windowHeight);
     glClearColor(m_backgroundColor.r, m_backgroundColor.g, m_backgroundColor.b, 1.0f);
 
@@ -101,15 +97,10 @@ bool RenderSystem::init(int windowWidth, int windowHeight)
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, 1, 1, 0, GL_DEPTH_COMPONENT, GL_FLOAT, &depthOne);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-#ifndef __EMSCRIPTEN__
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     float borderColor[] = {1.f,1.f,1.f,1.f};
     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-#else
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-#endif
     glBindTexture(GL_TEXTURE_2D, 0);
 
     // Initialize sub-systems' matrices
@@ -244,14 +235,12 @@ void RenderSystem::render(const SceneManager& scene, const Light& lights)
                 s->setVec4("globalAmbient", glm::vec4(1.0f));
 
                 // Draw as wireframe overlay with slight depth bias to reduce z-fighting
-#ifndef __EMSCRIPTEN__
                 GLint prevPolyMode[2];
                 glGetIntegerv(GL_POLYGON_MODE, prevPolyMode);
                 glEnable(GL_POLYGON_OFFSET_LINE);
                 glPolygonOffset(-1.0f, -1.0f);
                 glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
                 glLineWidth(1.5f);
-#endif
                 glBindVertexArray(obj.VAO);
                 if (obj.EBO != 0) {
                     glDrawElements(GL_TRIANGLES, obj.objLoader.getIndexCount(), GL_UNSIGNED_INT, 0);
@@ -261,10 +250,8 @@ void RenderSystem::render(const SceneManager& scene, const Light& lights)
                 glBindVertexArray(0);
                 // Selection overlay adds an extra draw call
                 m_stats.drawCalls += 1;
-#ifndef __EMSCRIPTEN__
                 glPolygonMode(GL_FRONT_AND_BACK, prevPolyMode[0]);
                 glDisable(GL_POLYGON_OFFSET_LINE);
-#endif
             }
         }
     }
@@ -389,13 +376,8 @@ bool RenderSystem::renderToTexture(const SceneManager& scene, const Light& light
 
         glGenRenderbuffers(1, &rboDepthMSAA);
         glBindRenderbuffer(GL_RENDERBUFFER, rboDepthMSAA);
-#ifndef __EMSCRIPTEN__
         glRenderbufferStorageMultisample(GL_RENDERBUFFER, m_samples, GL_DEPTH24_STENCIL8, width, height);
         glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rboDepthMSAA);
-#else
-        glRenderbufferStorageMultisample(GL_RENDERBUFFER, m_samples, GL_DEPTH_COMPONENT16, width, height);
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepthMSAA);
-#endif
 
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
             glBindFramebuffer(GL_FRAMEBUFFER, prevFBO);
@@ -422,10 +404,8 @@ bool RenderSystem::renderToTexture(const SceneManager& scene, const Light& light
         glGenFramebuffers(1, &fboResolve);
         glBindFramebuffer(GL_FRAMEBUFFER, fboResolve);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureId, 0);
-#ifndef __EMSCRIPTEN__
         const GLenum drawBufsR[1] = { GL_COLOR_ATTACHMENT0 };
         glDrawBuffers(1, drawBufsR);
-#endif
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
             glBindFramebuffer(GL_FRAMEBUFFER, prevFBO);
             if (fboResolve) glDeleteFramebuffers(1, &fboResolve);
@@ -463,22 +443,15 @@ bool RenderSystem::renderToTexture(const SceneManager& scene, const Light& light
 
         // Attach provided color texture
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureId, 0);
-#ifndef __EMSCRIPTEN__
         const GLenum drawBufs[1] = { GL_COLOR_ATTACHMENT0 };
         glDrawBuffers(1, drawBufs);
-#endif
 
         // Create and attach depth (and stencil if available) renderbuffer
         GLuint rboDepth = 0;
         glGenRenderbuffers(1, &rboDepth);
         glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
-#ifndef __EMSCRIPTEN__
         glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
         glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
-#else
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, width, height);
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
-#endif
 
         // Validate
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
@@ -517,11 +490,6 @@ bool RenderSystem::renderToTexture(const SceneManager& scene, const Light& light
 bool RenderSystem::renderToPNG(const SceneManager& scene, const Light& lights,
                                const std::string& path, int width, int height)
 {
-#ifdef __EMSCRIPTEN__
-    (void)scene; (void)lights; (void)path; (void)width; (void)height;
-    std::cerr << "renderToPNG is not supported on Web builds.\n";
-    return false;
-#else
     if (width <= 0 || height <= 0) return false;
 
     // Preserve current framebuffer and viewport
@@ -589,7 +557,6 @@ bool RenderSystem::renderToPNG(const SceneManager& scene, const Light& lights,
     glDeleteTextures(1, &colorTex);
 
     return writeOK != 0;
-#endif
 }
 
 void RenderSystem::updateViewMatrix()
@@ -1229,14 +1196,12 @@ void RenderSystem::renderSelectionOutline(const SceneManager& scene)
             s->setVec4("globalAmbient", glm::vec4(1.0f));
 
             // Draw as wireframe overlay with slight depth bias to reduce z-fighting
-#ifndef __EMSCRIPTEN__
             GLint prevPolyMode[2];
             glGetIntegerv(GL_POLYGON_MODE, prevPolyMode);
             glEnable(GL_POLYGON_OFFSET_LINE);
             glPolygonOffset(-1.0f, -1.0f);
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
             glLineWidth(1.5f);
-#endif
             glBindVertexArray(obj.VAO);
             if (obj.EBO != 0) {
                 glDrawElements(GL_TRIANGLES, obj.objLoader.getIndexCount(), GL_UNSIGNED_INT, 0);
@@ -1246,10 +1211,8 @@ void RenderSystem::renderSelectionOutline(const SceneManager& scene)
             glBindVertexArray(0);
             // Selection overlay adds an extra draw call
             m_stats.drawCalls += 1;
-#ifndef __EMSCRIPTEN__
             glPolygonMode(GL_FRONT_AND_BACK, prevPolyMode[0]);
             glDisable(GL_POLYGON_OFFSET_LINE);
-#endif
         }
     }
 }
@@ -1459,13 +1422,8 @@ void RenderSystem::createOrResizeTargets(int width, int height)
     // Depth/Stencil RBO
     glGenRenderbuffers(1, &m_msaaDepthRBO);
     glBindRenderbuffer(GL_RENDERBUFFER, m_msaaDepthRBO);
-#ifndef __EMSCRIPTEN__
     glRenderbufferStorageMultisample(GL_RENDERBUFFER, m_samples, GL_DEPTH24_STENCIL8, width, height);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_msaaDepthRBO);
-#else
-    glRenderbufferStorageMultisample(GL_RENDERBUFFER, m_samples, GL_DEPTH_COMPONENT16, width, height);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_msaaDepthRBO);
-#endif
 
     // Validate
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
