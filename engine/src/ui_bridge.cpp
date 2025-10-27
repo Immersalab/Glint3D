@@ -20,15 +20,13 @@
 #include <rapidjson/writer.h>
 #include <rapidjson/error/en.h>
 
-UIBridge::UIBridge(SceneManager& scene, RenderSystem& renderer, 
+UIBridge::UIBridge(SceneManager& scene, RenderSystem& renderer,
                    CameraController& camera, Light& lights)
     : m_scene(scene)
     , m_renderer(renderer)
     , m_camera(camera)
     , m_lights(lights)
 {
-    // Default AI endpoint for local Ollama
-    m_aiEndpoint = "http://127.0.0.1:11434";
     // Initialize modular JSON ops executor for shared implementation
     m_ops = std::make_unique<JsonOpsExecutor>(m_scene, m_renderer, m_camera, m_lights);
 }
@@ -151,11 +149,7 @@ UIState UIBridge::buildUIState() const
 
     // Recent files MRU
     state.recentFiles = m_recentFiles;
-    
-    // AI
-    state.useAI = m_useAI;
-    state.aiEndpoint = m_aiEndpoint;
-    
+
     return state;
 }
 
@@ -308,12 +302,6 @@ void UIBridge::handleUICommand(const UICommandData& command)
                 m_renderer.setSampleCount(s);
                 addConsoleMessage("MSAA samples set to " + std::to_string(s));
             }
-            break;
-        case UICommand::SetUseAI:
-            m_useAI = command.boolParam;
-            break;
-        case UICommand::SetAIEndpoint:
-            m_aiEndpoint = command.stringParam;
             break;
         case UICommand::AddLight:
             {
@@ -712,7 +700,7 @@ void UIBridge::handleConsoleCommand(const UICommandData& cmd)
         addConsoleMessage("Available console commands:");
         addConsoleMessage("  help             - Show this help");
         addConsoleMessage("  clear            - Clear the console");
-        addConsoleMessage("  load <path>      - Load a model (e.g., assets/models/cube.obj)");
+        addConsoleMessage("  load <path>      - Load a model (e.g., engine/assets/models/cube.obj)");
         addConsoleMessage("  render [<out.png>] [W H] - Render PNG to path, optional size (defaults to renders/ folder)");
         addConsoleMessage("  save_png [<out.png>] [W H] - Alias for render");
         addConsoleMessage("  list             - List scene objects with indices");

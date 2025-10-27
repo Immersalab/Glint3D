@@ -25,7 +25,6 @@ set(APP_SOURCES
     ${SRC_DIR}/path_security.cpp
     ${SRC_DIR}/imgui_ui_layer.cpp
     # ${SRC_DIR}/render_offscreen.cpp  # legacy (Application-based); excluded from build
-    ${SRC_DIR}/ai_instructions.cpp
     ${SRC_DIR}/shader.cpp
     ${SRC_DIR}/texture.cpp
     ${SRC_DIR}/texture_cache.cpp
@@ -44,7 +43,6 @@ set(APP_SOURCES
     ${SRC_DIR}/RayUtils.cpp
     ${SRC_DIR}/BVHNode.cpp
     ${SRC_DIR}/raytracer.cpp
-    ${SRC_DIR}/ai_bridge.cpp
     ${SRC_DIR}/assimp_loader.cpp
     ${SRC_DIR}/triangle.cpp
     ${SRC_DIR}/brdf.cpp
@@ -67,7 +65,6 @@ set(CORE_SOURCES
     ${SRC_DIR}/schema_validator.cpp
     ${SRC_DIR}/path_security.cpp
     ${SRC_DIR}/imgui_ui_layer.cpp
-    ${SRC_DIR}/ai_instructions.cpp
     ${SRC_DIR}/shader.cpp
     ${SRC_DIR}/texture.cpp
     ${SRC_DIR}/texture_cache.cpp
@@ -86,7 +83,6 @@ set(CORE_SOURCES
     ${SRC_DIR}/RayUtils.cpp
     ${SRC_DIR}/BVHNode.cpp
     ${SRC_DIR}/raytracer.cpp
-    ${SRC_DIR}/ai_bridge.cpp
     ${SRC_DIR}/assimp_loader.cpp
     ${SRC_DIR}/triangle.cpp
     ${SRC_DIR}/json_ops.cpp
@@ -108,84 +104,12 @@ set(IMGUI_SOURCES
     ${IMGUI_DIR}/imgui_impl_opengl3.cpp
 )
 
-# Web (Emscripten) build
+# Web (Emscripten) build is currently disabled; raise a clear error if selected.
 if (EMSCRIPTEN)
-    add_definitions(-D__EMSCRIPTEN__)
-    # Use HTML/JS UI on web instead of Dear ImGui overlay
-    # This disables ImGui calls in application code while still compiling backends if needed
-    # so that desktop builds remain unaffected.
-    # Define a macro consumed by application.cpp to skip ImGui rendering on web.
-    # (Keeps code paths clear and avoids pulling ImGui UI on the web.)
-    
-    set(CMAKE_EXECUTABLE_SUFFIX ".html")
-
-    add_library(glint_core STATIC ${CORE_SOURCES} ${IMGUI_SOURCES})
-    target_include_directories(glint_core PUBLIC
-        engine/include
-        engine
-        engine/Libraries/include
-        engine/Libraries/include/stb
-        engine/Libraries/include/imgui
-        engine/Libraries/include/imgui/backends)
-    target_compile_definitions(glint_core PRIVATE IMGUI_IMPL_OPENGL_ES3 WEB_USE_HTML_UI=1)
-
-    add_executable(glint
-        ${APP_SOURCES}
-        ${IMGUI_SOURCES}
-    )
-    
-    target_include_directories(glint PRIVATE
-        engine/include
-        engine
-        engine/Libraries/include
-        engine/Libraries/include/stb
-        engine/Libraries/include/imgui
-        engine/Libraries/include/imgui/backends
-    )
-    target_link_libraries(glint PRIVATE glint_core)
-
-    if (ENABLE_KTX2)
-        # Expect libktx to be available as a port or prebuilt library
-        # Define macro; linking depends on environment configuration
-        target_compile_definitions(glint_core PRIVATE KTX2_ENABLED=1)
-        # If a CMake package exists, try it (may be skipped on web)
-        find_package(ktx CONFIG QUIET)
-        if (ktx_FOUND)
-            if (TARGET KTX::ktx)
-                target_link_libraries(glint PRIVATE KTX::ktx)
-            elseif (TARGET ktx)
-                target_link_libraries(glint PRIVATE ktx)
-            endif()
-        endif()
-    endif()
-
-    # Emscripten ports and flags
-    target_link_options(glint PRIVATE
-        -sUSE_GLFW=3
-        -sFULL_ES3=1
-        -sWASM=1
-        -sALLOW_MEMORY_GROWTH=1
-        -sMIN_WEBGL_VERSION=2
-        -sMAX_WEBGL_VERSION=2
-        -sFORCE_FILESYSTEM=1
-        "-sEXPORTED_FUNCTIONS=['_main','_app_apply_ops_json','_app_share_link','_app_scene_to_json','_app_is_ready']"
-        "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap']"
-        "SHELL:--preload-file ${CMAKE_SOURCE_DIR}/engine/assets@/assets"
-        "SHELL:--preload-file ${CMAKE_SOURCE_DIR}/engine/shaders@/shaders"
-    )
-
-    # Optionally preload cow texture if it exists (path may vary)
-    if (EXISTS "${CMAKE_SOURCE_DIR}/engine/assets/cow-tex-fin.jpg")
-        target_link_options(glint PRIVATE "SHELL:--preload-file ${CMAKE_SOURCE_DIR}/engine/assets/cow-tex-fin.jpg@/assets/cow-tex-fin.jpg")
-    elseif (EXISTS "${CMAKE_SOURCE_DIR}/engine/cow-tex-fin.jpg")
-        target_link_options(glint PRIVATE "SHELL:--preload-file ${CMAKE_SOURCE_DIR}/engine/cow-tex-fin.jpg@/assets/cow-tex-fin.jpg")
-    endif()
-
-    # ImGui ES3 path (compiled but HTML UI disables usage at runtime)
-    target_compile_definitions(glint PRIVATE IMGUI_IMPL_OPENGL_ES3 WEB_USE_HTML_UI=1)
+    message(FATAL_ERROR "Web builds via Emscripten are temporarily disabled. See README.md for notes on re-enabling this path.")
+endif()
 
 # Desktop build
-else()
     add_library(glint_core STATIC ${CORE_SOURCES} ${IMGUI_SOURCES})
     target_include_directories(glint_core PUBLIC
         engine/include
@@ -296,18 +220,17 @@ else()
         find_package(ktx CONFIG QUIET)
         if (ktx_FOUND)
             if (TARGET KTX::ktx)
-            target_link_libraries(glint PRIVATE KTX::ktx)
-        elseif (TARGET ktx)
-            target_link_libraries(glint PRIVATE ktx)
-        else()
-            message(WARNING "libktx found but target not recognized; link it manually.")
-        endif()
+                target_link_libraries(glint PRIVATE KTX::ktx)
+            elseif (TARGET ktx)
+                target_link_libraries(glint PRIVATE ktx)
+            else()
+                message(WARNING "libktx found but target not recognized; link it manually.")
+            endif()
             target_compile_definitions(glint PRIVATE KTX2_ENABLED=1)
         else()
             message(WARNING "ENABLE_KTX2=ON but libktx not found. KTX2 at runtime will be disabled.")
         endif()
     endif()
-endif()
 
 # Optional: EXR support via TinyEXR + miniz (header/libs must be vendored)
 option(ENABLE_EXR "Enable OpenEXR loading via TinyEXR" ON)

@@ -111,15 +111,11 @@ GLuint Shader::compileShader(const std::string& source, GLenum type)
     
     // Check if we're running in an OpenGL ES context
     bool isOpenGLES = false;
-#if defined(__EMSCRIPTEN__)
-    isOpenGLES = true;
-#else
     // Check OpenGL version string for ES
     const char* versionStr = (const char*)glGetString(GL_VERSION);
     if (versionStr && strstr(versionStr, "OpenGL ES")) {
         isOpenGLES = true;
     }
-#endif
 
     const char* src = nullptr;
     std::string patched_src;

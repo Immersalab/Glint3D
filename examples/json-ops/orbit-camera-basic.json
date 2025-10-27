@@ -1,7 +1,0 @@
-[
-  {"op": "load", "path": "assets/models/cube.obj", "name": "TestCube", "transform": {"position": [0, 0, 0], "scale": [1, 1, 1]}},
-  {"op": "add_light", "type": "directional", "direction": [-0.5, -1, -0.5], "color": [1.0, 1.0, 1.0], "intensity": 1.0},
-  {"op": "set_camera", "position": [3, 3, 3], "target": [0, 0, 0], "fov_deg": 45},
-  {"op": "orbit_camera", "yaw": 30, "pitch": 0, "center": [0, 0, 0], "damping": 0.7},
-  {"op": "render_image", "path": "renders/orbit-camera-basic.png", "width": 600, "height": 600}
-]

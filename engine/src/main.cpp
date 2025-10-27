@@ -15,49 +15,6 @@
 #include <windows.h>
 #endif
 
-#ifdef __EMSCRIPTEN__
-#include <emscripten/emscripten.h>
-// Global application pointer for JS bridge
-static ApplicationCore* g_app = nullptr;
-extern "C" {
-    EMSCRIPTEN_KEEPALIVE
-    int app_apply_ops_json(const char* json)
-    {
-        if (!g_app || !json) return 0;
-        std::string err; // collect error for debugging
-        bool ok = g_app->applyJsonOpsV1(std::string(json), err);
-        if (!ok) {
-            emscripten_log(EM_LOG_CONSOLE, "applyJsonOpsV1 error: %s", err.c_str());
-        }
-        return ok ? 1 : 0;
-    }
-
-    EMSCRIPTEN_KEEPALIVE
-    const char* app_share_link()
-    {
-        static std::string last;
-        if (!g_app) return "";
-        last = g_app->buildShareLink();
-        return last.c_str();
-    }
-
-    EMSCRIPTEN_KEEPALIVE
-    const char* app_scene_to_json()
-    {
-        static std::string last;
-        if (!g_app) return "";
-        last = g_app->sceneToJson();
-        return last.c_str();
-    }
-
-    EMSCRIPTEN_KEEPALIVE
-    int app_is_ready()
-    {
-        return g_app ? 1 : 0;
-    }
-}
-#endif
-
 namespace {
     static std::string loadTextFile(const std::string& path){ std::ifstream f(path, std::ios::binary); if(!f) return {}; std::ostringstream ss; ss<<f.rdbuf(); return ss.str(); }
 }
@@ -145,66 +102,6 @@ int main(int argc, char** argv)
     // Configure render settings again to apply shader-related values post-init
     app->setRenderSettings(parseResult.options.renderSettings);
 
-#ifdef __EMSCRIPTEN__
-    // Assign global for JS bridge
-    g_app = app;
-    if (parseResult.options.headlessMode) {
-        Logger::error("Web build does not support headless mode");
-        delete app;
-        return static_cast<int>(CLIExitCode::RuntimeError);
-    }
-    // Web: parse ?state=... and replay ops (robust Base64URL + JSON envelope)
-    {
-        const char* param = emscripten_run_script_string(
-            "(function(){var p=(new URLSearchParams(window.location.search)).get('state');return p?p:'';})()"
-        );
-        if (param && *param) {
-            auto fromBase64Url = [](std::string s)->std::string {
-                // Accept both standard and URL-safe base64. Strip whitespace.
-                s.erase(std::remove_if(s.begin(), s.end(), [](unsigned char c){ return c=='\n'||c=='\r'||c=='\t'||c==' '; }), s.end());
-                for (auto& c : s) { if (c=='-') c = '+'; else if (c=='_') c = '/'; }
-                // Pad to multiple of 4
-                while (s.size() % 4) s.push_back('=');
-                auto val = [](char c)->int{
-                    if (c>='A'&&c<='Z') return c-'A';
-                    if (c>='a'&&c<='z') return c-'a'+26;
-                    if (c>='0'&&c<='9') return c-'0'+52;
-                    if (c=='+') return 62; if (c=='/') return 63; if (c=='=') return -2; return -1; };
-                std::string out; out.reserve((s.size()*3)/4);
-                int buf=0, bits=0;
-                for (char ch : s){
-                    int v = val(ch);
-                    if (v == -2) break; // padding
-                    if (v < 0) continue; // ignore non-base64
-                    buf = (buf<<6) | v; bits += 6;
-                    if (bits >= 8) { bits -= 8; out.push_back(char((buf>>bits)&0xFF)); }
-                }
-                return out;
-            };
-
-            std::string raw(param);
-            std::string json;
-            // Heuristic: if looks like JSON, accept directly, otherwise decode base64
-            auto ltrim = [](const std::string& s){ size_t i=0; while(i<s.size() && (s[i]==' '||s[i]=='\n'||s[i]=='\r'||s[i]=='\t')) ++i; return s.substr(i); };
-            std::string lt = ltrim(raw);
-            if (!lt.empty() && (lt[0]=='{' || lt[0]=='[')) {
-                json = raw;
-            } else {
-                json = fromBase64Url(raw);
-            }
-
-            if (!json.empty()) {
-                std::string err;
-                if (!app->applyJsonOpsV1(json, err)) {
-                    emscripten_log(EM_LOG_CONSOLE, "State import failed: %s", err.c_str());
-                }
-            } else {
-                emscripten_log(EM_LOG_CONSOLE, "State import: empty or undecodable 'state' param");
-            }
-        }
-    }
-    emscripten_set_main_loop_arg([](void* p){ static_cast<ApplicationCore*>(p)->frame(); }, app, 0, true);
-#else
     if (parseResult.options.headlessMode) {
         Logger::info("Running in headless mode");
         
@@ -263,11 +160,10 @@ int main(int argc, char** argv)
         
         delete app;
         return 0;
-    } else {
-        Logger::info("Launching UI mode");
-        app->run();
-        delete app;
-        return 0;
     }
-#endif
+
+    Logger::info("Launching UI mode");
+    app->run();
+    delete app;
+    return 0;
 }
