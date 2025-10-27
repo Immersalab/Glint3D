@@ -135,7 +135,10 @@ temp_*.json
 simple_*.json
 
 # Generated documentation
-docs/api/
+docs/doxygen/api/
+docs/doxygen/html/
+docs/doxygen/xml/
+docs/doxygen/latex/
 packages/*/docs/api/
 
 # Coverage reports  
