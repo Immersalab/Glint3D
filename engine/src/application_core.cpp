@@ -1,6 +1,15 @@
 #include "application_core.h"
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <windows.h>
+#endif
 #include "gl_platform.h"
 #include <GLFW/glfw3.h>
+#ifdef _WIN32
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <GLFW/glfw3native.h>
+#endif
 #include "scene_manager.h"
 #include "render_system.h" 
 #include "camera_controller.h"
@@ -9,6 +18,7 @@
 #include "imgui_ui_layer.h"
 #include "RayUtils.h"
 #include "json_ops.h"
+#include "resource_paths.h"
 #include "imgui.h"
 #include "stb_image.h"
 #include <iostream>
@@ -16,6 +26,30 @@
 #include <limits>
 #include <cmath>
 #include <vector>
+#include <cstring>
+
+namespace {
+    std::vector<unsigned char> resizeNearest(const unsigned char* src, int srcWidth, int srcHeight, int channels, int dstWidth, int dstHeight)
+    {
+        std::vector<unsigned char> dst(static_cast<size_t>(dstWidth) * dstHeight * channels);
+        for (int y = 0; y < dstHeight; ++y) {
+            int sy = static_cast<int>(static_cast<long long>(y) * srcHeight / dstHeight);
+            for (int x = 0; x < dstWidth; ++x) {
+                int sx = static_cast<int>(static_cast<long long>(x) * srcWidth / dstWidth);
+                const unsigned char* sp = src + (static_cast<size_t>(sy) * srcWidth + sx) * channels;
+                unsigned char* dp = dst.data() + (static_cast<size_t>(y) * dstWidth + x) * channels;
+                std::memcpy(dp, sp, static_cast<size_t>(channels));
+            }
+        }
+        return dst;
+    }
+
+    struct IconStorage {
+        int width = 0;
+        int height = 0;
+        std::unique_ptr<unsigned char[]> pixels;
+    };
+}
 
 ApplicationCore::ApplicationCore()
 {
@@ -645,9 +679,10 @@ void ApplicationCore::createDefaultScene()
     defaultCam.up = glm::vec3(0.0f, 1.0f, 0.0f);
     m_camera->setCameraState(defaultCam);
     // Load a default object only when running with the UI so the viewport isn't empty
-    // Note: path is relative to runtime working directory containing the engine/assets folder
-    if (!m_headless)
-        m_scene->loadObject("Sphere", "engine/assets/models/sphere.obj", glm::vec3(0.0f, 0.0f, -4.0f), glm::vec3(1.0f));
+    if (!m_headless) {
+        const auto spherePath = ResourcePaths::resolve("assets/models/sphere.obj");
+        m_scene->loadObject("Sphere", spherePath.string(), glm::vec3(0.0f, 0.0f, -4.0f), glm::vec3(1.0f));
+    }
 }
 
 void ApplicationCore::cleanupGL()
@@ -658,38 +693,26 @@ void ApplicationCore::cleanupGL()
 void ApplicationCore::setWindowIcon()
 {
     if (!m_window) return;
-    
-    // Try multiple possible icon paths for different build systems
-    const std::vector<std::string> iconPaths = {
-        "engine/assets/img/Glint3DIcon.png",    // CMake build from repo root
-        "../engine/assets/img/Glint3DIcon.png", // If running from build dir
-        "../../engine/assets/img/Glint3DIcon.png" // Alternative build dir structure
-    };
-    
-    int width, height, channels;
-    unsigned char* data = nullptr;
-    std::string successPath;
-    
-    for (const auto& path : iconPaths) {
-        data = stbi_load(path.c_str(), &width, &height, &channels, 4); // Force RGBA
-        if (data) {
-            successPath = path;
-            break;
-        }
-    }
-    
+
+    const auto iconPath = ResourcePaths::resolve("assets/icons/glint3d.png");
+    int width = 0, height = 0, channels = 0;
+    unsigned char* data = stbi_load(iconPath.string().c_str(), &width, &height, &channels, 4); // Force RGBA
     if (!data) {
-        std::cerr << "Failed to load window icon from any of the attempted paths" << std::endl;
+        std::cerr << "Warning: Failed to load window icon from \"" << iconPath.string() << "\"" << std::endl;
+        std::cerr << "stbi error: " << stbi_failure_reason() << std::endl;
         return;
     }
-    
-    GLFWimage icon;
-    icon.width = width;
-    icon.height = height;
-    icon.pixels = data;
-    
-    glfwSetWindowIcon(m_window, 1, &icon);
-    
+
+    std::cout << "Loaded icon: " << width << "x" << height << std::endl;
+
+    // Use the icon as-is without resizing to preserve quality
+    GLFWimage image;
+    image.width = width;
+    image.height = height;
+    image.pixels = data;
+
+    glfwSetWindowIcon(m_window, 1, &image);
+
     stbi_image_free(data);
 }
 

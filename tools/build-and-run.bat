@@ -38,7 +38,7 @@ echo Working directory: %CD%
 echo.
 
 REM Step 1: Check for GLFW3 dependencies
-echo [1/4] Checking dependencies...
+echo [1/5] Checking dependencies...
 set LIB_DIR=engine\Libraries\lib
 if not exist "%LIB_DIR%\glfw3.lib" (
     echo GLFW3 not found. Downloading and installing...
@@ -52,8 +52,19 @@ if not exist "%LIB_DIR%\glfw3.lib" (
     echo GLFW3 found: %LIB_DIR%\glfw3.lib
 )
 
+REM Check for Doxygen (optional)
+where doxygen >nul 2>nul
+if %ERRORLEVEL% NEQ 0 (
+    echo.
+    echo [INFO] Doxygen not found - documentation generation will be unavailable
+    echo Install Doxygen from: https://www.doxygen.nl/download.html
+    echo Then run: tools\generate-docs.bat
+) else (
+    echo Doxygen found: ready for documentation generation
+)
+
 echo.
-echo [2/4] Configuring CMake...
+echo [2/5] Configuring CMake...
 echo Using libraries from: engine/Libraries
 cmake -S . -B builds/desktop/cmake ^
     -DCMAKE_PREFIX_PATH="%CD%\engine\Libraries" ^
@@ -65,7 +76,7 @@ if errorlevel 1 (
 )
 
 echo.
-echo [3/4] Building %CONFIG%...
+echo [3/5] Building %CONFIG%...
 cmake --build builds/desktop/cmake --config %CONFIG% -j
 if errorlevel 1 (
     echo ERROR: Build failed
@@ -73,7 +84,7 @@ if errorlevel 1 (
 )
 
 echo.
-echo [4/4] Launching Glint3D...
+echo [4/5] Verifying executable...
 set EXE=builds\desktop\cmake\%CONFIG%\glint.exe
 if not exist "%EXE%" (
     echo ERROR: Executable not found at %EXE%
@@ -81,6 +92,7 @@ if not exist "%EXE%" (
 )
 
 echo.
+echo [5/5] Launching Glint3D...
 echo ========================================
 echo  Build Complete - Launching
 echo ========================================

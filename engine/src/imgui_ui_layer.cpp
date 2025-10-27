@@ -3,6 +3,7 @@
 #include "panels/scene_tree_panel.h"
 #include "gl_platform.h"
 #include "render_utils.h"
+#include "resource_paths.h"
 #include <GLFW/glfw3.h>
 #include "file_dialog.h"
 #include <vector>
@@ -68,6 +69,11 @@ namespace {
             }
         }
         return escaped;
+    }
+
+    static const std::string& defaultHDRPath() {
+        static const std::string path = ResourcePaths::resolve("assets/img/studio_small_08_4k.exr").string();
+        return path;
     }
 }
 
@@ -554,7 +560,8 @@ void ImGuiUILayer::renderSettingsPanel(const UIState& state)
                     UICommandData cmd; cmd.command = UICommand::ApplyJsonOps; cmd.stringParam = std::string(buf); if (onCommand) onCommand(cmd);
                 } else if (bgMode == 2) {
                     // HDR stub: send current path or placeholder
-                    std::string path = state.backgroundHDRPath.empty() ? std::string("engine/assets/img/studio_small_08_4k.exr") : state.backgroundHDRPath;
+                    const std::string& fallback = defaultHDRPath();
+                    std::string path = state.backgroundHDRPath.empty() ? fallback : state.backgroundHDRPath;
                     std::string payload = std::string("[{\"op\":\"set_background\",\"hdr\":\"") + escapeJsonString(path) + "\"}]";
                     UICommandData cmd; cmd.command = UICommand::ApplyJsonOps; cmd.stringParam = payload; if (onCommand) onCommand(cmd);
                 }
@@ -588,12 +595,13 @@ void ImGuiUILayer::renderSettingsPanel(const UIState& state)
                 // HDR/EXR path input
                 static char hdrBuf[256] = "";
                 if (std::strlen(hdrBuf) == 0) {
-                    std::string init = state.backgroundHDRPath.empty() ? std::string("engine/assets/img/studio_small_08_4k.exr") : state.backgroundHDRPath;
-                    #ifdef _WIN32
+                    std::string init = state.backgroundHDRPath.empty() ? defaultHDRPath() : state.backgroundHDRPath;
+#ifdef _WIN32
                     strncpy_s(hdrBuf, sizeof(hdrBuf), init.c_str(), _TRUNCATE);
-                    #else
-                    std::strncpy(hdrBuf, init.c_str(), sizeof(hdrBuf)-1); hdrBuf[sizeof(hdrBuf)-1] = '\0';
-                    #endif
+#else
+                    std::strncpy(hdrBuf, init.c_str(), sizeof(hdrBuf) - 1);
+                    hdrBuf[sizeof(hdrBuf) - 1] = '\0';
+#endif
                 }
                 ImGui::SetNextItemWidth(-1);
                 if (ImGui::InputText("HDR/EXR Path", hdrBuf, sizeof(hdrBuf))) {
@@ -621,7 +629,7 @@ void ImGuiUILayer::renderSettingsPanel(const UIState& state)
                     UICommandData cmd;
                     cmd.command = UICommand::LoadHDREnvironment;
                     // Use current renderer state, or default if empty
-                    std::string path = state.backgroundHDRPath.empty() ? "engine/assets/img/studio_small_08_4k.exr" : state.backgroundHDRPath;
+                    std::string path = state.backgroundHDRPath.empty() ? defaultHDRPath() : state.backgroundHDRPath;
                     cmd.stringParam = path;
                     if (onCommand) onCommand(cmd);
                 }

@@ -10,11 +10,13 @@
 #include "render_utils.h"
 #include "help_text.h"
 #include "file_dialog.h"
+#include "resource_paths.h"
 #include <iostream>
 #include <sstream>
 #include <fstream>
 #include <algorithm>
 #include <cctype>
+#include <filesystem>
 #include <rapidjson/document.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
@@ -603,7 +605,13 @@ void UIBridge::handleUICommand(const UICommandData& command)
 
 void UIBridge::handleLoadObject(const UICommandData& cmd)
 {
-    bool success = m_scene.loadObject(cmd.stringParam, cmd.stringParam, cmd.vec3Param);
+    std::filesystem::path pathInput(cmd.stringParam);
+    if (!pathInput.is_absolute()) {
+        pathInput = ResourcePaths::resolve(pathInput.generic_string());
+    }
+    std::string pathStr = pathInput.generic_string();
+
+    bool success = m_scene.loadObject(cmd.stringParam, pathStr, cmd.vec3Param);
     if (success) {
         addConsoleMessage("Loaded object: " + cmd.stringParam);
         // Select newly added object (assume appended)
@@ -700,7 +708,7 @@ void UIBridge::handleConsoleCommand(const UICommandData& cmd)
         addConsoleMessage("Available console commands:");
         addConsoleMessage("  help             - Show this help");
         addConsoleMessage("  clear            - Clear the console");
-        addConsoleMessage("  load <path>      - Load a model (e.g., engine/assets/models/cube.obj)");
+        addConsoleMessage("  load <path>      - Load a model (e.g., assets/models/cube.obj)");
         addConsoleMessage("  render [<out.png>] [W H] - Render PNG to path, optional size (defaults to renders/ folder)");
         addConsoleMessage("  save_png [<out.png>] [W H] - Alias for render");
         addConsoleMessage("  list             - List scene objects with indices");
