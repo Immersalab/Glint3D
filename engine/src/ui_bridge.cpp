@@ -11,6 +11,7 @@
 #include "help_text.h"
 #include "file_dialog.h"
 #include "resource_paths.h"
+#include "user_paths.h"
 #include <iostream>
 #include <sstream>
 #include <fstream>
@@ -871,8 +872,8 @@ void UIBridge::clearConsoleLog()
 void UIBridge::loadRecentFiles()
 {
     m_recentFiles.clear();
-    const char* kRecent = ".glint_recent";
-    std::ifstream in(kRecent, std::ios::in);
+    std::filesystem::path recentPath = glint::getDataPath("recent.txt");
+    std::ifstream in(recentPath, std::ios::in);
     if (!in) return;
     std::string line;
     while (std::getline(in, line)) {
@@ -883,8 +884,8 @@ void UIBridge::loadRecentFiles()
 
 void UIBridge::saveRecentFiles() const
 {
-    const char* kRecent = ".glint_recent";
-    std::ofstream out(kRecent, std::ios::out | std::ios::trunc);
+    std::filesystem::path recentPath = glint::getDataPath("recent.txt");
+    std::ofstream out(recentPath, std::ios::out | std::ios::trunc);
     if (!out) return;
     size_t count = 0;
     for (const auto& p : m_recentFiles) {

@@ -36,6 +36,7 @@ set(APP_SOURCES
     ${SRC_DIR}/render_settings.cpp
     ${SRC_DIR}/schema_validator.cpp
     ${SRC_DIR}/path_security.cpp
+    ${SRC_DIR}/user_paths.cpp
     ${SRC_DIR}/imgui_ui_layer.cpp
     # ${SRC_DIR}/render_offscreen.cpp  # legacy (Application-based); excluded from build
     ${SRC_DIR}/shader.cpp
@@ -78,6 +79,7 @@ set(CORE_SOURCES
     ${SRC_DIR}/cli_parser.cpp
     ${SRC_DIR}/schema_validator.cpp
     ${SRC_DIR}/path_security.cpp
+    ${SRC_DIR}/user_paths.cpp
     ${SRC_DIR}/imgui_ui_layer.cpp
     ${SRC_DIR}/shader.cpp
     ${SRC_DIR}/texture.cpp

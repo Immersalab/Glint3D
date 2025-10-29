@@ -4,12 +4,14 @@
 #include "gl_platform.h"
 #include "render_utils.h"
 #include "resource_paths.h"
+#include "user_paths.h"
 #include <GLFW/glfw3.h>
 #include "file_dialog.h"
 #include <vector>
 #include <string>
 #include <cstring>
 #include <fstream>
+#include <filesystem>
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -18,11 +20,11 @@
 namespace {
     static std::vector<std::string> s_history;
     static int s_histPos = -1; // -1 means new line
-    static const char* kHistFile = ".glint_history";
 
     static void load_history()
     {
-        std::ifstream in(kHistFile, std::ios::in);
+        std::filesystem::path histPath = glint::getDataPath("history.txt");
+        std::ifstream in(histPath, std::ios::in);
         if (!in) return;
         std::string line;
         while (std::getline(in, line)) {
@@ -33,7 +35,8 @@ namespace {
 
     static void save_history()
     {
-        std::ofstream out(kHistFile, std::ios::out | std::ios::trunc);
+        std::filesystem::path histPath = glint::getDataPath("history.txt");
+        std::ofstream out(histPath, std::ios::out | std::ios::trunc);
         if (!out) return;
         const size_t maxKeep = 200;
         size_t start = s_history.size() > maxKeep ? s_history.size() - maxKeep : 0;
@@ -90,10 +93,14 @@ bool ImGuiUILayer::init(int windowWidth, int windowHeight)
 {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    
+
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-    
+
+    // Set platform-specific ImGui ini file location
+    static std::string s_iniPath = glint::getConfigPath("imgui.ini").string();
+    io.IniFilename = s_iniPath.c_str();
+
 #ifdef IMGUI_HAS_DOCKING
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
@@ -113,7 +120,7 @@ bool ImGuiUILayer::init(int windowWidth, int windowHeight)
 
     // Set dark theme
     setupDarkTheme();
-    
+
     return true;
 }
 
