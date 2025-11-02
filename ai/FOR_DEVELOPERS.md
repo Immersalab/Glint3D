@@ -256,7 +256,7 @@ Create a new task module using ai/prompts/TASK_MODULE_CREATION_PROMPT.md with:
 - ID: add_bloom_effect
 - Title: Add Bloom Post-Processing Effect
 - Owner: rendering_team
-- Inputs: ["engine/src/lighting.cpp", "engine/shaders/post_process.glsl"]
+- Inputs: ["engine/src/lighting.cpp", "resources/shaders/post_process.glsl"]
 - Outputs: ["artifacts/code/bloom_pass.cpp", "artifacts/tests/bloom_test.cpp"]
 - Acceptance criteria:
   * Bloom effect renders correctly

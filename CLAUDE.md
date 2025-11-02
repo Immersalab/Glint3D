@@ -493,7 +493,7 @@ cmake --build builds/desktop/cmake/Debug --config Debug
 #### **Key Files to Understand**
 - `engine/src/render_system.cpp` - Current dual pipeline logic
 - `engine/include/scene_manager.h` - SceneObject with dual materials  
-- `engine/shaders/pbr.frag` - Rasterized PBR shader
+- `resources/shaders/pbr.frag` - Rasterized PBR shader
 - `engine/src/raytracer.cpp` - CPU raytracing pipeline
 - `engine/src/json_ops.cpp` - Material property parsing
 
