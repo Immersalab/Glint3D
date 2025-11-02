@@ -1,0 +1,64 @@
+{
+  "id": "cross_platform_user_paths",
+  "title": "Cross-Platform User Data Directory Management",
+  "owner": "engine-core",
+  "status": "completed",
+  "created": "2025-10-29T13:57:57Z",
+  "updated": "2025-11-02T17:09:35-05:00",
+  "completed": "2025-11-02T17:09:35-05:00",
+  "description": "Implement cross-platform user data, config, and cache directory management following OS-specific conventions (XDG on Linux, Known Folders on Windows, Library paths on macOS) with portable mode support for self-contained deployments.",
+  "inputs": {
+    "files": [
+      "engine/include/user_paths.h",
+      "engine/src/user_paths.cpp",
+      "engine/src/imgui_ui_layer.cpp:26,38,101",
+      "engine/src/ui_bridge.cpp:875,887",
+      "CMakeLists.txt:27-68,71-100"
+    ],
+    "schema_version": "1.0.0"
+  },
+  "outputs": {
+    "artifacts": [
+      "engine/include/user_paths.h",
+      "engine/src/user_paths.cpp",
+      "ai/tasks/cross_platform_user_paths/artifacts/documentation/API_REFERENCE.md",
+      "ai/tasks/cross_platform_user_paths/artifacts/documentation/PLATFORM_BEHAVIOR.md",
+      "ai/tasks/cross_platform_user_paths/artifacts/tests/runtime_verification.md"
+    ],
+    "events": [
+      "task_created",
+      "task_registered",
+      "phase_started",
+      "phase_completed",
+      "build_success",
+      "integration_complete",
+      "task_completed"
+    ]
+  },
+  "acceptance": [
+    "✅ Build completes successfully on Windows without errors",
+    "✅ user_paths.cpp is integrated into CMakeLists.txt (APP_SOURCES and CORE_SOURCES)",
+    "✅ Missing #include <fstream> added to user_paths.cpp",
+    "✅ Application launches without crashing and creates platform-specific directories",
+    "✅ Recent files (recent.txt) are stored in correct user data directory",
+    "✅ Command history (history.txt) is stored in correct user data directory",
+    "✅ ImGui settings (imgui.ini) are stored in correct config directory",
+    "✅ Portable mode works when runtime/.portable file exists",
+    "✅ Portable mode falls back to ./runtime/* subdirectories correctly",
+    "✅ Directories are created automatically with proper permissions",
+    "✅ Path functions return consistent results across multiple calls",
+    "✅ GLINT_PORTABLE environment variable enables portable mode",
+    "✅ All three directory types (data, config, cache) work independently"
+  ],
+  "safety": {
+    "rate_limits": [
+      "max_build_time_10min",
+      "max_file_size_1mb_per_artifact"
+    ],
+    "sandbox": false,
+    "requires_user_confirmation": false
+  },
+  "dependencies": [],
+  "blocked_by": [],
+  "seed_policy": "deterministic"
+}

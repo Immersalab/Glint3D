@@ -1,3 +1,6 @@
+// Machine Summary Block
+// {"file":"engine/src/user_paths.cpp","purpose":"Implements Glint3D user path helpers with platform detection and portable mode","depends_on":["engine/include/user_paths.h","<cstdlib>","<filesystem>","<windows.h>","<shlobj.h>"],"notes":["lazy initializes per-platform directories","caches results to avoid repeated system calls"]}
+// Summary: Platform-aware implementation that resolves and caches user data/config/cache directories.
 #include "user_paths.h"
 #include <cstdlib>
 #include <iostream>

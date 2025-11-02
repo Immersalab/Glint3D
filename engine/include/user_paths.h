@@ -1,3 +1,6 @@
+// Machine Summary Block
+// {"file":"engine/include/user_paths.h","purpose":"Public API for Glint3D user data, config, and cache directories","exports":["glint::getUserDataDir","glint::getConfigDir","glint::getCacheDir","glint::isPortableMode","glint::enablePortableMode","glint::getDataPath","glint::getConfigPath","glint::getCachePath"],"depends_on":["<filesystem>","<string>"],"notes":["portable mode uses runtime directories when GLINT_PORTABLE or runtime/.portable present"]}
+// Summary: Declares cross-platform path helpers and portable-mode controls for persistent data.
 #pragma once
 
 #include <filesystem>

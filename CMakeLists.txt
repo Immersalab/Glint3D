@@ -280,3 +280,9 @@ install(TARGETS glint RUNTIME DESTINATION bin)
 install(TARGETS glint_core ARCHIVE DESTINATION lib LIBRARY DESTINATION lib)
 install(DIRECTORY engine/include/ DESTINATION include/glint)
 install(FILES schemas/json_ops_v1.json DESTINATION share/glint/schemas)
+
+add_executable(user_paths_probe
+    tools/user_paths_probe.cpp
+    engine/src/user_paths.cpp
+)
+target_include_directories(user_paths_probe PRIVATE engine/include)
