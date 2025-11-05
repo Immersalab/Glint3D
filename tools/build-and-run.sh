@@ -1,4 +1,8 @@
 #!/bin/bash
+# Machine Summary Block
+# {"file":"tools/build-and-run.sh","purpose":"Automates dependency checks and desktop builds for Glint3D on Unix-like systems.","exports":[],"depends_on":["cmake","pkg-config"],"notes":["glfw_managed_dropin_supported","assimp_oidn_support"]}
+# Human Summary
+# Helper script that verifies GLFW/Doxygen, configures CMake, builds Glint3D, and optionally runs the app.
 # Glint3D Build and Run Script (Pre-RHI Release v1.0)
 # Automatically checks/installs dependencies, builds, and launches
 
@@ -8,6 +12,114 @@ CONFIG="${1:-Debug}"
 shift 2>/dev/null || true
 ARGS="$@"
 
+MANAGED_GLFW_DIR="third_party/managed/glfw"
+MANAGED_ASSIMP_DIR="third_party/managed/assimp"
+MANAGED_OIDN_DIR="third_party/managed/openimagedenoise"
+
+has_pkg() {
+    command -v pkg-config &> /dev/null && pkg-config --exists "$1"
+}
+
+has_managed_lib() {
+    local dir="$1"
+    local pattern="$2"
+    compgen -G "${dir}/${pattern}" > /dev/null
+}
+
+check_assimp() {
+    if has_pkg assimp; then
+        echo "Assimp found via pkg-config"
+        return
+    fi
+    if has_managed_lib "${MANAGED_ASSIMP_DIR}/lib" "libassimp.*" || has_managed_lib "${MANAGED_ASSIMP_DIR}/lib" "assimp*.lib"; then
+        echo "Assimp found in ${MANAGED_ASSIMP_DIR}"
+        return
+    fi
+
+    echo "Assimp not found."
+    if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        echo "  Ubuntu/Debian: sudo apt-get install libassimp-dev"
+        echo "  Fedora:        sudo dnf install assimp-devel"
+        read -p "Install Assimp using package manager? (y/N) " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            if command -v apt-get &> /dev/null; then
+                sudo apt-get update && sudo apt-get install -y libassimp-dev
+                return
+            elif command -v dnf &> /dev/null; then
+                sudo dnf install -y assimp-devel
+                return
+            else
+                echo "ERROR: Unsupported package manager for Assimp"
+                exit 1
+            fi
+        fi
+    elif [[ "$OSTYPE" == "darwin"* ]]; then
+        echo "  macOS: brew install assimp"
+        if command -v brew &> /dev/null; then
+            read -p "Install Assimp using Homebrew? (y/N) " -n 1 -r
+            echo
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                brew install assimp
+                return
+            fi
+        else
+            echo "ERROR: Homebrew not found. Please install from https://brew.sh"
+            exit 1
+        fi
+    fi
+
+    echo "[INFO] Assimp is optional but required for extended importer support."
+    echo "       Populate ${MANAGED_ASSIMP_DIR} or install via vcpkg/package manager before building."
+}
+
+check_oidn() {
+    if has_pkg OpenImageDenoise; then
+        echo "OpenImageDenoise found via pkg-config"
+        return
+    fi
+    if has_managed_lib "${MANAGED_OIDN_DIR}/lib" "libOpenImageDenoise.*" || has_managed_lib "${MANAGED_OIDN_DIR}/lib" "OpenImageDenoise*.lib"; then
+        echo "OpenImageDenoise found in ${MANAGED_OIDN_DIR}"
+        return
+    fi
+
+    echo "OpenImageDenoise not found."
+    if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        echo "  Ubuntu/Debian: sudo apt-get install libopenimagedenoise-dev"
+        echo "  Fedora:        sudo dnf install openimagedenoise-devel"
+        read -p "Install OpenImageDenoise using package manager? (y/N) " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            if command -v apt-get &> /dev/null; then
+                sudo apt-get update && sudo apt-get install -y libopenimagedenoise-dev
+                return
+            elif command -v dnf &> /dev/null; then
+                sudo dnf install -y openimagedenoise-devel
+                return
+            else
+                echo "ERROR: Unsupported package manager for OpenImageDenoise"
+                exit 1
+            fi
+        fi
+    elif [[ "$OSTYPE" == "darwin"* ]]; then
+        echo "  macOS: brew install open-image-denoise"
+        if command -v brew &> /dev/null; then
+            read -p "Install OpenImageDenoise using Homebrew? (y/N) " -n 1 -r
+            echo
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                brew install open-image-denoise
+                return
+            fi
+        else
+            echo "ERROR: Homebrew not found. Please install from https://brew.sh"
+            exit 1
+        fi
+    fi
+
+    echo "[INFO] OpenImageDenoise is optional but enables the denoiser pipeline."
+    echo "       Populate ${MANAGED_OIDN_DIR} or install via vcpkg/package manager if required."
+}
+
 echo "========================================"
 echo " Glint3D Build and Run Script"
 echo "========================================"
@@ -16,10 +128,10 @@ echo ""
 
 # Step 1: Check for GLFW3 dependencies
 echo "[1/5] Checking dependencies..."
-LIB_DIR="engine/Libraries/lib"
+LIB_DIR="${MANAGED_GLFW_DIR}/lib"
 
-# Check if GLFW is available (system or vendored)
-if ! pkg-config --exists glfw3 2>/dev/null && [ ! -f "$LIB_DIR/libglfw.so" ] && [ ! -f "$LIB_DIR/libglfw.dylib" ]; then
+# Check if GLFW is available (system or managed drop-in)
+if ! pkg-config --exists glfw3 2>/dev/null && [ ! -f "$LIB_DIR/libglfw.so" ] && [ ! -f "$LIB_DIR/libglfw.dylib" ] && [ ! -f "$LIB_DIR/glfw3.lib" ]; then
     echo "GLFW3 not found."
     echo ""
     echo "Please install GLFW3:"
@@ -54,6 +166,9 @@ if ! pkg-config --exists glfw3 2>/dev/null && [ ! -f "$LIB_DIR/libglfw.so" ] && 
 else
     echo "GLFW3 found"
 fi
+
+check_assimp
+check_oidn
 
 # Check for Doxygen (optional)
 if ! command -v doxygen &> /dev/null; then

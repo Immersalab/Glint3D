@@ -1,3 +1,8 @@
+// Machine Summary Block
+// {"file":"engine/src/imgui_ui_layer.cpp","purpose":"Implements ImGui-based editor layer for Glint3D.","exports":["ImGuiUILayer"],"depends_on":["ui_bridge.h","render_utils.h","imgui"],"notes":["ui_defaults_output_renders"]}
+// Human Summary
+// Desktop ImGui UI layer handling scene panels, console, and render dialogs with output/renders defaults.
+
 #include "imgui_ui_layer.h"
 #include "ui_bridge.h"
 #include "panels/scene_tree_panel.h"
@@ -441,7 +446,7 @@ void ImGuiUILayer::renderSettingsPanel(const UIState& state)
             
             // Initialize with default path on first use
             if (!renderBufferInitialized) {
-                std::string defaultPath = "D:\\class\\Glint3D\\renders\\";
+                std::string defaultPath = RenderUtils::getDefaultOutputDir() + "/";
                 #ifdef _WIN32
                 strncpy_s(renderOutputPathBuffer, sizeof(renderOutputPathBuffer), defaultPath.c_str(), _TRUNCATE);
                 #else
@@ -458,7 +463,7 @@ void ImGuiUILayer::renderSettingsPanel(const UIState& state)
             
             ImGui::SameLine();
             if (ImGui::SmallButton("Reset##render_default")) {
-                std::string defaultPath = "D:\\class\\Glint3D\\renders\\";
+                std::string defaultPath = RenderUtils::getDefaultOutputDir() + "/";
                 #ifdef _WIN32
                 strncpy_s(renderOutputPathBuffer, sizeof(renderOutputPathBuffer), defaultPath.c_str(), _TRUNCATE);
                 #else

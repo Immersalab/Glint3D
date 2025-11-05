@@ -64,8 +64,9 @@ jobs:
           set -e
           EXE="builds/desktop/cmake/glint"
           test -f "$EXE" || { echo "glint not found"; ls -R builds/desktop/cmake; exit 1; }
+          mkdir -p output/renders
           xvfb-run -a "$EXE" --ops examples/json-ops/cube_basic.json --render out.png --w 128 --h 128
-          test -f renders/out.png
+          test -f output/renders/out.png
 
       - name: Determinism hash check (same ops + seed)
         run: |
@@ -77,7 +78,7 @@ jobs:
             --ops examples/json-ops/cube_basic.json \
             --seed 42 \
             --width 160 --height 120 \
-            --output renders/determinism.png \
+            --output output/renders/determinism.png \
             --repeat 2 \
             --xvfb
 
@@ -88,7 +89,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: headless-out-linux
-          path: renders/out.png
+          path: output/renders/out.png
 
   regen-goldens-linux:
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.regenerate_goldens == 'true' }}
@@ -115,18 +116,18 @@ jobs:
           set -e
           EXE="builds/desktop/cmake/glint"
           test -f "$EXE" || { echo "glint not found"; ls -R builds/desktop/cmake; exit 1; }
-          mkdir -p renders
-          xvfb-run -a "$EXE" --ops examples/json-ops/directional-light-test.json --render renders/directional-light-test.candidate.png --w 256 --h 256
-          xvfb-run -a "$EXE" --ops examples/json-ops/spot-light-test.json --render renders/spot-light-test.candidate.png --w 256 --h 256
-          ls -l renders
+          mkdir -p output/renders
+          xvfb-run -a "$EXE" --ops examples/json-ops/directional-light-test.json --render output/renders/directional-light-test.candidate.png --w 256 --h 256
+          xvfb-run -a "$EXE" --ops examples/json-ops/spot-light-test.json --render output/renders/spot-light-test.candidate.png --w 256 --h 256
+          ls -l output/renders
 
       - name: Upload golden candidates
         uses: actions/upload-artifact@v4
         with:
           name: golden-candidates-linux
           path: |
-            renders/directional-light-test.candidate.png
-            renders/spot-light-test.candidate.png
+            output/renders/directional-light-test.candidate.png
+            output/renders/spot-light-test.candidate.png
 
   validate-golden-images:
     runs-on: ubuntu-latest
@@ -212,7 +213,7 @@ jobs:
           EXE="builds/desktop/cmake/glint"
           test -f "$EXE" || { echo "glint not found"; ls -R builds/desktop/cmake; exit 1; }
           
-          mkdir -p renders
+          mkdir -p output/renders
           
           # Render each golden test scene
           for scene in tests/golden/scenes/*.json; do
@@ -220,11 +221,11 @@ jobs:
               basename=$(basename "$scene" .json)
               echo "Rendering $basename..."
               xvfb-run -a "$EXE" --asset-root test_assets --ops "$scene" \
-                --render "renders/${basename}.png" --w 400 --h 300 --log warn || true
+                --render "output/renders/${basename}.png" --w 400 --h 300 --log warn || true
             fi
           done
           
-          ls -la renders/
+          ls -la output/renders/
 
       - name: Check for existing golden images
         id: check_goldens
@@ -246,7 +247,7 @@ jobs:
           
           # Run comparison with detailed output
           python tests/golden/tools/golden_image_compare.py \
-            --batch renders/ tests/golden/references/ \
+            --batch output/renders/ tests/golden/references/ \
             --output comparison_artifacts \
             --json-output comparison_results.json \
             --type desktop \
@@ -299,7 +300,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: rendered-test-images
-          path: renders/
+          path: output/renders/
 
       - name: Upload golden comparison artifacts
         if: steps.check_goldens.outputs.found == 'true'

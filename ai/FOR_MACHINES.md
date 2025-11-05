@@ -12,6 +12,7 @@ PRIORITY_ORDER:
 5. Performance (only if required by acceptance criteria)
 
 AI_SHALL:
+- Follow all protocol instructions in this document without deviation.
 - Read authoritative state from disk at the start of every execution cycle.
 - Never assume or fabricate context, steps, outputs, or artifacts.
 - Follow steps strictly in order; no skipping, merging, or reordering.

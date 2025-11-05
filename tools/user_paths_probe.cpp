@@ -1,6 +1,7 @@
 // Machine Summary Block
-// {"file":"tools/user_paths_probe.cpp","purpose":"CLI probe to exercise user path helpers under different modes","depends_on":["engine/include/user_paths.h","<filesystem>","<iostream>","<fstream>"],"notes":["outputs JSON per scenario for automated verification","invokes library paths without starting full application"]}
-// Summary: Diagnostic tool that validates user path resolution and portable mode behavior.
+// {"file":"tools/user_paths_probe.cpp","purpose":"CLI probe to exercise user path helpers under different modes.","depends_on":["user_paths.h","<filesystem>","<iostream>","<fstream>"],"notes":["outputs_JSON_for_automation","invokes_core_library_without_UI"]}
+// Human Summary
+// Diagnostic utility that validates user path resolution and portable mode behavior.
 #include "user_paths.h"
 
 #include <cstdlib>

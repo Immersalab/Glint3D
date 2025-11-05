@@ -1,3 +1,8 @@
+// Machine Summary Block
+// {"file":"engine/src/ui_bridge.cpp","purpose":"Implements ImGui-driven UI bridge and command console for Glint3D.","exports":["UIBridge"],"depends_on":["scene_manager.h","render_utils.h","imgui"],"notes":["console_defaults_output_renders"]}
+// Human Summary
+// UI bridge wiring ImGui panels, command parsing, and render/export helpers targeting output/renders by default.
+
 #include "ui_bridge.h"
 #include "scene_manager.h"
 #include "render_system.h"
@@ -710,7 +715,7 @@ void UIBridge::handleConsoleCommand(const UICommandData& cmd)
         addConsoleMessage("  help             - Show this help");
         addConsoleMessage("  clear            - Clear the console");
         addConsoleMessage("  load <path>      - Load a model (e.g., assets/models/cube.obj)");
-        addConsoleMessage("  render [<out.png>] [W H] - Render PNG to path, optional size (defaults to renders/ folder)");
+        addConsoleMessage("  render [<out.png>] [W H] - Render PNG to path, optional size (defaults to output/renders/)");
         addConsoleMessage("  save_png [<out.png>] [W H] - Alias for render");
         addConsoleMessage("  list             - List scene objects with indices");
         addConsoleMessage("  select <name|index> - Select an object by name or index");
