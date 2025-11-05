@@ -1,9 +1,9 @@
 {
     "id":  "glint_cli_installer",
-    "title":  "Deliver Glint CLI and Installer Experience",
+    "title":  "Deliver Glint CLI and Installer Experience (Superseded)",
     "owner":  "release_team",
-    "status":  "pending",
-    "updated":  "2025-11-04T15:41:19.7254448-05:00",
+    "status":  "superseded",
+    "updated":  "2025-11-05T15:45:10.0000000-05:00",
     "inputs":  {
                    "files":  [
                                  "CMakeLists.txt",
@@ -37,7 +37,8 @@
                        "Installer configures system PATH, optional shell completions, and shared configuration so `glint` is globally invocable.",
                        "Documentation (`docs/cli.md`, `docs/installers/README.md`) updated to cover commands, installation flow, and uninstallation steps.",
                        "Automated smoke tests validate CLI subcommands in headless mode and capture results in artifacts/validation/headless_usage_matrix.md.",
-                       "Legacy workflows remain intact; GUI binary (`glint-gui`) still launches with existing behavior."
+                       "Legacy workflows remain intact; GUI binary (`glint-gui`) still launches with existing behavior.",
+                       "Superseded by `glint_cli_platform_v1` platform task; keep artifacts for historical context."
                    ],
     "dependencies":  [
                          "engine_modular_architecture"

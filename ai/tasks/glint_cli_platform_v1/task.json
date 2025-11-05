@@ -1,0 +1,57 @@
+{
+    "id":  "glint_cli_platform_v1",
+    "title":  "Glint CLI Platform v1",
+    "owner":  "platform_team",
+    "status":  "pending",
+    "updated":  "2025-11-05T15:42:00-05:00",
+    "inputs":  {
+                   "files":  [
+                                 "CMakeLists.txt",
+                                 "cli",
+                                 "docs",
+                                 "engine/core",
+                                 "engine/modules",
+                                 "engine/platform",
+                                 "schemas",
+                                 "tools"
+                             ],
+                   "schema_version":  "1.0.0"
+               },
+    "outputs":  {
+                    "artifacts":  [
+                                      "artifacts/documentation/cli_product_spec.md",
+                                      "artifacts/documentation/glint_cli_command_reference.md",
+                                      "artifacts/code/cli_architecture_overview.md",
+                                      "artifacts/tests/cli_smoke_suite.md",
+                                      "artifacts/validation/cli_build_matrix.md",
+                                      "artifacts/validation/determinism_run_manifest_samples.md"
+                                  ],
+                    "events":  [
+                                   "task_created",
+                                   "task_registered",
+                                   "phase_completed",
+                                   "task_completed"
+                               ]
+                },
+    "acceptance":  [
+                       "CLI exposes documented core verbs (init, validate, inspect, render, modules, assets, config, clean, doctor) with structured output and deterministic exit codes.",
+                       "`glint init` scaffolds the reference workspace layout, project manifest, templates, and optional sample assets.",
+                       "All renders persist `renders/<name>/run.json` capturing reproduction data: CLI args, schema versions, module hashes, device info, RNG seeds, timings, and warnings.",
+                       "Configuration precedence is implemented (CLI flags → project manifest → .glint/config.json → environment → global config) and covered in documentation.",
+                       "Module and asset management flows (modules list|enable|disable, assets sync) operate against the modular engine layout and validate dependencies.",
+                       "Validation artifacts (command reference, smoke suite, build matrix) demonstrate reproducible behavior across supported platforms."
+                   ],
+    "dependencies":  [
+                         "engine_modular_architecture"
+                     ],
+    "events":  [
+                   {
+                       "timestamp":  null,
+                       "event":  "task_started"
+                   },
+                   {
+                       "timestamp":  null,
+                       "event":  "task_completed"
+                   }
+               ]
+}

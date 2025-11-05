@@ -1,6 +1,6 @@
 {
     "schema_version":  "1.0.0",
-    "last_updated":  "2025-11-04T15:44:15.1166400-05:00",
+    "last_updated":  "2025-11-05T16:04:42.9561822-05:00",
     "task_status":  {
                         "cross_platform_user_paths":  {
                                                           "status":  "completed",
@@ -14,35 +14,83 @@
                                                           "notes":  "All acceptance criteria met. Runtime probe validated all scenarios (default, env_portable, file_portable). Documentation complete."
                                                       },
                         "engine_modular_architecture":  {
-                                                            "status":  "in_progress",
+                                                            "status":  "completed",
                                                             "priority":  "medium",
                                                             "blocked_by":  [
 
                                                                            ],
-                                                            "completion_percentage":  25,
-                                                            "current_phase":  "Discovery \u0026 Blueprint - Complete",
-                                                            "notes":  "Phase 1 completed: Created inventory, migration plan, mapping matrix, and output structure design. 4 documentation artifacts generated. Ready for Phase 2: Scaffolding."
+                                                            "completion_percentage":  100,
+                                                            "current_phase":  "Completed",
+                                                            "notes":  "Phase 4 hardening complete: desktop platform sources migrated, docs refreshed, parity builds captured.",
+                                                            "completion_date":  "2025-11-05T15:27:47.6520919-05:00"
                                                         },
                         "glint_cli_installer":  {
-                                                    "status":  "pending",
-                                                    "priority":  "medium",
+                                                    "status":  "superseded",
+                                                    "priority":  "low",
                                                     "blocked_by":  [
 
                                                                    ],
                                                     "completion_percentage":  0,
-                                                    "current_phase":  "Not Started",
+                                                    "current_phase":  "Archived",
                                                     "completion_date":  null,
-                                                    "notes":  "Awaiting CLI and installer planning kickoff."
-                                                }
+                                                    "notes":  "Superseded by glint_cli_platform_v1; keep artifacts for historical context."
+                                                },
+                        "glint_cli_platform_v1":  {
+                                                      "status":  "pending",
+                                                      "priority":  "high",
+                                                      "blocked_by":  [
+
+                                                                     ],
+                                                      "completion_percentage":  0,
+                                                      "current_phase":  "Not Started",
+                                                      "completion_date":  null,
+                                                      "notes":  "Deliver CLI platform v1 (Milestone A): commands, determinism, workspace scaffolding."
+                                                  },
+                        "glint_rpc_daemon":  {
+                                                 "status":  "pending",
+                                                 "priority":  "medium",
+                                                 "blocked_by":  [
+
+                                                                ],
+                                                 "completion_percentage":  0,
+                                                 "current_phase":  "Not Started",
+                                                 "completion_date":  null,
+                                                 "notes":  "Build glintd JSON-RPC daemon (Milestone B)."
+                                             },
+                        "glint_sdk_rollout":  {
+                                                  "status":  "pending",
+                                                  "priority":  "medium",
+                                                  "blocked_by":  [
+
+                                                                 ],
+                                                  "completion_percentage":  0,
+                                                  "current_phase":  "Not Started",
+                                                  "completion_date":  null,
+                                                  "notes":  "Ship C++/Python/Node SDKs aligned with CLI/RPC."
+                                              },
+                        "glint_platform_contracts":  {
+                                                         "status":  "pending",
+                                                         "priority":  "high",
+                                                         "blocked_by":  [
+
+                                                                        ],
+                                                         "completion_percentage":  0,
+                                                         "current_phase":  "Not Started",
+                                                         "completion_date":  null,
+                                                         "notes":  "Stabilize schemas, determinism, compatibility matrix, run manifests."
+                                                     }
                     },
     "critical_path":  [
                           "cross_platform_user_paths",
                           "engine_modular_architecture",
-                          "glint_cli_installer"
+                          "glint_cli_platform_v1",
+                          "glint_rpc_daemon",
+                          "glint_sdk_rollout",
+                          "glint_platform_contracts"
                       ],
     "current_focus":  {
-                          "active_task":  "engine_modular_architecture",
+                          "active_task":  "glint_cli_platform_v1",
                           "phase":  "Planning",
-                          "notes":  "cross_platform_user_paths completed successfully. Next: begin modular architecture planning."
+                          "notes":  "Kick off CLI platform milestone (v1) before RPC, SDK, and contracts tasks."
                       }
 }

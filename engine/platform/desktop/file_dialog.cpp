@@ -1,3 +1,8 @@
+// Machine Summary Block
+// {"file":"engine/platform/desktop/file_dialog.cpp","purpose":"Bridges desktop-native file and directory dialogs for the UI layer.","exports":["FileDialog::openFile","FileDialog::saveFile","FileDialog::selectDirectory"],"depends_on":["file_dialog.h","windows.h"],"notes":["win32_implementation","future_cross_platform_hooks"]}
+// Human Summary
+// Desktop-specific implementation of FileDialog helpers (currently Win32) backing ImGui UI actions.
+
 #include "file_dialog.h"
 
 #ifdef _WIN32

@@ -1,5 +1,5 @@
 // Machine Summary Block
-// {"file":"engine/src/ui_bridge.cpp","purpose":"Implements ImGui-driven UI bridge and command console for Glint3D.","exports":["UIBridge"],"depends_on":["scene_manager.h","render_utils.h","imgui"],"notes":["console_defaults_output_renders"]}
+// {"file":"engine/platform/desktop/ui_bridge.cpp","purpose":"Implements ImGui-driven UI bridge and command console for Glint3D.","exports":["UIBridge"],"depends_on":["scene_manager.h","render_utils.h","imgui"],"notes":["console_defaults_output_renders","desktop_platform_layer"]}
 // Human Summary
 // UI bridge wiring ImGui panels, command parsing, and render/export helpers targeting output/renders by default.
 
