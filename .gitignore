@@ -19,9 +19,25 @@ Makefile
 *.obj
 # Allow OBJ model files in assets
 !assets/models/*.obj
-# Allow vendored libraries
-!engine/Libraries/lib/*.lib
-!engine/Libraries/lib/*.dll
+# Managed GLFW drop-in (ignore binaries but keep placeholders)
+third_party/managed/glfw/lib/*
+!third_party/managed/glfw/lib/.gitkeep
+third_party/managed/glfw/bin/*
+!third_party/managed/glfw/bin/.gitkeep
+third_party/managed/glfw/include/*
+!third_party/managed/glfw/include/.gitkeep
+third_party/managed/assimp/lib/*
+!third_party/managed/assimp/lib/.gitkeep
+third_party/managed/assimp/bin/*
+!third_party/managed/assimp/bin/.gitkeep
+third_party/managed/assimp/include/*
+!third_party/managed/assimp/include/.gitkeep
+third_party/managed/openimagedenoise/lib/*
+!third_party/managed/openimagedenoise/lib/.gitkeep
+third_party/managed/openimagedenoise/bin/*
+!third_party/managed/openimagedenoise/bin/.gitkeep
+third_party/managed/openimagedenoise/include/*
+!third_party/managed/openimagedenoise/include/.gitkeep
 *.pdb
 *.exp
 *.log
@@ -125,6 +141,17 @@ imgui.ini
 # Large and frequently changing cache directories
 .claude/
 .claude/settings.local.json
+
+# Output directory structure (preserve placeholders only)
+output/renders/*
+!output/renders/.gitkeep
+!output/renders/README.md
+output/exports/*
+!output/exports/.gitkeep
+!output/exports/README.md
+output/cache/*
+!output/cache/.gitkeep
+!output/cache/README.md
 
 # Test scripts and temporary outputs
 test_golden_comparison.sh

@@ -192,18 +192,18 @@ All shaders in `resources/shaders/`:
 
 ---
 
-## 6. Output Directory (`renders/`)
+## 6. Output Directory (`output/renders/`)
 
 ### Current Status
-- **Location**: `renders/` at project root
-- **Contents**: 2 PNG render outputs
-- **Git Control**: `.gitignore` + `.gitkeep` present
-- **Problem**: Mixed purpose (example renders vs user outputs)
+- **Location**: `output/renders/` (under consolidated `output/` root)
+- **Contents**: PNG render outputs migrated from legacy `renders/`
+- **Git Control**: `.gitkeep` retained; `.gitignore` updated to preserve structure-only files
+- **Status**: Legacy `renders/` directory removed; commands/UI default to `output/renders/`
 
-### Issues
-1. No separation between example renders and user-generated outputs
-2. No dedicated cache directory for temporary artifacts
-3. No structured export directory for final deliverables
+### Notes
+1. Example and user-generated renders now share the `output/renders/` sandbox, separate from sources.
+2. Complementary directories (`output/exports`, `output/cache`) ready for future pipeline stages.
+3. CI workflows and helper scripts now emit artifacts into `output/renders/`.
 
 ---
 

@@ -1,0 +1,55 @@
+{
+    "id":  "glint_cli_installer",
+    "title":  "Deliver Glint CLI and Installer Experience",
+    "owner":  "release_team",
+    "status":  "pending",
+    "updated":  "2025-11-04T15:41:19.7254448-05:00",
+    "inputs":  {
+                   "files":  [
+                                 "CMakeLists.txt",
+                                 "engine/core",
+                                 "engine/platform",
+                                 "tools",
+                                 "docs",
+                                 "ai/prompts",
+                                 "ai/tasks"
+                             ],
+                   "schema_version":  "1.0.0"
+               },
+    "outputs":  {
+                    "artifacts":  [
+                                      "artifacts/documentation/cli_command_reference.md",
+                                      "artifacts/documentation/installer_distribution_plan.md",
+                                      "artifacts/code/glint_cli_entrypoint_design.md",
+                                      "artifacts/tests/cli_smoke_suite.md",
+                                      "artifacts/validation/headless_usage_matrix.md"
+                                  ],
+                    "events":  [
+                                   "task_created",
+                                   "task_registered",
+                                   "phase_completed",
+                                   "task_completed"
+                               ]
+                },
+    "acceptance":  [
+                       "Headless `glint` CLI exposes subcommands (`render`, `validate`, `probe`) with structured output and documented flags.",
+                       "CLI binary builds headless by default and links only the necessary engine/core modules while avoiding desktop UI dependencies.",
+                       "Installer configures system PATH, optional shell completions, and shared configuration so `glint` is globally invocable.",
+                       "Documentation (`docs/cli.md`, `docs/installers/README.md`) updated to cover commands, installation flow, and uninstallation steps.",
+                       "Automated smoke tests validate CLI subcommands in headless mode and capture results in artifacts/validation/headless_usage_matrix.md.",
+                       "Legacy workflows remain intact; GUI binary (`glint-gui`) still launches with existing behavior."
+                   ],
+    "dependencies":  [
+                         "engine_modular_architecture"
+                     ],
+    "events":  [
+                   {
+                       "timestamp":  "2025-11-04T15:41:19.7254448-05:00",
+                       "event":  "task_started"
+                   },
+                   {
+                       "timestamp":  null,
+                       "event":  "task_completed"
+                   }
+               ]
+}

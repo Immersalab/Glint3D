@@ -7,16 +7,16 @@
 - [x] **Design output directory structure** — Plan `output/{renders,exports,cache}` hierarchy to organize generated artifacts and clarify separation from source/resources.
 
 ## Phase 2: Introduce Modular Scaffolding
-- [ ] **Create new directory skeleton** — Add `engine/core`, `engine/modules`, `engine/platform`, and `third_party/{vendored,managed}` without relocating code yet.
-- [ ] **Establish output directory structure** — Create `output/renders/`, `output/exports/`, `output/cache/` with README.md and .gitkeep placeholders; update .gitignore to exclude `output/` while preserving structure files.
-- [ ] **Wire build aliases** — Update CMake to allow both old and new paths simultaneously via clearly marked temporary switches (with TODOs to remove).
-- [ ] **Smoke-test builds** — Verify desktop and web builds succeed using the transitional layout before moving files.
+- [x] **Create new directory skeleton** — Add `engine/core`, `engine/modules`, `engine/platform`, and `third_party/{vendored,managed}` without relocating code yet.
+- [x] **Establish output directory structure** — Create `output/renders/`, `output/exports/`, `output/cache/` with README.md and .gitkeep placeholders; update .gitignore to exclude `output/` while preserving structure files.
+- [x] **Wire build aliases** — Update CMake to allow both old and new paths simultaneously via clearly marked temporary switches (with TODOs to remove).
+- [x] **Smoke-test builds** — Verify desktop and web builds succeed using the transitional layout before moving files.
 
 ## Phase 3: Migrate in Batches
-- [ ] **Move core engine sources** — Relocate foundational systems into `engine/core` and adjust includes; eliminate transitional aliases for moved files.
-- [ ] **Isolate optional modules** — Shift ray tracing, gizmo, and other optional features into `engine/modules`, guarding them with build options.
-- [ ] **Consolidate third-party code** — Move vendored libs into `third_party/vendored` and purge `engine/Libraries` references.
-- [ ] **Migrate renders directory** — Move existing `renders/` content to `output/renders/`, update any hardcoded paths in code/docs/tests, and remove old `renders/` directory.
+- [x] **Move core engine sources** — Relocate foundational systems into `engine/core` and adjust includes; eliminate transitional aliases for moved files.
+- [x] **Isolate optional modules** — Shift ray tracing, gizmo, and other optional features into `engine/modules`, guarding them with build options.
+- [x] **Consolidate third-party code** — Move vendored libs into `third_party/vendored` and purge `engine/Libraries` references.
+- [x] **Migrate renders directory** — Move existing `renders/` content to `output/renders/`, update any hardcoded paths in code/docs/tests, and remove old `renders/` directory.
 
 ## Phase 4: Harden & Clean Up
 - [ ] **Retire temporary switches** — Remove any bridging CMake options or compatibility wrappers introduced during migration.
