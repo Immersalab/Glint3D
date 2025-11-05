@@ -1,3 +1,8 @@
+<!-- Machine Summary Block -->
+{"file":"ai/FOR_DEVELOPERS.md","purpose":"Guides contributors on how to execute Glint3D task modules.","exports":[],"depends_on":["ai/tasks","docs"],"notes":["ai_workflow","modular_engine_references"]}
+<!-- Human Summary -->
+Developer-facing documentation covering task module workflow, expectations, and repository conventions.
+
 # Task Module System - Developer Guide
 
 **This is the workflow we use to develop Glint3D.** It helps humans and AI work together on tasks in a clear, organized way. The system keeps AI agents controlled and context-aware, so they know exactly what to do and contribute clean, quality code without getting lost or over-engineering.
@@ -7,10 +12,10 @@
 A **task module** is a structured folder that holds everything needed to plan, do, track, and check a specific engineering task. 
 It gives both humans and AI a clear, shared way to understand and work on the same task.
 
-Think of a task module as a **“work capsule”** that includes:  
+Think of a task module as a **???work capsule???** that includes:  
 - **Specification**: What needs to be done and why  
 - **Execution plan**: Clear steps to follow  
-- **Progress tracking**: Real-time updates on what’s finished  
+- **Progress tracking**: Real-time updates on what???s finished  
 - **Validation criteria**: How to confirm the task is complete  
 - **Artifacts**: The outputs and documentation created along the way  
 
@@ -35,16 +40,16 @@ Each task module follows this canonical structure:
 
 ```
 ai/tasks/{task_name}/
-├── task.json              # Complete task specification (REQUIRED)
-├── checklist.md           # Atomic execution steps (REQUIRED)
-├── progress.ndjson        # Event tracking history (REQUIRED)
-├── artifacts/             # Generated outputs (REQUIRED)
-│   ├── README.md          # Description of expected artifacts
-│   ├── code/              # Generated code files
-│   ├── tests/             # Test files and results
-│   ├── documentation/     # Generated documentation
-│   └── validation/        # Validation results and reports
-└── [optional files]       # Task-specific files (coverage.md, mapping.md, etc.)
+????????? task.json              # Complete task specification (REQUIRED)
+????????? checklist.md           # Atomic execution steps (REQUIRED)
+????????? progress.ndjson        # Event tracking history (REQUIRED)
+????????? artifacts/             # Generated outputs (REQUIRED)
+???   ????????? README.md          # Description of expected artifacts
+???   ????????? code/              # Generated code files
+???   ????????? tests/             # Test files and results
+???   ????????? documentation/     # Generated documentation
+???   ????????? validation/        # Validation results and reports
+????????? [optional files]       # Task-specific files (coverage.md, mapping.md, etc.)
 ```
 
 ## Core Files Explained
@@ -55,7 +60,7 @@ The `task.json` file is the single source of truth for what needs to be accompli
 It contains all the essential information about a task in a clean, structured, and machine-readable format.
 
 We use **JSON** because:  
-- It’s easy for both humans and AI to read and update.  
+- It???s easy for both humans and AI to read and update.  
 - It provides a clear, standardized structure for storing task details.  
 - AI systems can quickly parse and act on the information without guesswork.  
 - It ensures consistent formatting across all tasks, reducing context loss.  
@@ -91,7 +96,7 @@ We use **JSON** because:
 ```
 
 **Key Fields:**  
-- **id**: A unique name that matches the task’s folder.  
+- **id**: A unique name that matches the task???s folder.  
 - **status**: Shows where the task is right now (pending, in progress, completed, or blocked).  
 - **inputs.files**: The files and line ranges that will be changed.  
 - **outputs.artifacts**: The expected results or deliverables.  
@@ -101,14 +106,14 @@ We use **JSON** because:
 ### 2. checklist.md - Execution Plan
 
 The checklist is a simple list of clear steps that break the task into small, easy-to-finish actions.  
-Each step should be small enough to finish in one work session (around 15–60 minutes).
+Each step should be small enough to finish in one work session (around 15???60 minutes).
 
 **Format:**
 ```markdown
 # Task Name Checklist
 
 ## Phase 1: Setup & Analysis
-- [ ] **Read existing implementation** - Review current code in engine/src/foo.cpp
+- [ ] **Read existing implementation** - Review current code in engine/core/foo.cpp (or the relevant module/platform subdirectory).
 - [ ] **Identify dependencies** - Document what systems are affected
 - [x] **Create backup branch** - git checkout -b task/feature-name
 
@@ -137,8 +142,8 @@ It uses **newline-delimited JSON**, which means each line is one complete JSON o
 This makes it easy for both humans and AI to read, write, and process events in order, without needing a big or complex file format.
 
 We use this format because:  
-- It’s easy to append new events as they happen.  
-- AI can quickly read and understand the task’s history without extra parsing.  
+- It???s easy to append new events as they happen.  
+- AI can quickly read and understand the task???s history without extra parsing.  
 - It keeps a clean, ordered timeline of what was done.  
 - It makes resuming, auditing, and debugging tasks much simpler.
 
@@ -256,7 +261,7 @@ Create a new task module using ai/prompts/TASK_MODULE_CREATION_PROMPT.md with:
 - ID: add_bloom_effect
 - Title: Add Bloom Post-Processing Effect
 - Owner: rendering_team
-- Inputs: ["engine/src/lighting.cpp", "resources/shaders/post_process.glsl"]
+- Inputs: ["engine/core/rendering/render_system.cpp", "resources/shaders/post_process.glsl"]
 - Outputs: ["artifacts/code/bloom_pass.cpp", "artifacts/tests/bloom_test.cpp"]
 - Acceptance criteria:
   * Bloom effect renders correctly
@@ -292,10 +297,10 @@ See the file format specifications in ai/FOR_MACHINES.md for exact schemas.
 ### Task Lifecycle
 
 ```
-pending → ready → in_progress → completed
-                       ↓
+pending ??? ready ??? in_progress ??? completed
+                       ???
                     blocked (if issues arise)
-                       ↓
+                       ???
                   in_progress (once unblocked)
 ```
 
@@ -330,12 +335,12 @@ Example:
 
 ### CI/CD Integration (Future)
 
-Eventually, we can use **Codex for GitHub Actions** to automate task validation. If you don't know what that is, you should look into it—it's a game changer for structured workflows like this.
+Eventually, we can use **Codex for GitHub Actions** to automate task validation. If you don't know what that is, you should look into it???it's a game changer for structured workflows like this.
 
 Because our task modules are deterministic and machine-readable, AI agents can run in CI to:
 - Validate `task.json` has required fields and proper format
 - Check `checklist.md` has all steps completed before merge
-- Verify `progress.ndjson` has proper event sequence (task_started → step_completed → task_completed)
+- Verify `progress.ndjson` has proper event sequence (task_started ??? step_completed ??? task_completed)
 - Confirm all `outputs.artifacts` files exist
 - Run acceptance criteria checks automatically
 - Execute QA passes using `ai/prompts/QA_PASS_PROMPT.md`
@@ -387,16 +392,16 @@ The QA directory stores quality assurance findings and reports generated during 
 **Structure:**
 ```
 ai/qa/
-├── progress.ndjson              # QA event history
-├── findings/
-│   ├── open/                    # Active issues
-│   │   ├── QA_001_issue.json    # Individual issue files
-│   │   └── QA_002_issue.json
-│   └── resolved/                # Fixed issues
-├── reports/
-│   ├── index.json               # Report registry
-│   ├── QA_2024-12-28_qa_pass.json          # Structured report
-│   └── QA_2024-12-28_qa_summary.md         # Human-readable summary
+????????? progress.ndjson              # QA event history
+????????? findings/
+???   ????????? open/                    # Active issues
+???   ???   ????????? QA_001_issue.json    # Individual issue files
+???   ???   ????????? QA_002_issue.json
+???   ????????? resolved/                # Fixed issues
+????????? reports/
+???   ????????? index.json               # Report registry
+???   ????????? QA_2024-12-28_qa_pass.json          # Structured report
+???   ????????? QA_2024-12-28_qa_summary.md         # Human-readable summary
 ```
 
 **QA Findings Format:**
@@ -431,7 +436,7 @@ tools\generate-docs.bat
 
 Output: `docs/api/html/index.html`
 
-**Important:** Per FOR_MACHINES.md §0C, tasks cannot be marked complete if header documentation is missing or outdated. AI agents must verify documentation after modifying any header files.
+**Important:** Per FOR_MACHINES.md ??0C, tasks cannot be marked complete if header documentation is missing or outdated. AI agents must verify documentation after modifying any header files.
 
 ## Next Steps
 

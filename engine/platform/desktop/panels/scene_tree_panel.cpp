@@ -1,3 +1,7 @@
+// Machine Summary Block
+// {"file":"engine/platform/desktop/panels/scene_tree_panel.cpp","purpose":"Renders the ImGui scene tree panel for the desktop editor.","exports":["panels::RenderSceneTree"],"depends_on":["panels/scene_tree_panel.h","imgui.h"],"notes":["desktop_imgui_panel"]}
+// Human Summary
+// Desktop-oriented ImGui scene tree that wires selection and command dispatch into the UI bridge.
 #include "panels/scene_tree_panel.h"
 
 #include "imgui.h"
@@ -51,14 +55,14 @@ void RenderSceneTree(const UIState& state, const std::function<void(const UIComm
     auto toggleExpanded = [&](int id) { if (isExpanded(id)) expanded.erase(id); else expanded.insert(id); };
 
     // Box-drawing with ASCII fallback
-    const char* VERT = u8"│   ";
-    const char* TEE  = u8"├── ";
-    const char* ELB  = u8"└── ";
+    const char* VERT = u8"???   ";
+    const char* TEE  = u8"????????? ";
+    const char* ELB  = u8"????????? ";
     const char* SPACE= "    ";
-    const char* EXPANDED = u8"▾";
-    const char* COLLAPSED = u8"▸";
+    const char* EXPANDED = u8"???";
+    const char* COLLAPSED = u8"???";
     bool unicode = true;
-    if (!ImGui::GetFont()->FindGlyphNoFallback((ImWchar)0x2502)) unicode = false; // │
+    if (!ImGui::GetFont()->FindGlyphNoFallback((ImWchar)0x2502)) unicode = false; // ???
     if (!unicode) { 
         VERT = "|   "; 
         TEE = "|-- "; 

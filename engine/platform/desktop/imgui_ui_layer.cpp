@@ -1,5 +1,5 @@
 // Machine Summary Block
-// {"file":"engine/src/imgui_ui_layer.cpp","purpose":"Implements ImGui-based editor layer for Glint3D.","exports":["ImGuiUILayer"],"depends_on":["ui_bridge.h","render_utils.h","imgui"],"notes":["ui_defaults_output_renders"]}
+// {"file":"engine/platform/desktop/imgui_ui_layer.cpp","purpose":"Implements ImGui-based editor layer for Glint3D.","exports":["ImGuiUILayer"],"depends_on":["ui_bridge.h","render_utils.h","imgui"],"notes":["ui_defaults_output_renders","desktop_platform_layer"]}
 // Human Summary
 // Desktop ImGui UI layer handling scene panels, console, and render dialogs with output/renders defaults.
 

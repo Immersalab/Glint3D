@@ -1,0 +1,57 @@
+{
+    "id":  "glint_sdk_rollout",
+    "title":  "Glint SDK Rollout (C++ / Python / Node)",
+    "owner":  "platform_team",
+    "status":  "pending",
+    "updated":  "2025-11-05T15:46:00-05:00",
+    "inputs":  {
+                   "files":  [
+                                 "engine/core",
+                                 "engine/modules",
+                                 "sdk",
+                                 "schemas",
+                                 "docs",
+                                 "cli",
+                                 "services"
+                             ],
+                   "schema_version":  "1.0.0"
+               },
+    "outputs":  {
+                    "artifacts":  [
+                                      "artifacts/documentation/sdk_product_spec.md",
+                                      "artifacts/documentation/sdk_api_reference_outline.md",
+                                      "artifacts/code/sdk_architecture_overview.md",
+                                      "artifacts/tests/sdk_conformance_suite.md",
+                                      "artifacts/validation/sdk_compatibility_matrix.md"
+                                  ],
+                    "events":  [
+                                   "task_created",
+                                   "task_registered",
+                                   "phase_completed",
+                                   "task_completed"
+                               ]
+                },
+    "acceptance":  [
+                       "Shipping SDKs for C++, Python, and Node provide programmatic access to core workflows (Project management, scene validation, render submission, run manifest retrieval).",
+                       "SDK APIs mirror CLI/RPC semantics, including determinism controls, profiling hooks, and module capability queries.",
+                       "Packaging and distribution pipelines (PyPI, npm, C++ package manager) produce signed, versioned artifacts with documentation.",
+                       "Conformance suite validates parity across CLI, RPC, and SDK surfaces for critical verbs and error conditions.",
+                       "Compatibility matrix published mapping engine versions to schema + SDK releases, with deprecation policy documented.",
+                       "Example projects and tutorials demonstrate embedding SDKs into apps, services, and automation pipelines."
+                   ],
+    "dependencies":  [
+                         "glint_cli_platform_v1",
+                         "glint_rpc_daemon",
+                         "engine_modular_architecture"
+                     ],
+    "events":  [
+                   {
+                       "timestamp":  null,
+                       "event":  "task_started"
+                   },
+                   {
+                       "timestamp":  null,
+                       "event":  "task_completed"
+                   }
+               ]
+}

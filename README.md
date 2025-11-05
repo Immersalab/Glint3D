@@ -1,6 +1,19 @@
+<!-- Machine Summary Block -->
+{"file":"README.md","purpose":"Top-level overview, build instructions, and roadmap for Glint3D.","exports":[],"depends_on":["docs","engine","schemas"],"notes":["desktop_focus","modular_engine_layout","future_web_placeholder"]}
+<!-- Human Summary -->
+Entry-point README describing Glint3D, how to build it, the modular engine layout, and future roadmap notes.
+
 # Glint3D
 
-Glint3D is a lightweight OpenGL/GLFW renderer focused on deterministic desktop workflows, JSON‑driven automation, and headless rendering. The previous WebAssembly pipeline has been retired for now; references remain in the history if we decide to bring it back.
+Glint3D is a lightweight OpenGL/GLFW renderer focused on deterministic desktop workflows, JSON-driven automation, and headless rendering. The previous WebAssembly pipeline has been retired for now; references remain in the history if we decide to bring it back.
+
+## Engine Layout (Modular)
+See `docs/external_dependencies.md` for a detailed breakdown of vendored and managed dependencies.
+
+- `engine/core/` - Application, rendering, scene, and IO systems that ship with every build.
+- `engine/modules/` - Optional features (ray tracing, gizmos, post-processing) toggled via CMake options.
+- `engine/platform/desktop/` - ImGui UI bridge, native file dialogs, and GLFW/Win32 glue for desktop targets.
+- `third_party/` - Vendored headers and managed dependencies (GLFW, OpenImageDenoise, etc.).
 
 ## Building (Desktop Only)
 
@@ -14,12 +27,12 @@ The executable expects to be launched from the repository root so resources reso
 ### Runtime Assets
 
 All runtime data lives under `resources/`:
-- `resources/shaders/` – GLSL programs loaded by the renderer.
-- `resources/assets/` – built-in textures, HDR maps, sample models, and icons.
+- `resources/shaders/` - GLSL programs loaded by the renderer.
+- `resources/assets/` - built-in textures, HDR maps, sample models, and icons.
 
 ## JSON Ops
 
-Automation flows go through the `JsonOpsExecutor`. See `schemas/json_ops_v1.json` and the examples under `examples/json-ops/` for the command set (load, transform, lighting, rendering, etc.). These files can be applied via the in-app console or the CLI flags exposed in `engine/src/main.cpp`.
+Automation flows go through the `JsonOpsExecutor`. See `schemas/json_ops_v1.json` and the examples under `examples/json-ops/` for the command set (load, transform, lighting, rendering, etc.). These files can be applied via the in-app console or the CLI flags exposed in `engine/core/application/main.cpp`.
 
 ## Testing & Headless Rendering
 
@@ -31,6 +44,6 @@ All WebAssembly/WebGL pieces were removed to simplify the project. Reintroducing
 
 1. Restoring the `EMSCRIPTEN` branch in `CMakeLists.txt` (the current file aborts with a fatal error if configured with Emscripten).
 2. Reinstating the wasm bindings, React/Tailwind UI, and associated npm workspace.
-3. Re-adding the HTML/JS bridge in `engine/src/main.cpp` and enabling the `WEB_USE_HTML_UI` code paths in the UI layer.
+3. Re-adding the HTML/JS bridge in `engine/core/application/main.cpp` and enabling the `WEB_USE_HTML_UI` code paths in the desktop UI bridge (`engine/platform/desktop`).
 
 Until then the engine is desktop-only.

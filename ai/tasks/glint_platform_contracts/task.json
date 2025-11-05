@@ -1,0 +1,58 @@
+{
+    "id":  "glint_platform_contracts",
+    "title":  "Glint Platform Contracts & Determinism",
+    "owner":  "platform_team",
+    "status":  "pending",
+    "updated":  "2025-11-05T15:48:00-05:00",
+    "inputs":  {
+                   "files":  [
+                                 "schemas",
+                                 "docs",
+                                 "cli",
+                                 "services",
+                                 "sdk",
+                                 "engine/core",
+                                 "engine/modules"
+                             ],
+                   "schema_version":  "1.0.0"
+               },
+    "outputs":  {
+                    "artifacts":  [
+                                      "artifacts/documentation/platform_contracts_spec.md",
+                                      "artifacts/documentation/compatibility_matrix.md",
+                                      "artifacts/code/run_manifest_schema.json",
+                                      "artifacts/tests/determinism_regression_suite.md",
+                                      "artifacts/validation/reproducibility_report.md"
+                                  ],
+                    "events":  [
+                                   "task_created",
+                                   "task_registered",
+                                   "phase_completed",
+                                   "task_completed"
+                               ]
+                },
+    "acceptance":  [
+                       "Versioned schemas for project, scene, and run manifest published with validation tooling and backward-compatibility guidance.",
+                       "Determinism guarantees implemented: fixed RNG seeding, input hashing, asset provenance, and reproducible `--repro` flow across CLI/RPC/SDK.",
+                       "Compatibility matrix covering engine, schemas, CLI, RPC, SDK, and modules released and maintained with documented policy.",
+                       "Governance process established (deprecation policy, feature gates, change review) and documented for internal/external teams.",
+                       "Regression suite demonstrates reproducible renders across platforms/devices, with results captured in reproducibility report.",
+                       "Legacy specs migrated/archived to prevent confusion with new platform contracts."
+                   ],
+    "dependencies":  [
+                         "glint_cli_platform_v1",
+                         "glint_rpc_daemon",
+                         "glint_sdk_rollout",
+                         "engine_modular_architecture"
+                     ],
+    "events":  [
+                   {
+                       "timestamp":  null,
+                       "event":  "task_started"
+                   },
+                   {
+                       "timestamp":  null,
+                       "event":  "task_completed"
+                   }
+               ]
+}

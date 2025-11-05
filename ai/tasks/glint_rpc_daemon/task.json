@@ -1,0 +1,56 @@
+{
+    "id":  "glint_rpc_daemon",
+    "title":  "Glint RPC Daemon and Control Surface",
+    "owner":  "platform_team",
+    "status":  "pending",
+    "updated":  "2025-11-05T15:44:00-05:00",
+    "inputs":  {
+                   "files":  [
+                                 "cli",
+                                 "docs",
+                                 "engine/core",
+                                 "engine/modules",
+                                 "services",
+                                 "schemas",
+                                 "tools"
+                             ],
+                   "schema_version":  "1.0.0"
+               },
+    "outputs":  {
+                    "artifacts":  [
+                                      "artifacts/documentation/rpc_service_spec.md",
+                                      "artifacts/documentation/openrpc_schema.json",
+                                      "artifacts/code/glintd_architecture_notes.md",
+                                      "artifacts/tests/rpc_contract_suite.md",
+                                      "artifacts/validation/rpc_load_matrix.md"
+                                  ],
+                    "events":  [
+                                   "task_created",
+                                   "task_registered",
+                                   "phase_completed",
+                                   "task_completed"
+                               ]
+                },
+    "acceptance":  [
+                       "Long-running `glintd` service exposes JSON-RPC over HTTP or named pipe with documented lifecycle (`glint agent start/stop/status`).",
+                       "Core methods implemented: scene.validate, render.start/status/cancel, assets.sync, profile.run, plus service health and metadata endpoints.",
+                       "Event streaming delivers job.started/progress/completed/failed with reproducible payloads referencing run manifest IDs.",
+                       "Security model documented (local-only default, opt-in tokens or ACL), along with resource isolation and cancellation guarantees.",
+                       "OpenRPC (or equivalent) schema published and contract tests cover happy paths, failure modes, and determinism assertions.",
+                       "Operational documentation covers deployment, logging, and integration with CLI/SDK clients."
+                   ],
+    "dependencies":  [
+                         "glint_cli_platform_v1",
+                         "engine_modular_architecture"
+                     ],
+    "events":  [
+                   {
+                       "timestamp":  null,
+                       "event":  "task_started"
+                   },
+                   {
+                       "timestamp":  null,
+                       "event":  "task_completed"
+                   }
+               ]
+}

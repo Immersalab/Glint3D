@@ -65,19 +65,19 @@ npm run build:web    # Build production frontend only
 ### Component Structure
 ```
 web/src/
-├── App.tsx                 # Main application layout with grid system
-├── components/
-│   ├── CanvasHost.tsx      # WebGL canvas initialization and engine loading
-│   ├── Inspector.tsx       # Right panel: scene hierarchy, object/light management
-│   ├── Console.tsx         # Bottom panel: command input and logging
-│   ├── CommandPalette.tsx  # Keyboard shortcuts and quick actions
-│   └── TopBar.tsx          # Theme toggle, share link, and navigation
-├── sdk/
-│   └── viewer.ts           # Legacy Emscripten bridge (use @glint3d/wasm-bindings)
-└── main.tsx               # React app entry point
+????????? App.tsx                 # Main application layout with grid system
+????????? components/
+???   ????????? CanvasHost.tsx      # WebGL canvas initialization and engine loading
+???   ????????? Inspector.tsx       # Right panel: scene hierarchy, object/light management
+???   ????????? Console.tsx         # Bottom panel: command input and logging
+???   ????????? CommandPalette.tsx  # Keyboard shortcuts and quick actions
+???   ????????? TopBar.tsx          # Theme toggle, share link, and navigation
+????????? sdk/
+???   ????????? viewer.ts           # Legacy Emscripten bridge (use @glint3d/wasm-bindings)
+????????? main.tsx               # React app entry point
 ```
 
-### Current Functionality ✅
+### Current Functionality ???
 - **Scene Management**: Load/import models (.obj, .ply, .glb, .gltf, .fbx, .dae)
 - **Lighting System**: Add/select/delete lights, view light properties
 - **Object Operations**: Select, duplicate, remove, nudge transform
@@ -88,14 +88,14 @@ web/src/
 - **Theme Support**: Dark/light theme toggle with localStorage persistence
 - **Share Links**: URL-based scene state encoding for sharing
 
-### Engine Integration Status ✅
+### Engine Integration Status ???
 - **WASM Build**: Successfully building to `builds/web/emscripten/objviewer.*`
 - **Asset Pipeline**: Automatic asset preloading via Emscripten
 - **API Bridge**: Complete JSON Ops v1 implementation
 - **File System**: Emscripten FS mounting for drag-and-drop and file import
 - **Memory Management**: Proper WASM module initialization and cleanup
 
-### Build Configuration ✅
+### Build Configuration ???
 - **Vite**: Modern dev server on port 5173 with React plugin
 - **Tauri**: Desktop app configuration with 1280x800 default window
 - **Emscripten**: CMake build system generating web-compatible artifacts
@@ -188,7 +188,7 @@ glint --ops examples/json-ops/directional-light-test.json --render output.png --
 #### 2. Material System  
 - **PBR materials** (`pbr_material.h`): Modern PBR workflow (baseColor, metallic, roughness)
 - **Legacy materials** (`material.h/cpp`): Blinn-Phong for raytracer compatibility
-- **Automatic conversion**: PBR factors → Phong approximation for CPU raytracer
+- **Automatic conversion**: PBR factors ??? Phong approximation for CPU raytracer
 
 #### 3. JSON Ops v1 Bridge (`json_ops.cpp`)
 - **Cross-platform scripting**: Identical scene manipulation on desktop and web
@@ -201,13 +201,13 @@ glint --ops examples/json-ops/directional-light-test.json --render output.png --
 - **CPU raytracer** (`raytracer.cpp`): BVH acceleration, material conversion, optional denoising (OIDN)
 - **Offscreen rendering** (`render_offscreen.cpp`): Headless PNG output for automation
 
-**⚠️ CRITICAL: Dual rendering architecture requires explicit mode selection for advanced materials**
+**?????? CRITICAL: Dual rendering architecture requires explicit mode selection for advanced materials**
 
 #### 5. UI Architecture
 - **Desktop UI**: ImGui panels integrated directly into Application
 - **Web UI**: React/Tailwind app (`web/`) communicating via JSON Ops bridge  
 - **UI abstraction**: `app_state.h` provides read-only state snapshot for UI layers
-- **Command pattern**: `app_commands.h` for UI → Application actions
+- **Command pattern**: `app_commands.h` for UI ??? Application actions
 
 ## Dual Rendering Architecture (IMPORTANT)
 
@@ -218,24 +218,24 @@ Glint3D implements **two completely separate rendering pipelines** with differen
 | Feature | **Rasterized** (Default) | **Raytraced** (--raytrace) |
 |---------|-------------------------|----------------------------|
 | **Performance** | Real-time | Offline (30+ seconds) |
-| **Transparency** | Alpha blending only | ✅ Full refraction + TIR |
+| **Transparency** | Alpha blending only | ??? Full refraction + TIR |
 | **Materials** | PBR + legacy Phong | Legacy Material struct only |
-| **IOR Usage** | F0 calculation only | ✅ Full Snell's law physics |
-| **Transmission** | ❌ **NOT SUPPORTED** | ✅ **FULL SUPPORT** |
-| **Fresnel Effects** | Basic at normal incidence | ✅ Angle-dependent mixing |
-| **Total Internal Reflection** | ❌ Not available | ✅ Automatic at critical angle |
+| **IOR Usage** | F0 calculation only | ??? Full Snell's law physics |
+| **Transmission** | ??? **NOT SUPPORTED** | ??? **FULL SUPPORT** |
+| **Fresnel Effects** | Basic at normal incidence | ??? Angle-dependent mixing |
+| **Total Internal Reflection** | ??? Not available | ??? Automatic at critical angle |
 | **Shader System** | `pbr.frag`, `standard.frag` | CPU-based raytracing |
 
 ### Material Property Flow
 
 ```cpp
 JSON Ops: { "ior": 1.5, "transmission": 0.9 }
-           ↓
+           ???
 SceneObject dual storage:
-├── material.ior = 1.5          ← Used by RAYTRACER (Snell's law)
-├── material.transmission = 0.9  ← Used by RAYTRACER (opacity)  
-├── ior = 1.5                   ← Used by RASTERIZER (F0 only)
-└── baseColorFactor = color     ← Used by RASTERIZER (albedo)
+????????? material.ior = 1.5          ??? Used by RAYTRACER (Snell's law)
+????????? material.transmission = 0.9  ??? Used by RAYTRACER (opacity)  
+????????? ior = 1.5                   ??? Used by RASTERIZER (F0 only)
+????????? baseColorFactor = color     ??? Used by RASTERIZER (albedo)
 ```
 
 ### Shader Selection Logic (Rasterized Pipeline)
@@ -251,7 +251,7 @@ Shader* shader = usePBR && m_pbrShader ? m_pbrShader.get() : m_basicShader.get()
 
 ### Critical Usage Notes
 
-#### ❌ Common Mistake - Missing --raytrace Flag
+#### ??? Common Mistake - Missing --raytrace Flag
 ```bash
 # WRONG: Uses rasterizer (no refraction, looks like regular sphere)
 ./glint.exe --ops glass-scene.json --render output.png
@@ -259,7 +259,7 @@ Shader* shader = usePBR && m_pbrShader ? m_pbrShader.get() : m_basicShader.get()
 # Output: Opaque sphere with basic lighting, no glass effects
 ```
 
-#### ✅ Correct Usage for Glass Materials
+#### ??? Correct Usage for Glass Materials
 ```bash
 # CORRECT: Uses raytracer (full refraction with Fresnel and TIR)
 ./glint.exe --ops glass-scene.json --render output.png --raytrace
@@ -278,25 +278,25 @@ Shader* shader = usePBR && m_pbrShader ? m_pbrShader.get() : m_basicShader.get()
 struct SceneObject {
     // Legacy material (used by RAYTRACER)
     Material material;
-    ├── float ior;              // 1.0-3.0 (air=1.0, glass=1.5, diamond=2.42)
-    ├── float transmission;     // 0.0-1.0 (0=opaque, 1=fully transparent) 
-    ├── glm::vec3 diffuse;      // Base color for lighting
-    ├── float roughness;        // Surface roughness for reflections
-    └── float metallic;         // Metallic vs dielectric
+    ????????? float ior;              // 1.0-3.0 (air=1.0, glass=1.5, diamond=2.42)
+    ????????? float transmission;     // 0.0-1.0 (0=opaque, 1=fully transparent) 
+    ????????? glm::vec3 diffuse;      // Base color for lighting
+    ????????? float roughness;        // Surface roughness for reflections
+    ????????? float metallic;         // Metallic vs dielectric
     
     // PBR fields (used by RASTERIZER)  
     glm::vec4 baseColorFactor;  // sRGB color + alpha
     float metallicFactor;       // 0.0-1.0
     float roughnessFactor;      // 0.0-1.0
-    float ior;                  // For F0=(n1-n2)²/(n1+n2)² calculation only
+    float ior;                  // For F0=(n1-n2)??/(n1+n2)?? calculation only
 };
 ```
 
 ### Refraction Implementation Details
 
 #### Raytracer Features (refraction.cpp)
-- **Snell's Law**: `n₁sin(θ₁) = n₂sin(θ₂)` for accurate ray bending
-- **Total Internal Reflection**: Automatic detection when `sin(θ₂) > 1.0`
+- **Snell's Law**: `n???sin(?????) = n???sin(?????)` for accurate ray bending
+- **Total Internal Reflection**: Automatic detection when `sin(?????) > 1.0`
 - **Fresnel Equations**: Schlick's approximation for reflection/refraction mixing
 - **Media Transition**: Automatic entering/exiting material detection
 - **Ray Depth**: Supports multiple bounces for complex glass objects
@@ -415,10 +415,10 @@ class RenderPass {
 };
 
 // Raster Pipeline:
-// GBufferPass → LightingPass → SSRRefractionPass → PostPass → ReadbackPass
+// GBufferPass ??? LightingPass ??? SSRRefractionPass ??? PostPass ??? ReadbackPass
 
 // Ray Pipeline:  
-// IntegratorPass → DenoisePass → TonemapPass → ReadbackPass
+// IntegratorPass ??? DenoisePass ??? TonemapPass ??? ReadbackPass
 ```
 
 #### **Hybrid Auto Mode**
@@ -448,7 +448,7 @@ for (const auto& material : scene.materials) {
 
 #### **Phase 2: Unified Materials (Tasks 4-5)**
 4. **Introduce MaterialCore** - Single material struct
-5. **Adapt Raytracer to MaterialCore** - Remove PBR→legacy conversion
+5. **Adapt Raytracer to MaterialCore** - Remove PBR???legacy conversion
 
 #### **Phase 3: Pass System (Tasks 6-7)**
 6. **Add Minimal RenderGraph** - Pass-based rendering
@@ -500,7 +500,7 @@ cmake --build builds/desktop/cmake/Debug --config Debug
 #### **Acceptance Criteria Per Task**
 Each task has specific success criteria:
 - **Task 1**: Headers compile, no integration
-- **Task 3**: Raster renders match golden images (±FP noise)
+- **Task 3**: Raster renders match golden images (??FP noise)
 - **Task 8**: Glass materials refract in raster mode
 - **Task 15**: Validator passes on 5 canonical scenes
 
@@ -544,7 +544,7 @@ finalColor = mix(refractedColor, reflectedColor, fresnel);
 
 ### External Dependencies
 
-The refactored system uses proven, lightweight packages organized in `engine/external/`:
+The refactored system uses proven, lightweight packages organized in `third_party/`:
 
 #### **Core Dependencies** (Always Required)
 - **fmt + spdlog**: Fast, structured logging with minimal overhead
@@ -553,8 +553,8 @@ The refactored system uses proven, lightweight packages organized in `engine/ext
 - **stb libraries**: Already integrated - PNG/JPG loading and writing
 
 #### **Shader Pipeline** (Future-Proofing)
-- **shaderc**: GLSL → SPIR-V compilation for cross-platform shaders
-- **SPIRV-Cross**: SPIR-V → GLSL ES/MSL/HLSL cross-compilation
+- **shaderc**: GLSL ??? SPIR-V compilation for cross-platform shaders
+- **SPIRV-Cross**: SPIR-V ??? GLSL ES/MSL/HLSL cross-compilation
 - **SPIRV-Reflect**: Automatic UBO layout detection and binding inference
 
 #### **Backend Abstraction** (Future)
@@ -570,27 +570,27 @@ The refactored system uses proven, lightweight packages organized in `engine/ext
 - **Web Preview**: <2MB WASM, raster+SSR-T only, basic materials
 - **Desktop Final**: ~50MB executable, hybrid ray/raster, full features
 
-See `engine/external/README.md` for detailed dependency documentation and integration instructions.
+See `docs/external_dependencies.md` for detailed dependency documentation and integration instructions.
 
 ### Directory Structure
 ```
 engine/
-├── src/                    # Core C++ implementation
-│   ├── importers/         # Asset import plugins
-│   └── ui/                # Desktop UI layer (ImGui)  
-├── include/               # Header files
-├── shaders/               # OpenGL/WebGL shaders
-├── assets/                # Models, textures, examples
-└── Libraries/             # Third-party deps (GLFW, ImGui, GLM, stb)
+????????? src/                    # Core C++ implementation
+???   ????????? importers/         # Asset import plugins
+???   ????????? ui/                # Desktop UI layer (ImGui)  
+????????? include/               # Header files
+????????? shaders/               # OpenGL/WebGL shaders
+????????? assets/                # Models, textures, examples
+????????? Libraries/             # Third-party deps (GLFW, ImGui, GLM, stb)
 
 web/                       # React/Tailwind web interface
-├── src/sdk/viewer.ts      # Emscripten bridge wrapper
-└── public/engine/         # WASM build outputs
+????????? src/sdk/viewer.ts      # Emscripten bridge wrapper
+????????? public/engine/         # WASM build outputs
 
 builds/
-├── desktop/cmake/         # CMake desktop build
-├── web/emscripten/        # Emscripten web build  
-└── vs/x64/                # Visual Studio build outputs
+????????? desktop/cmake/         # CMake desktop build
+????????? web/emscripten/        # Emscripten web build  
+????????? vs/x64/                # Visual Studio build outputs
 docs/                      # JSON Ops specification & schema
 examples/json-ops/         # Sample JSON Ops files (directional-light-test, spot-light-test)
 examples/golden/           # Golden images (directional-light-test.png, spot-light-test.png)
@@ -640,27 +640,27 @@ All tests are now organized in a hierarchical structure under `tests/` following
 
 ```
 tests/
-├── unit/                          # C++ unit tests
-│   ├── camera_preset_test.cpp     # Camera preset calculations
-│   ├── path_security_test.cpp     # Path validation logic
-│   └── test_path_security_build.cpp # Security build validation
-├── integration/                   # Integration tests (JSON ops)
-│   ├── json_ops/
-│   │   ├── basic/                 # Load, duplicate, transform tests
-│   │   ├── lighting/              # Light system tests
-│   │   ├── camera/                # Camera operation tests
-│   │   └── materials/             # Material and tone mapping tests
-│   ├── cli/                       # Command-line interface tests
-│   └── rendering/                 # End-to-end rendering tests
-├── security/                      # Security vulnerability tests
-│   └── path_traversal/            # Path traversal attack tests
-├── golden/                        # Visual regression testing
-│   ├── scenes/                    # Test scenes for golden generation
-│   ├── references/                # Reference golden images
-│   └── tools/                     # SSIM comparison tools
-├── data/                          # Test assets and fixtures
-├── scripts/                       # Test automation scripts
-└── results/                       # Test output and artifacts (gitignored)
+????????? unit/                          # C++ unit tests
+???   ????????? camera_preset_test.cpp     # Camera preset calculations
+???   ????????? path_security_test.cpp     # Path validation logic
+???   ????????? test_path_security_build.cpp # Security build validation
+????????? integration/                   # Integration tests (JSON ops)
+???   ????????? json_ops/
+???   ???   ????????? basic/                 # Load, duplicate, transform tests
+???   ???   ????????? lighting/              # Light system tests
+???   ???   ????????? camera/                # Camera operation tests
+???   ???   ????????? materials/             # Material and tone mapping tests
+???   ????????? cli/                       # Command-line interface tests
+???   ????????? rendering/                 # End-to-end rendering tests
+????????? security/                      # Security vulnerability tests
+???   ????????? path_traversal/            # Path traversal attack tests
+????????? golden/                        # Visual regression testing
+???   ????????? scenes/                    # Test scenes for golden generation
+???   ????????? references/                # Reference golden images
+???   ????????? tools/                     # SSIM comparison tools
+????????? data/                          # Test assets and fixtures
+????????? scripts/                       # Test automation scripts
+????????? results/                       # Test output and artifacts (gitignored)
 ```
 
 **Test Execution:**
@@ -677,7 +677,7 @@ tests/scripts/run_golden_tests.sh      # Visual regression tests
 
 **Golden Image Testing:**
 - Headless renders compared against references via SSIM
-- Primary metric: SSIM >= 0.995 (fallback per-channel Δ <= 2 LSB)  
+- Primary metric: SSIM >= 0.995 (fallback per-channel ?? <= 2 LSB)  
 - Jobs render test scenes to `tests/results/golden/renders/` and compare to `tests/golden/references/`
 - On failure: CI uploads diff images, heatmaps, and comparison reports as artifacts
 - Regenerate goldens: Use workflow_dispatch `regenerate_goldens=true` for candidate generation
@@ -729,16 +729,16 @@ tests/scripts/run_golden_tests.sh      # Visual regression tests
 
 ### Safe Edits
 - Keep edits surgical; avoid repo-wide renames without explicit request
-- Don’t change public APIs unless asked; if changed, update docs/tests
+- Don???t change public APIs unless asked; if changed, update docs/tests
 - Never modify binary assets or third-party code
 - Prefer adapter-level fixes before touching Engine Core
 
 ### Useful Requests
-- “Abstract GL calls into RHI”
-- “Add JSON op and update schema/docs/tests”
-- “Write golden test for headless renderer”
-- “Decouple ImGui/GLFW dependencies from Engine Core”
-- “Implement deterministic shadow maps (depth FBO + PCF) and re-enable shadows gate”
+- ???Abstract GL calls into RHI???
+- ???Add JSON op and update schema/docs/tests???
+- ???Write golden test for headless renderer???
+- ???Decouple ImGui/GLFW dependencies from Engine Core???
+- ???Implement deterministic shadow maps (depth FBO + PCF) and re-enable shadows gate???
 
 ### Workflow
 1. Outline change and affected files  
@@ -753,7 +753,7 @@ tests/scripts/run_golden_tests.sh      # Visual regression tests
 
 ### Current Implementation: OpenGL/WebGL2
 - **Desktop**: OpenGL 3.3+ core profile with mature feature set
-- **Web**: WebGL 2.0 with automatic shader translation (#version 330 core → #version 300 es)
+- **Web**: WebGL 2.0 with automatic shader translation (#version 330 core ??? #version 300 es)
 - **Architecture**: RHI (Render Hardware Interface) abstraction layer already in place
 
 ### Planned Migration: Vulkan/WebGPU
@@ -777,7 +777,7 @@ When implementing new features, consider the upcoming graphics API transition:
 
 ### Current RHI Status
 - **Abstraction Layer**: Foundation exists for multi-API support
-- **Shader System**: Designed for cross-compilation (GLSL → HLSL/SPIR-V ready)
+- **Shader System**: Designed for cross-compilation (GLSL ??? HLSL/SPIR-V ready)
 - **Engine Core**: Already decoupled from specific graphics API dependencies
 - **Asset Pipeline**: Designed to support future rendering techniques
 

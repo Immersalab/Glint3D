@@ -42,7 +42,9 @@ WARN_NO_PARAMDOC       = NO
 #---------------------------------------------------------------------------
 
 INPUT                  = engine/include \
-                         engine/src \
+                         engine/core \
+                         engine/modules \
+                         engine/platform \
                          README.md \
                          CLAUDE.md \
                          docs/TASKS.md

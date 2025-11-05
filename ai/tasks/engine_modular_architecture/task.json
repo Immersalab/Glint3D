@@ -1,59 +1,59 @@
 {
-  "id": "engine_modular_architecture",
-  "title": "Modularize Engine Architecture and Dependency Layout",
-  "owner": "engine_team",
-  "status": "in_progress",
-  "updated": "2025-11-02T17:40:30-05:00",
-  "inputs": {
-    "files": [
-      "CMakeLists.txt",
-      "README.md",
-      "docs",
-      "engine/include",
-      "engine/src",
-      "engine/Libraries",
-      "engine/external",
-      "resources",
-      "schemas",
-      "renders"
-    ],
-    "schema_version": "1.0.0"
-  },
-  "outputs": {
-    "artifacts": [
-      "artifacts/documentation/architecture_migration_plan.md",
-      "artifacts/documentation/directory_mapping_matrix.md",
-      "artifacts/documentation/output_directory_structure.md",
-      "artifacts/code/refactor_patchset_notes.md",
-      "artifacts/validation/build_matrix.md"
-    ],
-    "events": [
-      "task_created",
-      "task_registered",
-      "plan_approved",
-      "phase_completed"
-    ]
-  },
-  "acceptance": [
-    "New modular directory hierarchy adopted (`engine/core`, `engine/modules`, `engine/platform`, `third_party/{vendored,managed}`) with documentation updated accordingly.",
-    "Output directory structure established (`output/renders`, `output/exports`, `output/cache`) to organize generated artifacts, with existing `renders/` migrated to `output/renders/`.",
-    "CMake and build tooling reference only the new paths; desktop and web builds succeed from a clean tree.",
-    "Temporary compatibility shims or duplicated folders are removed before completion; repository contains no dead `engine/Libraries` or `engine/external` remnants.",
-    "Architecture migration plan documents incremental steps, risk mitigations, and rollback instructions.",
-    "CI or local build matrix report captured in artifacts/validation/build_matrix.md demonstrating parity with pre-refactor behavior.",
-    ".gitignore updated to exclude `output/` directory while preserving structure files (README.md, .gitkeep)."
-  ],
-  "dependencies": [
-    "cross_platform_user_paths"
-  ],
-  "events": [
-    {
-      "event": "task_started",
-      "timestamp": "2025-10-29T14:15:23.5145062-04:00"
-    },
-    {
-      "event": "task_completed",
-      "timestamp": null
-    }
-  ]
+    "id":  "engine_modular_architecture",
+    "title":  "Modularize Engine Architecture and Dependency Layout",
+    "owner":  "engine_team",
+    "status":  "completed",
+    "updated":  "2025-11-05T15:27:29.4047658-05:00",
+    "inputs":  {
+                   "files":  [
+                                 "CMakeLists.txt",
+                                 "README.md",
+                                 "docs",
+                                 "engine/include",
+                                 "engine/src",
+                                 "engine/Libraries",
+                                 "engine/external",
+                                 "resources",
+                                 "schemas",
+                                 "renders"
+                             ],
+                   "schema_version":  "1.0.0"
+               },
+    "outputs":  {
+                    "artifacts":  [
+                                      "artifacts/documentation/architecture_migration_plan.md",
+                                      "artifacts/documentation/directory_mapping_matrix.md",
+                                      "artifacts/documentation/output_directory_structure.md",
+                                      "artifacts/code/refactor_patchset_notes.md",
+                                      "artifacts/validation/build_matrix.md"
+                                  ],
+                    "events":  [
+                                   "task_created",
+                                   "task_registered",
+                                   "plan_approved",
+                                   "phase_completed"
+                               ]
+                },
+    "acceptance":  [
+                       "New modular directory hierarchy adopted (`engine/core`, `engine/modules`, `engine/platform`, `third_party/{vendored,managed}`) with documentation updated accordingly.",
+                       "Output directory structure established (`output/renders`, `output/exports`, `output/cache`) to organize generated artifacts, with existing `renders/` migrated to `output/renders/`.",
+                       "CMake and build tooling reference only the new paths; desktop and web builds succeed from a clean tree.",
+                       "Temporary compatibility shims or duplicated folders are removed before completion; repository contains no dead `engine/Libraries` or `engine/external` remnants.",
+                       "Architecture migration plan documents incremental steps, risk mitigations, and rollback instructions.",
+                       "CI or local build matrix report captured in artifacts/validation/build_matrix.md demonstrating parity with pre-refactor behavior.",
+                       ".gitignore updated to exclude `output/` directory while preserving structure files (README.md, .gitkeep)."
+                   ],
+    "dependencies":  [
+                         "cross_platform_user_paths"
+                     ],
+    "events":  [
+                   {
+                       "event":  "task_started",
+                       "timestamp":  "2025-10-29T14:15:23.5145062-04:00"
+                   },
+                   {
+                       "event":  "task_completed",
+                       "timestamp":  "2025-11-05T15:27:29.4047658-05:00"
+                   }
+               ]
 }

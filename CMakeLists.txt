@@ -1,5 +1,5 @@
 # Machine Summary Block
-# {"file":"CMakeLists.txt","purpose":"Configures Glint3D targets and build switches.","exports":["glint","glint_core","user_paths_probe"],"depends_on":["engine/core","engine/modules","engine/platform","third_party"],"notes":["modular_migration_core_sources_relocated","third_party_vendored_layout","managed_dependency_fallbacks"]}
+# {"file":"CMakeLists.txt","purpose":"Configures Glint3D targets and build switches.","exports":["glint","glint_core","user_paths_probe"],"depends_on":["engine/core","engine/modules","engine/platform","third_party"],"notes":["modular_migration_core_sources_relocated","third_party_vendored_layout","desktop_platform_sources","managed_dependency_fallbacks"]}
 # Human Summary
 # Root CMake script wiring core targets, third-party bridges, and migration-friendly include paths.
 
@@ -22,9 +22,11 @@ set(GLINT_IMGUI_VENDORED_DIR "${GLINT_THIRD_PARTY_VENDORED_DIR}/imgui")
 set(GLINT_MINIZ_VENDORED_DIR "${GLINT_THIRD_PARTY_VENDORED_DIR}/miniz")
 set(GLINT_TINYEXR_VENDORED_DIR "${GLINT_THIRD_PARTY_VENDORED_DIR}/tinyexr")
 
-set(GLINT_ENGINE_INCLUDE_ROOTS
+set(GLINT_ENGINE_PUBLIC_INCLUDE_DIRS
     engine/include
-    engine
+)
+
+set(GLINT_ENGINE_PRIVATE_INCLUDE_DIRS
     ${GLINT_ENGINE_CORE_DIR}
     ${GLINT_ENGINE_CORE_DIR}/application
     ${GLINT_ENGINE_CORE_DIR}/scene
@@ -35,7 +37,8 @@ set(GLINT_ENGINE_INCLUDE_ROOTS
     ${GLINT_ENGINE_MODULES_DIR}/gizmos
     ${GLINT_ENGINE_MODULES_DIR}/post_processing
     ${GLINT_ENGINE_PLATFORM_DIR}
-    ${GLINT_ENGINE_PLATFORM_DIR}/desktop
+    ${GLINT_PLATFORM_DESKTOP_DIR}
+    ${GLINT_PLATFORM_DESKTOP_PANELS_DIR}
     ${GLINT_ENGINE_PLATFORM_DIR}/web
 )
 
@@ -55,12 +58,15 @@ set(GLINT_THIRD_PARTY_INCLUDE_ROOTS
     ${GLINT_THIRD_PARTY_MANAGED_DIR}/glfw/include
 )
 
-set(GLINT_ALL_INCLUDE_DIRS ${GLINT_ENGINE_INCLUDE_ROOTS} ${GLINT_THIRD_PARTY_INCLUDE_ROOTS})
-list(REMOVE_DUPLICATES GLINT_ALL_INCLUDE_DIRS)
+set(GLINT_CORE_PUBLIC_INCLUDE_DIRS ${GLINT_ENGINE_PUBLIC_INCLUDE_DIRS} ${GLINT_THIRD_PARTY_INCLUDE_ROOTS})
+list(REMOVE_DUPLICATES GLINT_CORE_PUBLIC_INCLUDE_DIRS)
+
+set(GLINT_CORE_PRIVATE_INCLUDE_DIRS ${GLINT_ENGINE_PRIVATE_INCLUDE_DIRS})
+list(REMOVE_DUPLICATES GLINT_CORE_PRIVATE_INCLUDE_DIRS)
 
 # Source lists
-set(SRC_DIR engine/src)
-set(IMGUI_DIR engine)
+set(GLINT_PLATFORM_DESKTOP_DIR "${GLINT_ENGINE_PLATFORM_DIR}/desktop")
+set(GLINT_PLATFORM_DESKTOP_PANELS_DIR "${GLINT_PLATFORM_DESKTOP_DIR}/panels")
 
 set(GLINT_RESOURCES_DIR "${CMAKE_SOURCE_DIR}/resources")
 file(TO_CMAKE_PATH "${GLINT_RESOURCES_DIR}" GLINT_RESOURCES_DIR_NORMALIZED)
@@ -132,17 +138,20 @@ set(GLINT_MODULE_GIZMO_SOURCES
     ${GLINT_ENGINE_MODULES_DIR}/gizmos/axisrenderer.cpp
 )
 
+set(GLINT_PLATFORM_DESKTOP_SOURCES
+    ${GLINT_PLATFORM_DESKTOP_DIR}/ui_bridge.cpp
+    ${GLINT_PLATFORM_DESKTOP_DIR}/imgui_ui_layer.cpp
+    ${GLINT_PLATFORM_DESKTOP_DIR}/file_dialog.cpp
+    ${GLINT_PLATFORM_DESKTOP_PANELS_DIR}/scene_tree_panel.cpp
+)
+
 set(APP_SOURCES
     ${GLINT_ENGINE_CORE_DIR}/application/main.cpp
     ${GLINT_CORE_APPLICATION_SOURCES}
     ${GLINT_CORE_SCENE_SOURCES}
     ${GLINT_CORE_RENDERING_SOURCES}
     ${GLINT_CORE_IO_SOURCES}
-    ${SRC_DIR}/ui_bridge.cpp
-    ${SRC_DIR}/imgui_ui_layer.cpp
-    # ${SRC_DIR}/render_offscreen.cpp  # legacy (Application-based); excluded from build
-    ${SRC_DIR}/panels/scene_tree_panel.cpp
-    ${SRC_DIR}/file_dialog.cpp
+    ${GLINT_PLATFORM_DESKTOP_SOURCES}
 )
 
 # Core library: expose engine without the app entry
@@ -151,10 +160,7 @@ set(CORE_SOURCES
     ${GLINT_CORE_SCENE_SOURCES}
     ${GLINT_CORE_RENDERING_SOURCES}
     ${GLINT_CORE_IO_SOURCES}
-    ${SRC_DIR}/ui_bridge.cpp
-    ${SRC_DIR}/imgui_ui_layer.cpp
-    ${SRC_DIR}/panels/scene_tree_panel.cpp
-    ${SRC_DIR}/file_dialog.cpp
+    ${GLINT_PLATFORM_DESKTOP_SOURCES}
 )
 
 set(GLINT_OPTIONAL_COMPILE_DEFINITIONS)
@@ -180,8 +186,8 @@ set(IMGUI_SOURCES
     ${GLINT_IMGUI_VENDORED_DIR}/imgui_draw.cpp
     ${GLINT_IMGUI_VENDORED_DIR}/imgui_tables.cpp
     ${GLINT_IMGUI_VENDORED_DIR}/imgui_widgets.cpp
-    ${IMGUI_DIR}/imgui_impl_glfw.cpp
-    ${IMGUI_DIR}/imgui_impl_opengl3.cpp
+    ${GLINT_IMGUI_VENDORED_DIR}/backends/imgui_impl_glfw.cpp
+    ${GLINT_IMGUI_VENDORED_DIR}/backends/imgui_impl_opengl3.cpp
 )
 
 # Web (Emscripten) build is currently disabled; raise a clear error if selected.
@@ -191,8 +197,9 @@ endif()
 
 # Desktop build
     add_library(glint_core STATIC ${CORE_SOURCES} ${IMGUI_SOURCES})
-    target_include_directories(glint_core PUBLIC
-        ${GLINT_ALL_INCLUDE_DIRS}
+    target_include_directories(glint_core
+        PUBLIC ${GLINT_CORE_PUBLIC_INCLUDE_DIRS}
+        PRIVATE ${GLINT_CORE_PRIVATE_INCLUDE_DIRS}
     )
     target_compile_definitions(glint_core PUBLIC GLINT_RESOURCE_ROOT="${GLINT_RESOURCES_DIR_NORMALIZED}" ${GLINT_OPTIONAL_COMPILE_DEFINITIONS})
 
@@ -202,9 +209,7 @@ endif()
         ${GLINT_ENGINE_CORE_DIR}/rendering/glad.c
     )
 
-    target_include_directories(glint PRIVATE
-        ${GLINT_ALL_INCLUDE_DIRS}
-    )
+    target_include_directories(glint PRIVATE ${GLINT_CORE_PRIVATE_INCLUDE_DIRS})
     target_compile_definitions(glint PRIVATE GLINT_RESOURCE_ROOT="${GLINT_RESOURCES_DIR_NORMALIZED}" ${GLINT_OPTIONAL_COMPILE_DEFINITIONS})
     target_link_libraries(glint PRIVATE glint_core)
 
@@ -389,5 +394,5 @@ add_executable(user_paths_probe
     tools/user_paths_probe.cpp
     ${GLINT_ENGINE_CORE_DIR}/io/user_paths.cpp
 )
-target_include_directories(user_paths_probe PRIVATE ${GLINT_ENGINE_INCLUDE_ROOTS})
+target_include_directories(user_paths_probe PRIVATE ${GLINT_CORE_PUBLIC_INCLUDE_DIRS} ${GLINT_CORE_PRIVATE_INCLUDE_DIRS})
 target_compile_definitions(user_paths_probe PRIVATE ${GLINT_OPTIONAL_COMPILE_DEFINITIONS})
