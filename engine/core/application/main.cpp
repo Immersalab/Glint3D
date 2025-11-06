@@ -1,7 +1,13 @@
+// Machine Summary Block
+// {"file":"engine/core/application/main.cpp","purpose":"Entry point dispatching CLI verbs before launching the interactive application.","depends_on":["application_core.h","render_utils.h","cli_parser.h","path_security.h","glint/cli/command_dispatcher.h"],"notes":["cli_dispatcher","legacy_ui_fallback","headless_support"]}
+// Human Summary
+// Dispatches supported CLI verbs via CommandDispatcher, falling back to the legacy application bootstrap for interactive mode.
+
 #include "application_core.h"
 #include "render_utils.h"
 #include "cli_parser.h"
 #include "path_security.h"
+#include "glint/cli/command_dispatcher.h"
 #include <string>
 #include <vector>
 #include <algorithm>
@@ -23,6 +29,11 @@ static const char* GLINT_VERSION = "0.3.0";
 
 int main(int argc, char** argv)
 {
+    glint::cli::CommandDispatcher dispatcher;
+    if (auto dispatched = dispatcher.tryRun(argc, argv)) {
+        return *dispatched;
+    }
+
     // Ensure Windows console uses UTF-8 so Unicode ASCII art renders correctly
 #ifdef _WIN32
     SetConsoleOutputCP(CP_UTF8);
@@ -167,3 +178,8 @@ int main(int argc, char** argv)
     delete app;
     return 0;
 }
+#include "application_core.h"
+#include "render_utils.h"
+#include "cli_parser.h"
+#include "path_security.h"
+#include "glint/cli/command_dispatcher.h"

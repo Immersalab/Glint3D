@@ -1,3 +1,8 @@
+// Machine Summary Block
+// {"file":"engine/core/application/cli_parser.h","purpose":"Declares CLI parsing utilities and logging helpers for the legacy application path.","exports":["CLIExitCode","LogLevel","CLIOptions","CLIParser","Logger"],"depends_on":["render_settings.h","<string>","<vector>"],"notes":["legacy_cli_parser","exit_code_contract","logging_utilities"]}
+// Human Summary
+// Provides option parsing and logging infrastructure used by the legacy command-line entry point.
+
 #pragma once
 
 #include <string>
@@ -11,7 +16,9 @@ enum class CLIExitCode : int {
     SchemaValidationError = 2,
     FileNotFound = 3,
     RuntimeError = 4,
-    UnknownFlag = 5
+    UnknownFlag = 5,
+    DependencyError = 6,
+    DeterminismError = 7
 };
 
 enum class LogLevel {

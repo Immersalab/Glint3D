@@ -154,6 +154,23 @@ set(APP_SOURCES
     ${GLINT_PLATFORM_DESKTOP_SOURCES}
 )
 
+set(GLINT_CLI_SOURCES
+    cli/src/config_resolver.cpp
+    cli/src/init_scaffolder.cpp
+    cli/src/init_command.cpp
+    cli/src/ndjson_emitter.cpp
+    cli/src/command_dispatcher.cpp
+    cli/src/command_io.cpp
+    cli/src/commands/validate_command.cpp
+    cli/src/commands/config_command.cpp
+    cli/src/commands/doctor_command.cpp
+    cli/src/services/run_manifest_writer.cpp
+    cli/src/services/workspace_locks.cpp
+    cli/src/services/project_manifest.cpp
+)
+
+list(APPEND APP_SOURCES ${GLINT_CLI_SOURCES})
+
 # Core library: expose engine without the app entry
 set(CORE_SOURCES
     ${GLINT_CORE_APPLICATION_SOURCES}
@@ -209,7 +226,7 @@ endif()
         ${GLINT_ENGINE_CORE_DIR}/rendering/glad.c
     )
 
-    target_include_directories(glint PRIVATE ${GLINT_CORE_PRIVATE_INCLUDE_DIRS})
+    target_include_directories(glint PRIVATE ${GLINT_CORE_PRIVATE_INCLUDE_DIRS} cli/include)
     target_compile_definitions(glint PRIVATE GLINT_RESOURCE_ROOT="${GLINT_RESOURCES_DIR_NORMALIZED}" ${GLINT_OPTIONAL_COMPILE_DEFINITIONS})
     target_link_libraries(glint PRIVATE glint_core)
 

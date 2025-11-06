@@ -1,0 +1,9 @@
+{
+  "render": {
+    "device": "auto",
+    "samples": 16
+  },
+  "assets": {
+    "cache_dir": "cache/assets"
+  }
+}

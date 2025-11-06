@@ -283,6 +283,8 @@ const char* CLIParser::exitCodeToString(CLIExitCode code)
         case CLIExitCode::FileNotFound: return "File not found";
         case CLIExitCode::RuntimeError: return "Runtime error";
         case CLIExitCode::UnknownFlag: return "Unknown flag";
+        case CLIExitCode::DependencyError: return "Dependency error";
+        case CLIExitCode::DeterminismError: return "Determinism error";
         default: return "Unknown error";
     }
 }
@@ -329,6 +331,10 @@ std::vector<std::string> CLIParser::getValidFlags()
         "--strict-schema",
         "--schema-version",
         "--log",
+        "--verbosity",
+        "--config",
+        "--project",
+        "--json",
         "--seed",
         "--tone",
         "--exposure",
