@@ -164,6 +164,8 @@ set(GLINT_CLI_SOURCES
     cli/src/commands/validate_command.cpp
     cli/src/commands/config_command.cpp
     cli/src/commands/doctor_command.cpp
+    cli/src/commands/modules_command.cpp
+    cli/src/commands/assets_command.cpp
     cli/src/services/run_manifest_writer.cpp
     cli/src/services/workspace_locks.cpp
     cli/src/services/project_manifest.cpp

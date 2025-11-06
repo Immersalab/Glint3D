@@ -10,6 +10,8 @@
 #include "glint/cli/commands/validate_command.h"
 #include "glint/cli/commands/config_command.h"
 #include "glint/cli/commands/doctor_command.h"
+#include "glint/cli/commands/modules_command.h"
+#include "glint/cli/commands/assets_command.h"
 
 #include <algorithm>
 #include <iostream>
@@ -296,6 +298,12 @@ std::unique_ptr<ICommand> CommandDispatcher::createCommand(const std::string& ve
     }
     if (verb == "doctor") {
         return std::make_unique<DoctorCommand>();
+    }
+    if (verb == "modules") {
+        return std::make_unique<ModulesCommand>();
+    }
+    if (verb == "assets") {
+        return std::make_unique<AssetsCommand>();
     }
     return std::make_unique<StubCommand>(verb);
 }

@@ -1,0 +1,81 @@
+{
+    "id": "rendering_system_rhi_refactor",
+    "title": "Rendering System RHI Refactoring and Material Unification",
+    "owner": "engine_team",
+    "status": "pending",
+    "updated": "2025-11-05T21:00:00.0000000-05:00",
+    "inputs": {
+        "files": [
+            "engine/core/rendering/render_system.h",
+            "engine/core/rendering/render_system.cpp",
+            "engine/core/rendering/shader.h",
+            "engine/core/rendering/shader.cpp",
+            "engine/core/rendering/texture.h",
+            "engine/core/rendering/texture.cpp",
+            "engine/core/scene/scene_manager.h",
+            "engine/core/scene/scene_manager.cpp",
+            "engine/core/scene/material.h",
+            "engine/core/scene/material.cpp",
+            "engine/core/scene/pbr_material.h",
+            "engine/core/scene/json_ops.cpp",
+            "engine/modules/raytracing/raytracer.h",
+            "engine/modules/raytracing/raytracer.cpp",
+            "engine/modules/raytracing/refraction.h",
+            "engine/modules/raytracing/refraction.cpp",
+            "resources/shaders/pbr.frag",
+            "resources/shaders/pbr.vert",
+            "resources/shaders/standard.frag",
+            "resources/shaders/standard.vert",
+            "CLAUDE.md"
+        ],
+        "schema_version": "1.0.0"
+    },
+    "outputs": {
+        "artifacts": [
+            "artifacts/documentation/architecture_audit_report.md",
+            "artifacts/documentation/rhi_interface_specification.md",
+            "artifacts/documentation/material_core_specification.md",
+            "artifacts/documentation/migration_guide.md",
+            "artifacts/code/rhi_abstraction_layer.md",
+            "artifacts/code/material_unification_notes.md",
+            "artifacts/validation/golden_image_regression_tests.md",
+            "artifacts/validation/performance_benchmarks.md"
+        ],
+        "events": [
+            "task_created",
+            "task_registered",
+            "audit_completed",
+            "phase_completed",
+            "build_succeeded",
+            "golden_test_passed"
+        ]
+    },
+    "acceptance": [
+        "Comprehensive audit report documenting current dual-pipeline architecture, material storage duplication, OpenGL coupling, and refactoring opportunities completed and reviewed.",
+        "RHI (Render Hardware Interface) abstraction layer created with RHI.h interface and RhiGL.cpp implementation, replacing direct OpenGL calls in RenderSystem.",
+        "MaterialCore unified material struct introduced, eliminating dual storage (Material + PBR fields) in SceneObject with consistent behavior across pipelines.",
+        "RenderSystem class decomposed into modular components: RasterPipeline, RaytracePipeline, FramebufferManager, and ShaderCache with clear separation of concerns.",
+        "Legacy code removed: Material class, PBRMaterial struct, shadow mapping stubs, and deprecated texture fallback patterns eliminated from codebase.",
+        "Screen-space refraction (SSR-T) implemented in PBR shader enabling real-time glass materials in rasterizer pipeline without requiring --raytrace flag.",
+        "Minimal RenderGraph pass system introduced with modular rendering passes (GBufferPass, LightingPass, SSRRefractionPass, PostProcessPass) for extensibility.",
+        "Golden image regression tests pass with SSIM >= 0.995 confirming visual parity between old and new rendering systems across all test scenes.",
+        "Performance benchmarks demonstrate RHI abstraction overhead < 5% and frame times remain within 16ms budget at 1080p for standard scenes.",
+        "Both desktop (OpenGL) and web (WebGL2) builds succeed from clean tree with unified material system and no direct GL calls outside RHI layer.",
+        "Documentation updated: CLAUDE.md reflects new architecture, developer guide explains RHI usage patterns, and migration path documented for future backend additions."
+    ],
+    "dependencies": [
+        "engine_modular_architecture"
+    ],
+    "priority": "high",
+    "estimated_duration": "3-4 weeks",
+    "events": [
+        {
+            "event": "task_started",
+            "timestamp": "2025-11-05T21:00:00.0000000-05:00"
+        },
+        {
+            "event": "task_completed",
+            "timestamp": null
+        }
+    ]
+}

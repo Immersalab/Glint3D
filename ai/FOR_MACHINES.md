@@ -2,6 +2,11 @@
 
 # This file defines the deterministic protocol an AI agent must follow during any task execution in the Glint3D project.
 
+## ADDENDA & EXTENSIONS
+
+**Related Documents:**
+- [AI Subagents Addendum](contracts/SUBAGENTS_ADDENDUM.md) (v1.0) — Defines multi-agent orchestration protocol where Codex plans/audits and Claude executes bounded subtasks via NDJSON I/O with deterministic logging.
+
 ## 0. BEHAVIORAL CONTRACT
 
 PRIORITY_ORDER:

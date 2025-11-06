@@ -14,7 +14,7 @@ Checklist covering discovery, design, implementation, and validation steps for t
 ## Phase 2: Implementation & Tooling
 - [x] Implement CLI scaffolding (`glint init`, `validate`, `inspect`, `render`, `config`, `clean`, `doctor`).
 - [ ] Wire determinism logging: write `renders/<name>/run.json` with complete provenance payload.
-- [ ] Add module management (`glint modules list|enable|disable`) and asset synchronization workflow.
+- [x] Add module management (`glint modules list|enable|disable`) and asset synchronization workflow.
 - [ ] Provide watch/profile/convert commands or mark gated for follow-up (with stub behavior).
 - [ ] Ensure commands emit structured output (`--json`) and deterministic exit codes for CI.
 - [ ] Migrate legacy headless CLI (`--ops`, `CLIParser`) into compatibility shim aligned with new commands.
