@@ -1,0 +1,7 @@
+{
+  "schema_version": "1.0.0",
+  "name": "Blank Workspace",
+  "description": "Minimal Glint workspace with standard directories.",
+  "modules": ["core"],
+  "asset_packs": []
+}
