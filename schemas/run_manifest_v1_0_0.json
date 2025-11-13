@@ -1,0 +1,240 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://glint3d.org/schemas/run_manifest/v1.0.0",
+  "title": "Glint3D Run Manifest",
+  "description": "Deterministic render run manifest capturing complete provenance metadata for reproducibility",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "run_id",
+    "timestamp_utc",
+    "cli",
+    "platform",
+    "engine",
+    "determinism",
+    "outputs"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Schema version (semver format)",
+      "const": "1.0.0"
+    },
+    "run_id": {
+      "type": "string",
+      "description": "Unique identifier for this render run",
+      "pattern": "^run_[0-9]+_[0-9]+$"
+    },
+    "timestamp_utc": {
+      "type": "string",
+      "description": "ISO 8601 timestamp in UTC with nanosecond precision",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{9}Z$"
+    },
+    "cli": {
+      "type": "object",
+      "description": "CLI invocation metadata",
+      "required": ["command", "arguments", "exit_code", "exit_code_name", "json_mode"],
+      "properties": {
+        "command": {
+          "type": "string",
+          "description": "Primary CLI verb (e.g., 'render', 'inspect')"
+        },
+        "arguments": {
+          "type": "array",
+          "description": "Command-line arguments excluding executable name",
+          "items": {
+            "type": "string"
+          }
+        },
+        "exit_code": {
+          "type": "integer",
+          "description": "Numeric exit code (0 = success)"
+        },
+        "exit_code_name": {
+          "type": "string",
+          "description": "Human-readable exit code name"
+        },
+        "json_mode": {
+          "type": "boolean",
+          "description": "Whether --json flag was used"
+        },
+        "project": {
+          "type": "string",
+          "description": "Path to glint.project.json (if specified)"
+        }
+      }
+    },
+    "platform": {
+      "type": "object",
+      "description": "Host platform information",
+      "required": ["os", "cpu", "gpu", "driver_version", "kernel"],
+      "properties": {
+        "os": {
+          "type": "string",
+          "description": "Operating system name"
+        },
+        "cpu": {
+          "type": "string",
+          "description": "CPU model/identifier"
+        },
+        "gpu": {
+          "type": "string",
+          "description": "GPU model/identifier"
+        },
+        "driver_version": {
+          "type": "string",
+          "description": "Graphics driver version"
+        },
+        "kernel": {
+          "type": "string",
+          "description": "Kernel/OS version"
+        }
+      }
+    },
+    "engine": {
+      "type": "object",
+      "description": "Engine metadata",
+      "required": ["version", "modules", "assets"],
+      "properties": {
+        "version": {
+          "type": "string",
+          "description": "Engine version (semver format)"
+        },
+        "modules": {
+          "type": "array",
+          "description": "Enabled engine modules",
+          "items": {
+            "type": "object",
+            "required": ["name", "version", "enabled"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Module name"
+              },
+              "version": {
+                "type": "string",
+                "description": "Module version"
+              },
+              "hash": {
+                "type": "string",
+                "description": "SHA-256 hash of module binary"
+              },
+              "enabled": {
+                "type": "boolean",
+                "description": "Whether module was enabled for this run"
+              }
+            }
+          }
+        },
+        "assets": {
+          "type": "array",
+          "description": "Installed asset packs",
+          "items": {
+            "type": "object",
+            "required": ["name", "version"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Asset pack name"
+              },
+              "version": {
+                "type": "string",
+                "description": "Asset pack version"
+              },
+              "hash": {
+                "type": "string",
+                "description": "SHA-256 hash of asset pack"
+              },
+              "status": {
+                "type": "string",
+                "description": "Installation status",
+                "enum": ["installed", "pending", "partial"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "determinism": {
+      "type": "object",
+      "description": "Determinism-critical metadata",
+      "required": ["rng_seed", "frame_batch"],
+      "properties": {
+        "rng_seed": {
+          "type": "integer",
+          "description": "RNG seed for reproducible randomness"
+        },
+        "frame_batch": {
+          "type": "array",
+          "description": "Frame numbers rendered in this run",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "config_digest": {
+          "type": "string",
+          "description": "SHA-256 hash of JSON Ops or config file"
+        },
+        "scene_digest": {
+          "type": "string",
+          "description": "SHA-256 hash of scene input file"
+        },
+        "template": {
+          "type": "string",
+          "description": "Template name (if initialized with glint init --template)"
+        },
+        "git_revision": {
+          "type": "string",
+          "description": "Git commit hash of engine source"
+        },
+        "shader_hashes": {
+          "type": "array",
+          "description": "SHA-256 hashes of compiled shaders",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "outputs": {
+      "type": "object",
+      "description": "Render output metadata",
+      "required": ["render_path", "frames", "warnings"],
+      "properties": {
+        "render_path": {
+          "type": "string",
+          "description": "Workspace-relative render output directory"
+        },
+        "frames": {
+          "type": "array",
+          "description": "Per-frame render statistics",
+          "items": {
+            "type": "object",
+            "required": ["frame", "duration_ms"],
+            "properties": {
+              "frame": {
+                "type": "integer",
+                "description": "Frame number"
+              },
+              "duration_ms": {
+                "type": "number",
+                "description": "Render duration in milliseconds"
+              },
+              "output": {
+                "type": "string",
+                "description": "Output file path"
+              }
+            }
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "description": "Warnings encountered during render",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

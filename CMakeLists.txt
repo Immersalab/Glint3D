@@ -155,6 +155,7 @@ set(APP_SOURCES
 )
 
 set(GLINT_CLI_SOURCES
+    cli/src/logger.cpp
     cli/src/config_resolver.cpp
     cli/src/init_scaffolder.cpp
     cli/src/init_command.cpp
@@ -166,7 +167,14 @@ set(GLINT_CLI_SOURCES
     cli/src/commands/doctor_command.cpp
     cli/src/commands/modules_command.cpp
     cli/src/commands/assets_command.cpp
+    cli/src/commands/render_command.cpp
+    cli/src/commands/inspect_command.cpp
+    cli/src/commands/clean_command.cpp
+    cli/src/commands/watch_command.cpp
+    cli/src/commands/profile_command.cpp
+    cli/src/commands/convert_command.cpp
     cli/src/services/run_manifest_writer.cpp
+    cli/src/services/run_manifest_validator.cpp
     cli/src/services/workspace_locks.cpp
     cli/src/services/project_manifest.cpp
 )

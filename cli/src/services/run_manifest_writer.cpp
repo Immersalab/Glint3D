@@ -1,9 +1,10 @@
 // Machine Summary Block
-// {"file":"cli/src/services/run_manifest_writer.cpp","purpose":"Implements deterministic render run manifest writing for the CLI.","depends_on":["glint/cli/services/run_manifest_writer.h","rapidjson/stringbuffer.h","rapidjson/writer.h","<chrono>","<filesystem>","<fstream>","<iomanip>","<sstream>"],"notes":["iso8601_timestamps","lf_utf8_output","schema_versioned_payload"]}
+// {"file":"cli/src/services/run_manifest_writer.cpp","purpose":"Implements deterministic render run manifest writing for the CLI.","depends_on":["glint/cli/services/run_manifest_writer.h","glint/cli/services/run_manifest_validator.h","rapidjson/stringbuffer.h","rapidjson/writer.h","<chrono>","<filesystem>","<fstream>","<iomanip>","<sstream>"],"notes":["iso8601_timestamps","lf_utf8_output","schema_versioned_payload","validation_before_write"]}
 // Human Summary
-// Serialises run manifest metadata into `renders/<name>/run.json`, ensuring reproducibility fields and exit codes follow the CLI contract.
+// Serialises run manifest metadata into `renders/<name>/run.json`, ensuring reproducibility fields and exit codes follow the CLI contract. Validates output against schema before writing.
 
 #include "glint/cli/services/run_manifest_writer.h"
+#include "glint/cli/services/run_manifest_validator.h"
 
 #include <chrono>
 #include <filesystem>
@@ -256,13 +257,35 @@ void RunManifestWriter::write(const RunManifestOptions& options) const
 
     writer.EndObject();
 
+    // Validate the generated manifest before writing
+    std::string jsonContent = buffer.GetString();
+    ValidationResult validation = RunManifestValidator::validateContent(jsonContent, true);
+
+    if (!validation.isValid()) {
+        std::ostringstream oss;
+        oss << "Generated manifest failed validation:\n" << validation.getSummary();
+        throw std::runtime_error(oss.str());
+    }
+
+    // Write to disk
     std::ofstream stream(m_manifestPath, std::ios::binary);
     if (!stream) {
         throw std::runtime_error("Failed to open run manifest for writing: " + m_manifestPath.string());
     }
-    stream << buffer.GetString() << '\n';
+    stream << jsonContent << '\n';
     if (!stream) {
         throw std::runtime_error("Failed to write run manifest to: " + m_manifestPath.string());
+    }
+
+    // Write checksum file alongside manifest
+    if (validation.checksum.has_value()) {
+        std::filesystem::path checksumPath = m_manifestPath;
+        checksumPath.replace_extension(".json.sha256");
+
+        std::ofstream checksumStream(checksumPath);
+        if (checksumStream) {
+            checksumStream << validation.checksum.value() << " *" << m_manifestPath.filename().string() << '\n';
+        }
     }
 }
 

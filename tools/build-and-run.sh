@@ -8,9 +8,12 @@
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+cd "$REPO_ROOT"
+
 CONFIG="${1:-Debug}"
 shift 2>/dev/null || true
-ARGS="$@"
 
 MANAGED_GLFW_DIR="third_party/managed/glfw"
 MANAGED_ASSIMP_DIR="third_party/managed/assimp"
@@ -24,6 +27,28 @@ has_managed_lib() {
     local dir="$1"
     local pattern="$2"
     compgen -G "${dir}/${pattern}" > /dev/null
+}
+
+resolve_glint_executable() {
+    local config="${1:-$CONFIG}"
+    local candidates=(
+        "${REPO_ROOT}/builds/desktop/cmake/${config}/glint"
+        "${REPO_ROOT}/builds/desktop/cmake/Release/glint"
+        "${REPO_ROOT}/builds/desktop/cmake/RelWithDebInfo/glint"
+        "${REPO_ROOT}/builds/desktop/cmake/MinSizeRel/glint"
+        "${REPO_ROOT}/builds/desktop/cmake/Debug/glint"
+        "${REPO_ROOT}/builds/desktop/cmake/glint"
+        "${REPO_ROOT}/builds/desktop/cmake/bin/glint"
+    )
+
+    for candidate in "${candidates[@]}"; do
+        if [ -x "$candidate" ]; then
+            printf '%s\n' "$candidate"
+            return 0
+        fi
+    done
+
+    return 1
 }
 
 check_assimp() {
@@ -120,6 +145,62 @@ check_oidn() {
     echo "       Populate ${MANAGED_OIDN_DIR} or install via vcpkg/package manager if required."
 }
 
+setup_glint_wrapper() {
+    local bin_dir="${REPO_ROOT}/bin"
+    local wrapper="${bin_dir}/glint"
+
+    mkdir -p "$bin_dir"
+
+    cat <<'EOF' > "$wrapper"
+#!/bin/bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+candidates=(
+    "$REPO_ROOT/builds/desktop/cmake/Release/glint"
+    "$REPO_ROOT/builds/desktop/cmake/RelWithDebInfo/glint"
+    "$REPO_ROOT/builds/desktop/cmake/MinSizeRel/glint"
+    "$REPO_ROOT/builds/desktop/cmake/Debug/glint"
+    "$REPO_ROOT/builds/desktop/cmake/glint"
+    "$REPO_ROOT/builds/desktop/cmake/bin/glint"
+)
+
+GLINT_EXE=""
+for candidate in "${candidates[@]}"; do
+    if [ -x "$candidate" ]; then
+        GLINT_EXE="$candidate"
+        break
+    fi
+done
+
+if [ -z "$GLINT_EXE" ]; then
+    echo "ERROR: glint executable not found. Please run tools/build-and-run.sh first." >&2
+    exit 1
+fi
+
+cd "$REPO_ROOT"
+exec "$GLINT_EXE" "$@"
+EOF
+
+    chmod +x "$wrapper"
+
+    if [[ ":$PATH:" == *":$bin_dir:"* ]]; then
+        echo "[OK] ${bin_dir} is already in your PATH"
+        echo "You can now run 'glint' from any directory."
+    else
+        cat <<EOF
+[ACTION REQUIRED] Add ${bin_dir} to your PATH to use 'glint' everywhere.
+  Temporary (current shell):
+      export PATH="\$PATH:${bin_dir}"
+  Persistent (Bash/Zsh):
+      echo 'export PATH="\$PATH:${bin_dir}"' >> ~/.bashrc
+      # or use ~/.zshrc for zsh
+EOF
+    fi
+}
+
 echo "========================================"
 echo " Glint3D Build and Run Script"
 echo "========================================"
@@ -127,7 +208,7 @@ echo "Configuration: $CONFIG"
 echo ""
 
 # Step 1: Check for GLFW3 dependencies
-echo "[1/5] Checking dependencies..."
+echo "[1/6] Checking dependencies..."
 LIB_DIR="${MANAGED_GLFW_DIR}/lib"
 
 # Check if GLFW is available (system or managed drop-in)
@@ -183,7 +264,7 @@ else
 fi
 
 echo ""
-echo "[2/5] Configuring CMake..."
+echo "[2/6] Configuring CMake..."
 cmake -S . -B builds/desktop/cmake -DCMAKE_BUILD_TYPE="$CONFIG"
 if [ $? -ne 0 ]; then
     echo "ERROR: CMake configuration failed"
@@ -191,7 +272,7 @@ if [ $? -ne 0 ]; then
 fi
 
 echo ""
-echo "[3/5] Building $CONFIG..."
+echo "[3/6] Building $CONFIG..."
 cmake --build builds/desktop/cmake --config "$CONFIG" -j
 if [ $? -ne 0 ]; then
     echo "ERROR: Build failed"
@@ -199,18 +280,22 @@ if [ $? -ne 0 ]; then
 fi
 
 echo ""
-echo "[4/5] Verifying executable..."
-EXE="builds/desktop/cmake/glint"
-if [ ! -f "$EXE" ]; then
-    echo "ERROR: Executable not found at $EXE"
+echo "[4/6] Verifying executable..."
+if ! GLINT_EXE="$(resolve_glint_executable "$CONFIG")"; then
+    echo "ERROR: glint executable not found. Expected it under builds/desktop/cmake (checked common Debug/Release layouts)."
     exit 1
 fi
+echo "Executable located at $GLINT_EXE"
 
 echo ""
-echo "[5/5] Launching Glint3D..."
+echo "[5/6] Setting up 'glint' command..."
+setup_glint_wrapper
+
+echo ""
+echo "[6/6] Launching Glint3D..."
 echo "========================================"
 echo " Build Complete - Launching"
 echo "========================================"
 echo ""
 
-"$EXE" $ARGS
+"$GLINT_EXE" "$@"

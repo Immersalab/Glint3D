@@ -12,6 +12,12 @@
 #include "glint/cli/commands/doctor_command.h"
 #include "glint/cli/commands/modules_command.h"
 #include "glint/cli/commands/assets_command.h"
+#include "glint/cli/commands/render_command.h"
+#include "glint/cli/commands/inspect_command.h"
+#include "glint/cli/commands/clean_command.h"
+#include "glint/cli/commands/watch_command.h"
+#include "glint/cli/commands/profile_command.h"
+#include "glint/cli/commands/convert_command.h"
 
 #include <algorithm>
 #include <iostream>
@@ -193,7 +199,10 @@ bool CommandDispatcher::isSupportedVerb(const std::string& verb)
         "clean",
         "doctor",
         "modules",
-        "assets"
+        "assets",
+        "watch",
+        "profile",
+        "convert"
     };
     return std::find(verbs.begin(), verbs.end(), verb) != verbs.end();
 }
@@ -304,6 +313,24 @@ std::unique_ptr<ICommand> CommandDispatcher::createCommand(const std::string& ve
     }
     if (verb == "assets") {
         return std::make_unique<AssetsCommand>();
+    }
+    if (verb == "render") {
+        return std::make_unique<RenderCommand>();
+    }
+    if (verb == "inspect") {
+        return std::make_unique<InspectCommand>();
+    }
+    if (verb == "clean") {
+        return std::make_unique<CleanCommand>();
+    }
+    if (verb == "watch") {
+        return std::make_unique<WatchCommand>();
+    }
+    if (verb == "profile") {
+        return std::make_unique<ProfileCommand>();
+    }
+    if (verb == "convert") {
+        return std::make_unique<ConvertCommand>();
     }
     return std::make_unique<StubCommand>(verb);
 }

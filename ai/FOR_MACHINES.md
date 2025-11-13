@@ -1,11 +1,16 @@
-# AI EXECUTION CONTRACT — GLINT3D TASK MODULE SYSTEM
+﻿<!-- Machine Summary Block -->
+{"file":"ai/FOR_MACHINES.md","purpose":"Defines the deterministic execution contract for AI agents working on Glint3D task modules.","exports":["behavioral_contract","workflow_steps","validation_protocols"],"depends_on":["ai/tasks"],"notes":["authoritative_protocol_v2_2"]}
+<!-- Human Summary -->
+Authoritative spec outlining required behavior, workflow steps, documentation, and safety rules for AI contributors.
+
+# AI EXECUTION CONTRACT �?" GLINT3D TASK MODULE SYSTEM
 
 # This file defines the deterministic protocol an AI agent must follow during any task execution in the Glint3D project.
 
 ## ADDENDA & EXTENSIONS
 
 **Related Documents:**
-- [AI Subagents Addendum](contracts/SUBAGENTS_ADDENDUM.md) (v1.0) — Defines multi-agent orchestration protocol where Codex plans/audits and Claude executes bounded subtasks via NDJSON I/O with deterministic logging.
+- [AI Subagents Addendum](contracts/SUBAGENTS_ADDENDUM.md) (v1.0) â€” Defines multi-agent orchestration protocol where Codex plans/audits and Claude executes bounded subtasks via NDJSON I/O with deterministic logging. IGNORE FOR NOW.
 
 ## 0. BEHAVIORAL CONTRACT
 
@@ -108,6 +113,32 @@ Documentation Verification Checklist:
 5. All parameters and return values accurately described
 6. Cross-references added with `@see` where helpful
 
+## 0D. ENGINEERING BEST PRACTICES
+
+AI_SHALL:
+- Apply SOLID principles to every architecture or code change:
+  - **Single Responsibility:** keep each module/class focused on one concern with clear ownership.
+  - **Open/Closed:** prefer extending behavior through composition/configuration over editing hardened abstractions.
+  - **Liskov Substitution:** ensure derived implementations honor base class contracts, invariants, and error semantics.
+  - **Interface Segregation:** expose narrowly scoped interfaces rather than bloated catch-alls so consumers only implement what they use.
+  - **Dependency Inversion:** depend on abstractions (interfaces, service contracts) instead of concrete implementations or globals.
+- Maintain clean layering (CLI â†” services â†” engine) and avoid cyclic dependencies.
+- Use dependency injection or factory registration for pluggable backends (filesystems, renderers, transports).
+- Prefer composition + data-driven configuration to reduce duplication and ease determinism.
+- Keep functions small, side-effect-aware, and document ownership/lifecycle for shared resources.
+- Write/update tests (unit, smoke, determinism) alongside changes whenever artifacts list them as outputs.
+- Capture rationale/trade-offs in design docs or Machine Summary Blocks when deviating from defaults.
+
+AI_MUST:
+- Enforce project code style, naming, and formatting conventions.
+- Validate that new abstractions include lifecycle documentation and usage notes.
+- Ensure error handling is explicit (no silent failures) and surfaces actionable remediation steps.
+
+AI_MUST NOT:
+- Introduce global singletons or hidden shared state without explicit task-level approval.
+- Bypass existing abstractions by coupling platform-specific behavior directly into core modules.
+- Leave obvious duplication/refactoring opportunities unaddressed when they fall inside the active checklist step.
+
 ## 1. NO HALLUCINATION POLICY
 
 - IF information is not found in:
@@ -127,7 +158,7 @@ Documentation Verification Checklist:
 - IF required data is missing:
   - STOP immediately.
   - LOG a blocker_encountered event.
-  - REPORT: “Missing data — execution paused.”
+  - REPORT: â€œMissing data â€” execution paused.â€
   - WAIT for explicit human instruction.
 
 ## 2. SOURCE OF TRUTH
@@ -172,10 +203,10 @@ Required event sequence for each task:
 ### STEP 1: READ CURRENT INDEX
 
 Read: ai/tasks/current_index.json
-- If active_task == null → REPORT "No active task" → HALT
-- If status == "blocked" → REPORT blocker → HALT
-- If status == "completed" → REPORT "Already complete" → REQUEST next task
-- Else → PROCEED to STEP 2
+- If active_task == null â†’ REPORT "No active task" â†’ HALT
+- If status == "blocked" â†’ REPORT blocker â†’ HALT
+- If status == "completed" â†’ REPORT "Already complete" â†’ REQUEST next task
+- Else â†’ PROCEED to STEP 2
 
 ### STEP 2: LOAD CONTEXT
 
@@ -215,7 +246,7 @@ Validate:
   - Check all modified header files for Doxygen compliance
   - Ensure all new/modified public APIs are documented
   - Verify documentation matches implementation
-  - Run documentation verification checklist from §0C
+  - Run documentation verification checklist from Â§0C
 
 If success:
 - Mark step [x] in checklist.md
@@ -227,14 +258,14 @@ If failure:
 ### STEP 5: VALIDATE COMPLETION
 
 For each acceptance criterion:
-- If fails → append acceptance_failed event → RETURN to execution
-- If passes → continue
+- If fails â†’ append acceptance_failed event â†’ RETURN to execution
+- If passes â†’ continue
 
 Documentation Validation:
 - **Verify all modified header files have up-to-date Doxygen documentation**
-- Run through documentation verification checklist from §0C
-- If any header lacks proper documentation → append acceptance_failed event → RETURN to execution
-- If documentation is incomplete or outdated → HALT and update before proceeding
+- Run through documentation verification checklist from Â§0C
+- If any header lacks proper documentation â†’ append acceptance_failed event â†’ RETURN to execution
+- If documentation is incomplete or outdated â†’ HALT and update before proceeding
 
 ### STEP 6: MARK TASK COMPLETE
 
@@ -251,7 +282,7 @@ Documentation Validation:
 ### Build or Test Failure
 - Log build_failed or test_failed
 - Attempt one remediation
-- If still fails → HALT
+- If still fails â†’ HALT
 
 ### Blockers
 - Log blocker_encountered
@@ -303,8 +334,8 @@ Before every step:
 ## 10. ANTI-HALLUCINATION GUARDRAILS
 
 - All reasoning must be grounded in current task files.
-- If the model “does not know,” it must explicitly state:
-  “NO VALID CONTEXT — EXECUTION HALTED”
+- If the model â€œdoes not know,â€ it must explicitly state:
+  â€œNO VALID CONTEXT â€” EXECUTION HALTEDâ€
 - No guessing or auto-completion of missing information.
 - No soft interpretations of ambiguous instructions.
 
@@ -315,7 +346,7 @@ A task is only DONE if:
 - All acceptance criteria are met
 - All artifacts exist and validated
 - **All modified header files have complete, up-to-date Doxygen documentation**
-- **Documentation verification checklist (§0C) passed for all headers**
+- **Documentation verification checklist (Â§0C) passed for all headers**
 - task.json marked completed
 - current_index.json updated
 - task_completed event logged
@@ -323,3 +354,4 @@ A task is only DONE if:
 NO EXCEPTIONS.
 
 # END OF SPEC v2.2
+

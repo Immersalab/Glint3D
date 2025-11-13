@@ -13,17 +13,29 @@ Checklist covering discovery, design, implementation, and validation steps for t
 
 ## Phase 2: Implementation & Tooling
 - [x] Implement CLI scaffolding (`glint init`, `validate`, `inspect`, `render`, `config`, `clean`, `doctor`).
-- [ ] Wire determinism logging: write `renders/<name>/run.json` with complete provenance payload.
+- [x] Wire determinism logging: write `renders/<name>/run.json` with complete provenance payload.
+- [x] Determinism logging: enforce schema validation + checksum so malformed manifests fail fast.
+- [x] Determinism logging: add automated smoke to diff run manifests for identical inputs.
 - [x] Add module management (`glint modules list|enable|disable`) and asset synchronization workflow.
-- [ ] Provide watch/profile/convert commands or mark gated for follow-up (with stub behavior).
-- [ ] Ensure commands emit structured output (`--json`) and deterministic exit codes for CI.
+- [x] Implement `glint watch` (file graph monitoring) or document gated stub semantics.
+- [x] Implement `glint profile` (render perf capture) or document gated stub semantics.
+- [x] Implement `glint convert` (asset/material transforms) or document gated stub semantics.
+- [x] Ensure commands emit structured output (`--json`) with shared envelope (`status`, `warnings`, `data`).
+- [x] Ensure deterministic exit codes for all verbs and document code table in CLI spec.
 - [ ] Migrate legacy headless CLI (`--ops`, `CLIParser`) into compatibility shim aligned with new commands.
-- [ ] Move shared logging utilities out of `CLIParser` and unify severity handling across new commands.
-- [ ] Replace legacy help text/docs with the new CLI command reference.
+- [ ] Provide legacy alias coverage tests to guarantee old automation keeps working.
+- [x] Move shared logging utilities out of `CLIParser` and unify severity handling across new commands.
+- [x] Add logging config (verbosity, color, timestamps) centralized in new logging module.
+- [x] Replace legacy help text/docs with the new CLI command reference.
 
 ## Phase 3: Validation & Distribution
 - [ ] Author command reference + quickstart docs (CLI, templates, determinism, repro).
+- [ ] Document project manifest + run manifest schemas inline within CLI docs appendices.
 - [ ] Build automated smoke suite covering primary verbs and provenance artifacts.
+- [ ] Add negative-path smoke cases (bad config, missing assets, determinism drift) to suite.
 - [ ] Capture validation matrix (platforms, module toggles, sample projects).
+- [ ] Include reproducibility evidence (hashes, RNG seeds, module revisions) in matrix write-up.
 - [ ] Package distribution strategy (installer handoff, PATH integration, shell completion).
+- [ ] Publish shell completion scripts (bash/zsh/pwsh) and verify instructions.
 - [ ] Update roadmap/communications noting supersedure of legacy CLI installer task.
+- [ ] Notify dependent teams (RPC, SDK, Contracts) via internal comms and link to new docs.
