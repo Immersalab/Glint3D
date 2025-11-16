@@ -142,6 +142,9 @@ imgui.ini
 .claude/
 .claude/settings.local.json
 
+# AI exchange files (removed from git history)
+ai/exchanges/
+
 # Output directory structure (preserve placeholders only)
 output/renders/*
 !output/renders/.gitkeep
