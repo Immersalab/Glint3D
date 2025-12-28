@@ -117,6 +117,12 @@ bool FileDialog::isModelFile(const std::string& filepath)
            extension == "stl" || extension == "3ds";
 }
 
+std::string FileDialog::selectDirectory(const std::string& title,
+                                       const std::string& defaultPath)
+{
+    return platformSelectDirectory(title, defaultPath);
+}
+
 #ifdef _WIN32
 
 static std::string convertToFilterString(const std::vector<FileDialog::Filter>& filters)
@@ -209,6 +215,42 @@ std::string FileDialog::platformSaveFile(const std::string& title,
     return ""; // Cancelled or error
 }
 
+static int CALLBACK browseCallbackProc(HWND hwnd, UINT uMsg, LPARAM, LPARAM lpData)
+{
+    if (uMsg == BFFM_INITIALIZED && lpData != 0) {
+        auto initial = reinterpret_cast<const char*>(lpData);
+        if (initial && *initial) {
+            SendMessage(hwnd, BFFM_SETSELECTION, TRUE, reinterpret_cast<LPARAM>(initial));
+        }
+    }
+    return 0;
+}
+
+std::string FileDialog::platformSelectDirectory(const std::string& title,
+                                               const std::string& defaultPath)
+{
+    BROWSEINFOA bi = {};
+    bi.hwndOwner = nullptr;
+    bi.lpszTitle = title.c_str();
+    bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE;
+    std::string initialDir = defaultPath;
+    bi.lpfn = browseCallbackProc;
+    bi.lParam = initialDir.empty() ? 0 : reinterpret_cast<LPARAM>(initialDir.c_str());
+
+    PIDLIST_ABSOLUTE pidl = SHBrowseForFolderA(&bi);
+    if (!pidl) {
+        return "";
+    }
+
+    char path[MAX_PATH] = {0};
+    bool ok = SHGetPathFromIDListA(pidl, path);
+    CoTaskMemFree(pidl);
+    if (ok) {
+        return std::string(path);
+    }
+    return "";
+}
+
 #else
 
 // Linux/macOS placeholder - would need zenity/kdialog for Linux or native Cocoa for macOS
@@ -227,6 +269,14 @@ std::string FileDialog::platformSaveFile(const std::string& title,
                                         const std::string& defaultName)
 {
     // TODO: Implement for Linux (zenity) and macOS (Cocoa)  
+    return "";
+}
+
+std::string FileDialog::platformSelectDirectory(const std::string& title,
+                                               const std::string& defaultPath)
+{
+    (void)title;
+    (void)defaultPath;
     return "";
 }
 

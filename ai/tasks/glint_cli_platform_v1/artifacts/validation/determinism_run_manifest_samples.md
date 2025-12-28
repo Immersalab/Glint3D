@@ -46,18 +46,59 @@ Plan and examples for validating deterministic render runs, including run manife
   },
   "determinism": {
     "rng_seed": 1337421,
-    "frame_batch": [1001, 1002],
+    "frame_batch": [0, 10, 20],
     "config_digest": "0f97f1c...",
     "scene_digest": "b21d9a4...",
     "template": "cinematic",
     "git_revision": "cb5b7d7",
     "shader_hashes": ["aaff...", "dd12..."]
   },
+  "animation": {
+    "type": "keyframe",
+    "frame_range": {"start": 0, "end": 20, "step": 10},
+    "script_path": "ops/turntable_anim.json",
+    "frames": [
+      {
+        "frame": 0,
+        "model_transform": {
+          "translation": [0.0, 0.0, 0.0],
+          "rotation_euler": [0.0, 0.0, 0.0],
+          "scale": [1.0, 1.0, 1.0]
+        },
+        "camera": {
+          "position": [0.0, 0.5, 3.5],
+          "target": [0.0, 0.0, 0.0],
+          "up": [0.0, 1.0, 0.0],
+          "fov_deg": 45.0
+        },
+        "duration_ms": 412.6,
+        "output": "renders/turntable/frame_0000.png",
+        "checksum": "sha256:..."
+      },
+      {
+        "frame": 10,
+        "model_transform": {
+          "translation": [0.0, 0.0, 0.0],
+          "rotation_euler": [0.0, 36.0, 0.0],
+          "scale": [1.0, 1.0, 1.0]
+        },
+        "camera": {
+          "position": [0.0, 0.5, 3.5],
+          "target": [0.0, 0.0, 0.0],
+          "up": [0.0, 1.0, 0.0],
+          "fov_deg": 45.0
+        },
+        "duration_ms": 410.2,
+        "output": "renders/turntable/frame_0010.png",
+        "checksum": "sha256:..."
+      }
+    ]
+  },
   "outputs": {
     "render_path": "renders/shot010",
     "frames": [
-      {"frame": 1001, "duration_ms": 412.6, "output": "renders/shot010/shot010.1001.png"},
-      {"frame": 1002, "duration_ms": 410.2, "output": "renders/shot010/shot010.1002.png"}
+      {"frame": 0, "duration_ms": 412.6, "output": "renders/turntable/frame_0000.png"},
+      {"frame": 10, "duration_ms": 410.2, "output": "renders/turntable/frame_0010.png"}
     ],
     "warnings": []
   }
@@ -67,11 +108,12 @@ Plan and examples for validating deterministic render runs, including run manife
 ## 3. NDJSON Trace Examples
 ```json
 {"event":"command_started","command":"render"}
-{"event":"render_started","scene":"shots/shot010.json","device":"auto","frames":[1001,1002]}
-{"event":"render_frame_completed","frame":1001,"duration_ms":412.6,"seed":1337421}
-{"event":"render_frame_completed","frame":1002,"duration_ms":410.2,"seed":1337421}
+{"event":"render_started","scene":"shots/shot010.json","device":"auto","frames":[0,10,20],"animation_script":"ops/turntable_anim.json"}
+{"event":"render_frame_completed","frame":0,"duration_ms":412.6,"seed":1337421,"output":"renders/turntable/frame_0000.png"}
+{"event":"render_frame_completed","frame":10,"duration_ms":410.2,"seed":1337421,"output":"renders/turntable/frame_0010.png"}
+{"event":"render_frame_completed","frame":20,"duration_ms":411.1,"seed":1337421,"output":"renders/turntable/frame_0020.png"}
 {"event":"run_manifest_written","path":"renders/shot010/run.json","digest":"0f97f1c...","size_bytes":2048}
-{"event":"render_completed","status":"success","exit_code":0,"frames":2,"warnings":0}
+{"event":"render_completed","status":"success","exit_code":0,"frames":3,"warnings":0}
 ```
 
 All events flow through `NdjsonEmitter`, ensuring deterministic ordering and key casing. Errors append a `command_failed` event followed by `command_completed` with non-zero exit code.

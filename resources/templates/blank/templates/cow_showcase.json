@@ -1,0 +1,13 @@
+// Machine Summary Block
+// {"file":"resources/templates/blank/templates/cow_showcase.json","purpose":"Starter JSON ops scene framing the cow model with key lighting and simple backdrop.","depends_on":["assets/models/cow.obj","schemas/json_ops_v1.json"],"notes":["workspace_relative_paths","renders_to_renders_dir"]}
+{
+  "version": 1,
+  "ops": [
+    { "op": "load", "path": "assets/models/cow.obj", "name": "cow", "transform": { "scale": [0.8, 0.8, 0.8], "position": [0.0, 0.0, 0.0] } },
+    { "op": "set_camera", "position": [4.0, 2.5, 4.0], "target": [0.0, 1.0, 0.0], "fov_deg": 45.0 },
+    { "op": "add_light", "type": "directional", "direction": [-0.8, -1.2, -0.6], "color": [1.0, 0.96, 0.9], "intensity": 4.0 },
+    { "op": "add_light", "type": "directional", "direction": [0.6, -1.0, 0.4], "color": [0.6, 0.7, 1.0], "intensity": 1.8 },
+    { "op": "set_background", "color": [0.03, 0.03, 0.04] },
+    { "op": "render_image", "path": "renders/cow.png", "width": 1600, "height": 900 }
+  ]
+}

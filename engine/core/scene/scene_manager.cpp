@@ -11,6 +11,7 @@
 #include <rapidjson/writer.h>
 #include <rapidjson/prettywriter.h>
 #include <cmath>
+#include <filesystem>
 
 SceneManager::SceneManager() 
 {
@@ -32,9 +33,21 @@ bool SceneManager::loadObject(const std::string& name, const std::string& path,
 
     SceneObject obj;
     obj.name = name;
+
+    std::filesystem::path resolvedPath = std::filesystem::u8path(path);
+    std::error_code fsError;
+    if (!resolvedPath.is_absolute()) {
+        resolvedPath = std::filesystem::current_path() / resolvedPath;
+    }
+    std::filesystem::path canonical = std::filesystem::weakly_canonical(resolvedPath, fsError);
+    if (!fsError) {
+        resolvedPath = canonical;
+    }
+    const std::string resolvedPathStr = resolvedPath.generic_string();
+    obj.sourcePath = resolvedPathStr;
     
     // Load mesh data
-    obj.objLoader.load(path.c_str());
+    obj.objLoader.load(resolvedPathStr.c_str());
 
     // Set transform (initially same for both local and world since it's a root object)
     glm::mat4 translateMat = glm::translate(glm::mat4(1.0f), position);
@@ -46,7 +59,7 @@ bool SceneManager::loadObject(const std::string& name, const std::string& path,
     setupObjectOpenGL(obj);
 
     // Load textures if they exist
-    std::string directory = path.substr(0, path.find_last_of('/'));
+    std::string directory = resolvedPathStr.substr(0, resolvedPathStr.find_last_of('/'));
     if (directory == path) directory = "."; // No directory found
     
     // Try to find and load associated textures

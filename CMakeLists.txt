@@ -162,6 +162,8 @@ set(GLINT_CLI_SOURCES
     cli/src/ndjson_emitter.cpp
     cli/src/command_dispatcher.cpp
     cli/src/command_io.cpp
+    cli/src/commands/help_command.cpp
+    cli/src/commands/ui_command.cpp
     cli/src/commands/validate_command.cpp
     cli/src/commands/config_command.cpp
     cli/src/commands/doctor_command.cpp
@@ -173,6 +175,7 @@ set(GLINT_CLI_SOURCES
     cli/src/commands/watch_command.cpp
     cli/src/commands/profile_command.cpp
     cli/src/commands/convert_command.cpp
+    cli/src/commands/ops_command.cpp
     cli/src/services/run_manifest_writer.cpp
     cli/src/services/run_manifest_validator.cpp
     cli/src/services/workspace_locks.cpp

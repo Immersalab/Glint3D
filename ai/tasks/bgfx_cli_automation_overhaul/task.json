@@ -1,0 +1,87 @@
+{
+    "id": "bgfx_cli_automation_overhaul",
+    "title": "BGFX Renderer & Automation Overhaul",
+    "owner": "engine_team",
+    "status": "pending",
+    "updated": "2025-12-04T15:25:00.0000000-05:00",
+    "inputs": {
+        "files": [
+            "CMakeLists.txt",
+            "engine/core/application/application_core.cpp",
+            "engine/core/application/application_core.h",
+            "engine/core/application/cli_parser.cpp",
+            "engine/core/application/render_settings.cpp",
+            "engine/core/rendering/render_system.h",
+            "engine/core/rendering/render_system.cpp",
+            "engine/core/rendering/shader.h",
+            "engine/core/rendering/shader.cpp",
+            "engine/core/rendering/texture.h",
+            "engine/core/rendering/texture.cpp",
+            "engine/core/rendering/ibl_system.h",
+            "engine/core/rendering/ibl_system.cpp",
+            "engine/core/rendering/skybox.h",
+            "engine/core/rendering/skybox.cpp",
+            "engine/core/scene/scene_manager.h",
+            "engine/core/scene/scene_manager.cpp",
+            "engine/core/scene/json_ops.cpp",
+            "engine/modules/gizmos/*",
+            "engine/modules/raytracing/*",
+            "engine/platform/desktop/*",
+            "resources/shaders/*",
+            "docs/external_dependencies.md",
+            "docs/architecture/*.md",
+            "ai/current_index.json",
+            "CLAUDE.md"
+        ],
+        "schema_version": "1.0.0"
+    },
+    "outputs": {
+        "artifacts": [
+            "artifacts/documentation/bgfx_architecture_spec.md",
+            "artifacts/documentation/cli_automation_contract.md",
+            "artifacts/documentation/ui_integration_plan.md",
+            "artifacts/code/rhi_interface_overview.md",
+            "artifacts/code/bgfx_integration_notes.md",
+            "artifacts/tests/headless_cli_matrix.md",
+            "artifacts/validation/golden_render_report.md",
+            "artifacts/validation/performance_benchmark.md"
+        ],
+        "events": [
+            "task_created",
+            "task_registered",
+            "phase_completed",
+            "build_succeeded",
+            "golden_test_passed",
+            "docs_published"
+        ]
+    },
+    "acceptance": [
+        "BGFX integrated as the primary renderer on Windows, Linux, and macOS with headless submission support; no residual OpenGL entry points remain outside the compatibility shim.",
+        "New RHI abstraction encapsulates GPU resources, queue submission, and framebuffer control with deterministic encoder ordering suitable for CLI and automation runs.",
+        "CLI render paths (JsonOps, headless batch, automation hooks) drive BGFX views without launching the UI and emit structured render metadata plus deterministic logs.",
+        "ImGui/UI layer is ported to the BGFX backend while preserving desktop UX and providing remote status mirroring for automation observers.",
+        "Shader toolchain migrated to offline compilation (bgfx shaderc or glslang-based) with reproducible binaries stored under resources/shaders/bin.",
+        "Resource ownership for meshes, textures, IBL data, and raytraced outputs updated to backend-agnostic handles with deterministic lifetime management.",
+        "Automation contracts documented: CLI verbs, JSON ops, and new IPC hooks expose all render settings (camera, lighting, tone map, AI parameters) required for scripting agents.",
+        "Regression suite updated: golden-image comparisons, CLI headless matrix, and performance runs (1080p/4K) prove parity with legacy OpenGL while staying within \u00b15% frame time budget.",
+        "Documentation (CLAUDE.md plus new architecture specs) reflects the BGFX pipeline, CLI-first workflow, deterministic logging guarantees, and upgrade guidance.",
+        "current_index.json updated with this module tracked on the critical path once glint_cli_platform_v1 reaches Phase 3."
+    ],
+    "dependencies": [
+        "glint_cli_platform_v1",
+        "rendering_system_rhi_refactor"
+    ],
+    "priority": "high",
+    "estimated_duration": "6-8 weeks",
+    "seed_policy": "deterministic",
+    "events": [
+        {
+            "event": "task_created",
+            "timestamp": "2025-12-04T15:25:00.0000000-05:00"
+        },
+        {
+            "event": "task_completed",
+            "timestamp": null
+        }
+    ]
+}

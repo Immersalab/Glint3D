@@ -208,6 +208,71 @@ void writeOutputsSection(Writer& writer,
             writer.Key("output");
             writer.String(frame.output.c_str());
         }
+        if (!frame.checksum.empty()) {
+            writer.Key("checksum");
+            writer.String(frame.checksum.c_str());
+        }
+        if (frame.transform.translation.has_value()) {
+            writer.Key("model_transform");
+            writer.StartObject();
+            writer.Key("translation");
+            writer.StartArray();
+            for (double v : frame.transform.translation.value()) {
+                writer.Double(v);
+            }
+            writer.EndArray();
+            if (frame.transform.rotationEuler.has_value()) {
+                writer.Key("rotation_euler");
+                writer.StartArray();
+                for (double v : frame.transform.rotationEuler.value()) {
+                    writer.Double(v);
+                }
+                writer.EndArray();
+            }
+            if (frame.transform.scale.has_value()) {
+                writer.Key("scale");
+                writer.StartArray();
+                for (double v : frame.transform.scale.value()) {
+                    writer.Double(v);
+                }
+                writer.EndArray();
+            }
+            writer.EndObject();
+        }
+        if (frame.camera.position.has_value() || frame.camera.target.has_value()
+            || frame.camera.up.has_value() || frame.camera.fovDeg.has_value()) {
+            writer.Key("camera");
+            writer.StartObject();
+            if (frame.camera.position.has_value()) {
+                writer.Key("position");
+                writer.StartArray();
+                for (double v : frame.camera.position.value()) {
+                    writer.Double(v);
+                }
+                writer.EndArray();
+            }
+            if (frame.camera.target.has_value()) {
+                writer.Key("target");
+                writer.StartArray();
+                for (double v : frame.camera.target.value()) {
+                    writer.Double(v);
+                }
+                writer.EndArray();
+            }
+            if (frame.camera.up.has_value()) {
+                writer.Key("up");
+                writer.StartArray();
+                for (double v : frame.camera.up.value()) {
+                    writer.Double(v);
+                }
+                writer.EndArray();
+            }
+            if (frame.camera.fovDeg.has_value()) {
+                writer.Key("fov_deg");
+                writer.Double(frame.camera.fovDeg.value());
+            }
+            writer.EndObject();
+        }
         writer.EndObject();
     }
     writer.EndArray();
@@ -253,6 +318,107 @@ void RunManifestWriter::write(const RunManifestOptions& options) const
     writePlatformSection(writer, options.platform);
     writeEngineSection(writer, options.engine);
     writeDeterminismSection(writer, options.determinism);
+
+    if (options.animation.enabled) {
+        writer.Key("animation");
+        writer.StartObject();
+        writer.Key("type");
+        writer.String(options.animation.type.c_str());
+        writer.Key("frame_range");
+        writer.StartObject();
+        writer.Key("start");
+        writer.Int(options.animation.frameStart);
+        writer.Key("end");
+        writer.Int(options.animation.frameEnd);
+        writer.Key("step");
+        writer.Int(options.animation.frameStep);
+        writer.EndObject();
+        if (!options.animation.scriptPath.empty()) {
+            writer.Key("script_path");
+            writer.String(options.animation.scriptPath.c_str());
+        }
+        writer.Key("frames");
+        writer.StartArray();
+        for (const auto& frame : options.animation.frames) {
+            writer.StartObject();
+            writer.Key("frame");
+            writer.Int(frame.frame);
+            writer.Key("duration_ms");
+            writer.Double(frame.durationMs);
+            if (!frame.output.empty()) {
+                writer.Key("output");
+                writer.String(frame.output.c_str());
+            }
+            if (!frame.checksum.empty()) {
+                writer.Key("checksum");
+                writer.String(frame.checksum.c_str());
+            }
+            if (frame.transform.translation.has_value()) {
+                writer.Key("model_transform");
+                writer.StartObject();
+                writer.Key("translation");
+                writer.StartArray();
+                for (double v : frame.transform.translation.value()) {
+                    writer.Double(v);
+                }
+                writer.EndArray();
+                if (frame.transform.rotationEuler.has_value()) {
+                    writer.Key("rotation_euler");
+                    writer.StartArray();
+                    for (double v : frame.transform.rotationEuler.value()) {
+                        writer.Double(v);
+                    }
+                    writer.EndArray();
+                }
+                if (frame.transform.scale.has_value()) {
+                    writer.Key("scale");
+                    writer.StartArray();
+                    for (double v : frame.transform.scale.value()) {
+                        writer.Double(v);
+                    }
+                    writer.EndArray();
+                }
+                writer.EndObject();
+            }
+            if (frame.camera.position.has_value() || frame.camera.target.has_value()
+                || frame.camera.up.has_value() || frame.camera.fovDeg.has_value()) {
+                writer.Key("camera");
+                writer.StartObject();
+                if (frame.camera.position.has_value()) {
+                    writer.Key("position");
+                    writer.StartArray();
+                    for (double v : frame.camera.position.value()) {
+                        writer.Double(v);
+                    }
+                    writer.EndArray();
+                }
+                if (frame.camera.target.has_value()) {
+                    writer.Key("target");
+                    writer.StartArray();
+                    for (double v : frame.camera.target.value()) {
+                        writer.Double(v);
+                    }
+                    writer.EndArray();
+                }
+                if (frame.camera.up.has_value()) {
+                    writer.Key("up");
+                    writer.StartArray();
+                    for (double v : frame.camera.up.value()) {
+                        writer.Double(v);
+                    }
+                    writer.EndArray();
+                }
+                if (frame.camera.fovDeg.has_value()) {
+                    writer.Key("fov_deg");
+                    writer.Double(frame.camera.fovDeg.value());
+                }
+                writer.EndObject();
+            }
+            writer.EndObject();
+        }
+        writer.EndArray();
+        writer.EndObject();
+    }
     writeOutputsSection(writer, options.outputDirectory, options.frames, options.warnings);
 
     writer.EndObject();

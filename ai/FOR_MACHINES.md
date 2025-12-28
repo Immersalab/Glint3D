@@ -353,5 +353,9 @@ A task is only DONE if:
 
 NO EXCEPTIONS.
 
+## 12. RECENT CONTEXT (Nov 2025)
+- `glint render`: animation scripts drive per-frame model transforms + camera and emit PNG sequences + `animation` block in run.json. Quick overrides (`--camera-pos/target/up/fov`, `--model-translate/rotate-euler/scale`) only fill fields missing from the script; script values win per-field to keep determinism explicit.
+- `glint ui`: launches workspace-aware (auto-detect or `--workspace`), with in-app Open Workspace and Save Workspace. Legacy UI boot paths should be removed; always preload the active workspace.
+
 # END OF SPEC v2.2
 

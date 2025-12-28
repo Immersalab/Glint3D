@@ -6,6 +6,7 @@
 #include "glint/cli/init_scaffolder.h"
 
 #include <algorithm>
+#include <cstdlib>
 #include <fstream>
 #include <set>
 #include <sstream>
@@ -177,7 +178,17 @@ InitScaffolder::TemplateMetadata InitScaffolder::loadTemplateMetadata(const std:
 {
     TemplateMetadata metadata;
     metadata.name = name;
-    metadata.templateRoot = std::filesystem::absolute(std::filesystem::path(kTemplatesRoot) / name);
+
+    // Check for GLINT_ROOT environment variable to locate templates
+    std::filesystem::path templatesBase;
+    const char* glintRoot = std::getenv("GLINT_ROOT");
+    if (glintRoot) {
+        templatesBase = std::filesystem::path(glintRoot) / kTemplatesRoot;
+    } else {
+        templatesBase = kTemplatesRoot;
+    }
+
+    metadata.templateRoot = std::filesystem::absolute(templatesBase / name);
 
     if (!std::filesystem::exists(metadata.templateRoot)) {
         throw std::runtime_error("Template \"" + name + "\" not found at " + metadata.templateRoot.string());
@@ -388,6 +399,7 @@ void InitScaffolder::appendTemplateFiles(const TemplateMetadata& metadata,
 {
     auto root = normalizePath(request.workspaceRoot);
 
+    // Copy shots directory
     auto templateShots = metadata.templateRoot / "shots";
     if (std::filesystem::exists(templateShots)) {
         for (auto& entry : std::filesystem::recursive_directory_iterator(templateShots)) {
@@ -403,6 +415,67 @@ void InitScaffolder::appendTemplateFiles(const TemplateMetadata& metadata,
             };
             plan.operations.push_back(std::move(op));
         }
+    }
+
+    // Copy workspace templates (JSON snippets, presets, etc.)
+    auto templateTemplates = metadata.templateRoot / "templates";
+    if (std::filesystem::exists(templateTemplates)) {
+        for (auto& entry : std::filesystem::recursive_directory_iterator(templateTemplates)) {
+            if (!entry.is_regular_file()) {
+                continue;
+            }
+            auto relative = std::filesystem::relative(entry.path(), metadata.templateRoot);
+            InitOperation op{
+                InitOperationType::CopyTemplateFile,
+                entry.path(),
+                root / relative,
+                {}
+            };
+            plan.operations.push_back(std::move(op));
+        }
+    }
+
+    // Copy template-provided assets (e.g., packs or seed data)
+    auto templateAssets = metadata.templateRoot / "assets";
+    if (std::filesystem::exists(templateAssets)) {
+        for (auto& entry : std::filesystem::recursive_directory_iterator(templateAssets)) {
+            if (!entry.is_regular_file()) {
+                continue;
+            }
+            auto relative = std::filesystem::relative(entry.path(), metadata.templateRoot);
+            InitOperation op{
+                InitOperationType::CopyTemplateFile,
+                entry.path(),
+                root / relative,
+                {}
+            };
+            plan.operations.push_back(std::move(op));
+        }
+    }
+
+    // Copy top-level documentation files (FOR_AI_AGENTS.md, README.md, etc.)
+    for (const auto& entry : std::filesystem::directory_iterator(metadata.templateRoot)) {
+        if (!entry.is_regular_file()) {
+            continue;
+        }
+
+        std::string filename = entry.path().filename().string();
+
+        // Skip internal template metadata files
+        if (filename == "template.json" ||
+            filename == "project.patch.json" ||
+            filename == "config.defaults.json") {
+            continue;
+        }
+
+        // Copy documentation and other user-facing files
+        InitOperation op{
+            InitOperationType::CopyTemplateFile,
+            entry.path(),
+            root / filename,
+            {}
+        };
+        plan.operations.push_back(std::move(op));
     }
 }
 

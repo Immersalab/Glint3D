@@ -128,10 +128,22 @@ bool ApplicationCore::init(const std::string& windowTitle, int width, int height
         }
     }
     
-    // Create default scene content
-    createDefaultScene();
+    bool shouldCreateDefaultScene = true;
+    if (!m_headless && m_uiBridge) {
+        shouldCreateDefaultScene = !m_uiBridge->bootstrapWorkspace();
+    }
+    if (shouldCreateDefaultScene) {
+        createDefaultScene();
+    }
     
     return true;
+}
+
+void ApplicationCore::setWorkspaceRoot(const std::filesystem::path& workspaceRoot)
+{
+    if (m_uiBridge) {
+        m_uiBridge->setWorkspaceRoot(workspaceRoot);
+    }
 }
 
 void ApplicationCore::run()

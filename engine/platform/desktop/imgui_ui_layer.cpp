@@ -226,6 +226,19 @@ void ImGuiUILayer::renderMainMenuBar(const UIState& state)
                 cmd.command = UICommand::ExportScene;
                 if (onCommand) onCommand(cmd);
             }
+
+            ImGui::Separator();
+            if (ImGui::MenuItem("Open Workspace...", "Ctrl+Shift+O")) {
+                UICommandData cmd;
+                cmd.command = UICommand::OpenWorkspace;
+                if (onCommand) onCommand(cmd);
+            }
+            bool canSaveWorkspace = !state.workspaceRoot.empty();
+            if (ImGui::MenuItem("Save Workspace", "Ctrl+Shift+S", false, canSaveWorkspace)) {
+                UICommandData cmd;
+                cmd.command = UICommand::SaveWorkspace;
+                if (onCommand) onCommand(cmd);
+            }
             
             ImGui::Separator();
             if (ImGui::BeginMenu("Recent Files")) {
@@ -418,6 +431,18 @@ void ImGuiUILayer::renderMainMenuBar(const UIState& state)
             }
         }
 
+        std::string workspaceLabel = state.workspaceRoot.empty()
+            ? "Workspace: (none)"
+            : ("Workspace: " + state.workspaceRoot);
+        float textWidth = ImGui::CalcTextSize(workspaceLabel.c_str()).x;
+        float targetX = ImGui::GetWindowWidth() - textWidth - ImGui::GetStyle().ItemSpacing.x;
+        float currentX = ImGui::GetCursorPosX();
+        if (targetX > currentX) {
+            ImGui::SetCursorPosX(targetX);
+        } else {
+            ImGui::SameLine();
+        }
+        ImGui::TextDisabled("%s", workspaceLabel.c_str());
         ImGui::EndMainMenuBar();
     }
 }

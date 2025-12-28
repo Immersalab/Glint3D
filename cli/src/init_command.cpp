@@ -9,6 +9,7 @@
 
 #include <cstdlib>
 #include <exception>
+#include <filesystem>
 #include <iostream>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
@@ -68,22 +69,40 @@ int InitCommand::run(int argc, char** argv)
 InitCommand::ParsedArgs InitCommand::parseArguments(int argc, char** argv) const
 {
     ParsedArgs parsed;
+    bool workspaceSet = false;
 
     for (int i = 2; i < argc; ++i) {
         std::string arg(argv[i]);
-        if (arg == "--workspace" && i + 1 < argc) {
-            parsed.request.workspaceRoot = argv[++i];
+        if (!arg.empty() && arg.front() != '-') {
+            if (workspaceSet) {
+                parsed.errors.emplace_back("Unexpected positional argument: " + arg);
+                continue;
+            }
+            parsed.request.workspaceRoot = arg;
+            workspaceSet = true;
             continue;
         }
-        if (arg == "--template" && i + 1 < argc) {
+        if (arg == "--template") {
+            if (i + 1 >= argc) {
+                parsed.errors.emplace_back("Missing value for --template (expected template name).");
+                continue;
+            }
             parsed.request.templateName = argv[++i];
             continue;
         }
-        if (arg == "--module" && i + 1 < argc) {
+        if (arg == "--module") {
+            if (i + 1 >= argc) {
+                parsed.errors.emplace_back("Missing value for --module (expected module name).");
+                continue;
+            }
             parsed.request.modules.emplace_back(argv[++i]);
             continue;
         }
-        if (arg == "--asset-pack" && i + 1 < argc) {
+        if (arg == "--asset-pack") {
+            if (i + 1 >= argc) {
+                parsed.errors.emplace_back("Missing value for --asset-pack (expected pack name).");
+                continue;
+            }
             parsed.request.assetPacks.emplace_back(argv[++i]);
             continue;
         }
@@ -108,6 +127,15 @@ InitCommand::ParsedArgs InitCommand::parseArguments(int argc, char** argv) const
             continue;
         }
         parsed.errors.emplace_back("Unknown argument: " + arg);
+    }
+
+    if (!workspaceSet || parsed.request.workspaceRoot.empty()) {
+        const char* callerCwd = std::getenv("GLINT_CALLER_CWD");
+        if (callerCwd && *callerCwd) {
+            parsed.request.workspaceRoot = callerCwd;
+        } else {
+            parsed.request.workspaceRoot = std::filesystem::current_path();
+        }
     }
 
     return parsed;

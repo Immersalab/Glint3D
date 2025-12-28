@@ -11,7 +11,7 @@ Design for the `glint init` implementation: command wiring, template system, ass
 - Ensure generated artifacts integrate with configuration precedence, module locking, and asset synchronization.
 
 ## 2. Command Overview
-- Entry point: `glint init [--workspace <dir>] [--template <name>] [--with-samples] [--force] [--json]`.
+- Entry point: `glint init [path] [--template <name>] [--with-samples] [--force] [--json]`.
 - Secondary options:
   - `--no-config`: skip `.glint/config.json` (advanced).
   - `--module <name>` (repeatable): pre-enable modules.

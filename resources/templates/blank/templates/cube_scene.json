@@ -1,0 +1,13 @@
+// Machine Summary Block
+// {"file":"resources/templates/blank/templates/cube_scene.json","purpose":"Starter JSON ops scene loading the cube model with a light and render output.","depends_on":["assets/models/cube.obj","schemas/json_ops_v1.json"],"notes":["workspace_relative_paths","renders_to_renders_dir"]}
+{
+  "version": 1,
+  "ops": [
+    { "op": "load", "path": "assets/models/cube.obj", "name": "cube", "transform": { "scale": [1.0, 1.0, 1.0] } },
+    { "op": "set_camera", "position": [2.3, 1.8, 2.3], "target": [0.0, 0.25, 0.0], "fov_deg": 50.0 },
+    { "op": "add_light", "type": "directional", "direction": [-1.0, -1.0, -1.0], "color": [1.0, 1.0, 1.0], "intensity": 3.0 },
+    { "op": "set_material", "target": "cube", "material": { "color": [0.45, 0.7, 0.95], "roughness": 0.35, "metallic": 0.05 } },
+    { "op": "set_background", "color": [0.05, 0.06, 0.08] },
+    { "op": "render_image", "path": "renders/cube.png", "width": 1280, "height": 720 }
+  ]
+}

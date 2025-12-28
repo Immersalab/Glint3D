@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <functional>
+#include <filesystem>
 #include "gizmo.h"
 #include "render_system.h"
 #include "camera_controller.h"
@@ -88,6 +89,9 @@ struct UIState {
 
     // Recent files (MRU)
     std::vector<std::string> recentFiles;
+
+    // Workspace bookkeeping for UI menus
+    std::string workspaceRoot;
 };
 
 // Command interface for UI actions
@@ -148,8 +152,9 @@ enum class UICommand {
     // File operations
     ImportAsset,          // Unified import for models and JSON scenes
     ExportScene,
-    OpenFile
-    ,
+    OpenFile,
+    OpenWorkspace,
+    SaveWorkspace,
     // Hierarchy operations
     ReparentObject
 };
@@ -212,6 +217,10 @@ public:
     bool applyJsonOps(const std::string& json, std::string& error);
     std::string buildShareLink() const;
     std::string sceneToJson() const;
+
+    // Workspace management
+    void setWorkspaceRoot(const std::filesystem::path& workspaceRoot);
+    bool bootstrapWorkspace();
     
 private:
     // System references
@@ -239,6 +248,14 @@ private:
     void saveRecentFiles() const;
     void addRecentFile(const std::string& path);
     bool openFilePath(const std::string& path);
+    bool ensureWorkspaceFolder(std::string* errorMessage = nullptr) const;
+    std::filesystem::path workspaceStatePath() const;
+    bool saveWorkspaceState(std::string& errorMessage) const;
+    bool loadWorkspaceState(std::string* errorMessage = nullptr);
+    void clearSceneForWorkspace();
+    bool switchWorkspace(const std::filesystem::path& newRoot);
+    std::string serializeWorkspacePath(const std::filesystem::path& path) const;
+    std::filesystem::path resolveWorkspacePath(const std::string& path) const;
     
     // Command handlers
     void handleLoadObject(const UICommandData& cmd);
@@ -246,4 +263,6 @@ private:
     void handleCameraSettings(const UICommandData& cmd);
     void handleGizmoSettings(const UICommandData& cmd);
     void handleConsoleCommand(const UICommandData& cmd);
+
+    std::filesystem::path m_workspaceRoot;
 };

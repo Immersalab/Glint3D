@@ -164,6 +164,10 @@ out.png
 temp_*.json
 simple_*.json
 
+# Test CLI workspace directories
+test_cli_workspace/
+test_cli_workspace_full/
+
 # Generated documentation
 docs/doxygen/api/
 docs/doxygen/html/

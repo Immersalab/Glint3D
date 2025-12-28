@@ -22,11 +22,14 @@ Checklist covering discovery, design, implementation, and validation steps for t
 - [x] Implement `glint convert` (asset/material transforms) or document gated stub semantics.
 - [x] Ensure commands emit structured output (`--json`) with shared envelope (`status`, `warnings`, `data`).
 - [x] Ensure deterministic exit codes for all verbs and document code table in CLI spec.
-- [ ] Migrate legacy headless CLI (`--ops`, `CLIParser`) into compatibility shim aligned with new commands.
-- [ ] Provide legacy alias coverage tests to guarantee old automation keeps working.
+- [x] Integrate engine rendering pipeline with `glint render` command (replace placeholder with actual offscreen rendering).
+- [x] Migrate legacy headless CLI (`--ops`, `CLIParser`) into compatibility shim aligned with new commands.
+- [x] Provide legacy alias coverage tests to guarantee old automation keeps working.
 - [x] Move shared logging utilities out of `CLIParser` and unify severity handling across new commands.
 - [x] Add logging config (verbosity, color, timestamps) centralized in new logging module.
 - [x] Replace legacy help text/docs with the new CLI command reference.
+- [x] Add animation scripting to `glint render` (per-frame model transforms + camera overrides) producing PNG sequences + manifest updates.
+- [x] Update `glint ui` workspace flow: add UI "Open Workspace" entry that points to active workspace, adds "Save Workspace" to persist changes, auto-loads models/assets, and removes legacy UI boot logic.
 
 ## Phase 3: Validation & Distribution
 - [ ] Author command reference + quickstart docs (CLI, templates, determinism, repro).
@@ -39,3 +42,4 @@ Checklist covering discovery, design, implementation, and validation steps for t
 - [ ] Publish shell completion scripts (bash/zsh/pwsh) and verify instructions.
 - [ ] Update roadmap/communications noting supersedure of legacy CLI installer task.
 - [ ] Notify dependent teams (RPC, SDK, Contracts) via internal comms and link to new docs.
+- [ ] Document animation scripting schema + manifest fields and add smoke coverage for PNG sequence renders.

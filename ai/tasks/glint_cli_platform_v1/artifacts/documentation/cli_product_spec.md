@@ -33,7 +33,7 @@ Concept brief for Glint CLI v1 covering goals, primary users, end-to-end journey
 ## 3. End-to-End Journeys
 
 1. **New Workspace Bootstrap**
-   - `glint init --workspace my_show --template cinematic --with-samples`
+   - `glint init my_show --template cinematic --with-samples`
    - CLI creates directory structure, writes `glint.project.json`, seeds `.glint/config.json`, optionally downloads sample assets, prints next steps.
 2. **CI Validation + Render**
    - `glint validate --project path/to/glint.project.json --strict`
@@ -60,7 +60,7 @@ Concept brief for Glint CLI v1 covering goals, primary users, end-to-end journey
 
 | Command | Synopsis | Key Flags | Output Artifacts | Notes |
 | --- | --- | --- | --- | --- |
-| `glint init` | Scaffold a new workspace or project. | `--workspace <dir>`, `--template <name>`, `--module <name>`, `--asset-pack <name>`, `--with-samples`, `--no-config`, `--force`, `--dry-run`, `--json` | Creates workspace tree, `glint.project.json`, `.glint/config.json`, optional assets manifest. | Templates referenced from `resources/templates`. Validates destination emptiness unless `--force`; `--dry-run` emits plan without writing. |
+| `glint init` | Scaffold a new workspace or project. | `[path]`, `--template <name>`, `--module <name>`, `--asset-pack <name>`, `--with-samples`, `--no-config`, `--force`, `--dry-run`, `--json` | Creates workspace tree, `glint.project.json`, `.glint/config.json`, optional assets manifest. | Templates referenced from `resources/templates`. Validates destination emptiness unless `--force`; `--dry-run` emits plan without writing. |
 | `glint validate` | Validate project manifest, assets, schema versions. | `--project <path>`, `--strict`, `--modules`, `--assets`, `--json` | NDJSON validation report. | Fails with SchemaValidationError on violation. |
 | `glint inspect` | Inspect project/components metadata. | `--project`, `--modules`, `--assets`, `--schema`, `--json` | Prints structured summary or writes to `--output`. | Intended for tooling introspection. |
 | `glint render` | Execute render jobs defined in manifest or inline. | `--project`, `--scene <path|id>`, `--ops <file>`, `--output <dir>`, `--frames <list>`, `--resume`, `--device <cpu|gpu|auto>`, `--headless`, `--json` | `renders/<name>/run.json`, image outputs, logs. | `run.json` includes CLI args, schema version hashes, module digests, RNG seed, timing. Supports dry-run via `--plan`. |

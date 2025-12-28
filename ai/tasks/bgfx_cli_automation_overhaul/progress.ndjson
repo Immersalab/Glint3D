@@ -1,0 +1,2 @@
+{"ts":"2025-12-04T15:25:00.0000000-05:00","task_id":"bgfx_cli_automation_overhaul","event":"task_created","status":"pending","agent":"codex"}
+{"ts":"2025-12-04T15:25:01.0000000-05:00","task_id":"bgfx_cli_automation_overhaul","event":"task_registered","status":"pending","agent":"codex","details":"Registered BGFX renderer and CLI automation overhaul; blocked on glint_cli_platform_v1 Phase 3 completion."}

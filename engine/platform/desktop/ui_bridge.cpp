@@ -17,6 +17,8 @@
 #include "file_dialog.h"
 #include "resource_paths.h"
 #include "user_paths.h"
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/constants.hpp>
 #include <iostream>
 #include <sstream>
 #include <fstream>
@@ -26,7 +28,74 @@
 #include <rapidjson/document.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
+#include <rapidjson/prettywriter.h>
+#include <rapidjson/istreamwrapper.h>
 #include <rapidjson/error/en.h>
+
+namespace {
+
+glm::vec3 extractTranslation(const glm::mat4& matrix)
+{
+    return glm::vec3(matrix[3]);
+}
+
+glm::vec3 extractScale(const glm::mat4& matrix)
+{
+    return {
+        glm::length(glm::vec3(matrix[0])),
+        glm::length(glm::vec3(matrix[1])),
+        glm::length(glm::vec3(matrix[2]))
+    };
+}
+
+glm::vec3 extractRotationDegrees(const glm::mat4& matrix)
+{
+    glm::vec3 scale = extractScale(matrix);
+    glm::mat3 rotationMatrix(
+        glm::vec3(matrix[0]) / (scale.x == 0.0f ? 1.0f : scale.x),
+        glm::vec3(matrix[1]) / (scale.y == 0.0f ? 1.0f : scale.y),
+        glm::vec3(matrix[2]) / (scale.z == 0.0f ? 1.0f : scale.z)
+    );
+
+    float rotY = asinf(glm::clamp(rotationMatrix[0][2], -1.0f, 1.0f));
+    float rotX;
+    float rotZ;
+    if (std::abs(cosf(rotY)) > 0.0001f) {
+        rotX = atan2f(-rotationMatrix[1][2], rotationMatrix[2][2]);
+        rotZ = atan2f(-rotationMatrix[0][1], rotationMatrix[0][0]);
+    } else {
+        rotX = atan2f(rotationMatrix[2][1], rotationMatrix[1][1]);
+        rotZ = 0.0f;
+    }
+    return glm::degrees(glm::vec3(rotX, rotY, rotZ));
+}
+
+glm::mat4 composeTransform(const glm::vec3& translation,
+                           const glm::vec3& rotationDeg,
+                           const glm::vec3& scale)
+{
+    glm::mat4 transform(1.0f);
+    transform = glm::translate(transform, translation);
+    transform = glm::rotate(transform, glm::radians(rotationDeg.x), glm::vec3(1.0f, 0.0f, 0.0f));
+    transform = glm::rotate(transform, glm::radians(rotationDeg.y), glm::vec3(0.0f, 1.0f, 0.0f));
+    transform = glm::rotate(transform, glm::radians(rotationDeg.z), glm::vec3(0.0f, 0.0f, 1.0f));
+    transform = glm::scale(transform, scale);
+    return transform;
+}
+
+bool parseVec3(const rapidjson::Value& value, glm::vec3& out)
+{
+    if (!value.IsArray() || value.Size() != 3) {
+        return false;
+    }
+    out = glm::vec3(
+        static_cast<float>(value[0].GetDouble()),
+        static_cast<float>(value[1].GetDouble()),
+        static_cast<float>(value[2].GetDouble()));
+    return true;
+}
+
+} // namespace
 
 UIBridge::UIBridge(SceneManager& scene, RenderSystem& renderer,
                    CameraController& camera, Light& lights)
@@ -37,6 +106,38 @@ UIBridge::UIBridge(SceneManager& scene, RenderSystem& renderer,
 {
     // Initialize modular JSON ops executor for shared implementation
     m_ops = std::make_unique<JsonOpsExecutor>(m_scene, m_renderer, m_camera, m_lights);
+}
+
+void UIBridge::setWorkspaceRoot(const std::filesystem::path& workspaceRoot)
+{
+    if (workspaceRoot.empty()) {
+        m_workspaceRoot.clear();
+        return;
+    }
+
+    std::error_code ec;
+    auto canonical = std::filesystem::weakly_canonical(workspaceRoot, ec);
+    m_workspaceRoot = ec ? workspaceRoot : canonical;
+}
+
+bool UIBridge::bootstrapWorkspace()
+{
+    if (m_workspaceRoot.empty()) {
+        return false;
+    }
+
+    std::string error;
+    bool loaded = loadWorkspaceState(&error);
+    if (loaded) {
+        addConsoleMessage("Loaded workspace: " + m_workspaceRoot.generic_string());
+    } else {
+        if (!error.empty() && error.find("not found") == std::string::npos) {
+            addConsoleMessage(error);
+        }
+        clearSceneForWorkspace();
+        addConsoleMessage("Workspace ready: " + m_workspaceRoot.generic_string());
+    }
+    return true;
 }
 
 bool UIBridge::initUI(int windowWidth, int windowHeight)
@@ -88,6 +189,8 @@ void UIBridge::handleResize(int width, int height)
 UIState UIBridge::buildUIState() const
 {
     UIState state;
+    state.workspaceRoot = m_workspaceRoot.empty() ? std::string()
+                                                  : m_workspaceRoot.generic_string();
     
     // Camera state
     state.camera = m_camera.getCameraState();
@@ -602,6 +705,33 @@ void UIBridge::handleUICommand(const UICommandData& command)
                 }
             }
             break;
+        case UICommand::OpenWorkspace:
+            {
+                std::string defaultDir = m_workspaceRoot.empty()
+                    ? std::filesystem::current_path().generic_string()
+                    : m_workspaceRoot.generic_string();
+                std::string selected = FileDialog::selectDirectory("Open Workspace", defaultDir);
+                if (selected.empty()) {
+                    addConsoleMessage("Workspace selection cancelled.");
+                    break;
+                }
+                switchWorkspace(std::filesystem::u8path(selected));
+            }
+            break;
+        case UICommand::SaveWorkspace:
+            {
+                if (m_workspaceRoot.empty()) {
+                    addConsoleMessage("No active workspace configured; use Open Workspace first.");
+                    break;
+                }
+                std::string error;
+                if (saveWorkspaceState(error)) {
+                    addConsoleMessage("Workspace saved: " + workspaceStatePath().generic_string());
+                } else {
+                    addConsoleMessage("Failed to save workspace: " + error);
+                }
+            }
+            break;
 
         default:
             addConsoleMessage("Unknown UI command");
@@ -951,6 +1081,301 @@ bool UIBridge::openFilePath(const std::string& path)
     }
     if (ok) addRecentFile(path);
     return ok;
+}
+
+bool UIBridge::ensureWorkspaceFolder(std::string* errorMessage) const
+{
+    if (m_workspaceRoot.empty()) {
+        if (errorMessage) {
+            *errorMessage = "No active workspace configured.";
+        }
+        return false;
+    }
+
+    std::filesystem::path metadataDir = m_workspaceRoot / ".glint";
+    std::error_code ec;
+    std::filesystem::create_directories(metadataDir, ec);
+    if (ec) {
+        if (errorMessage) {
+            *errorMessage = "Failed to prepare workspace metadata: " + ec.message();
+        }
+        return false;
+    }
+    return true;
+}
+
+std::filesystem::path UIBridge::workspaceStatePath() const
+{
+    if (m_workspaceRoot.empty()) {
+        return {};
+    }
+    return m_workspaceRoot / ".glint" / "workspace_state.json";
+}
+
+std::string UIBridge::serializeWorkspacePath(const std::filesystem::path& path) const
+{
+    if (m_workspaceRoot.empty()) {
+        return path.generic_string();
+    }
+    std::error_code ec;
+    auto relative = std::filesystem::relative(path, m_workspaceRoot, ec);
+    if (!ec) {
+        return relative.generic_string();
+    }
+    return path.generic_string();
+}
+
+std::filesystem::path UIBridge::resolveWorkspacePath(const std::string& path) const
+{
+    std::filesystem::path candidate = std::filesystem::u8path(path);
+    std::error_code ec;
+    if (!candidate.is_absolute() && !m_workspaceRoot.empty()) {
+        auto combined = m_workspaceRoot / candidate;
+        auto canonical = std::filesystem::weakly_canonical(combined, ec);
+        if (!ec) {
+            return canonical;
+        }
+        return combined;
+    }
+
+    auto canonical = std::filesystem::weakly_canonical(candidate, ec);
+    if (!ec) {
+        return canonical;
+    }
+    return candidate;
+}
+
+void UIBridge::clearSceneForWorkspace()
+{
+    m_scene.clear();
+    m_scene.setSelectedObjectIndex(-1);
+    m_selectedLightIndex = -1;
+}
+
+bool UIBridge::saveWorkspaceState(std::string& errorMessage) const
+{
+    if (!ensureWorkspaceFolder(&errorMessage)) {
+        return false;
+    }
+
+    using namespace rapidjson;
+    Document doc;
+    doc.SetObject();
+    Document::AllocatorType& allocator = doc.GetAllocator();
+
+    doc.AddMember("version", 1, allocator);
+    if (!m_workspaceRoot.empty()) {
+        const std::string rootStr = m_workspaceRoot.generic_string();
+        Value workspaceRootValue;
+        workspaceRootValue.SetString(rootStr.c_str(), static_cast<SizeType>(rootStr.size()), allocator);
+        doc.AddMember("workspace_root", workspaceRootValue, allocator);
+    }
+
+    Value objects(kArrayType);
+    auto appendVec = [&](Value& parent, const char* key, const glm::vec3& vec) {
+        Value arr(kArrayType);
+        arr.PushBack(vec.x, allocator);
+        arr.PushBack(vec.y, allocator);
+        arr.PushBack(vec.z, allocator);
+        parent.AddMember(Value(key, allocator), arr, allocator);
+    };
+
+    for (const auto& obj : m_scene.getObjects()) {
+        if (obj.sourcePath.empty()) {
+            continue;
+        }
+
+        Value entry(kObjectType);
+        Value nameValue;
+        nameValue.SetString(obj.name.c_str(), static_cast<SizeType>(obj.name.size()), allocator);
+        entry.AddMember("name", nameValue, allocator);
+
+        std::filesystem::path assetPath = std::filesystem::u8path(obj.sourcePath);
+        std::string serializedPath = serializeWorkspacePath(assetPath);
+        Value pathValue;
+        pathValue.SetString(serializedPath.c_str(), static_cast<SizeType>(serializedPath.size()), allocator);
+        entry.AddMember("path", pathValue, allocator);
+
+        appendVec(entry, "translation", extractTranslation(obj.modelMatrix));
+        appendVec(entry, "rotation", extractRotationDegrees(obj.modelMatrix));
+        appendVec(entry, "scale", extractScale(obj.modelMatrix));
+
+        objects.PushBack(entry, allocator);
+    }
+    doc.AddMember("objects", objects, allocator);
+
+    const CameraState& camState = m_camera.getCameraState();
+    Value camera(kObjectType);
+    appendVec(camera, "position", camState.position);
+    appendVec(camera, "front", camState.front);
+    appendVec(camera, "up", camState.up);
+    camera.AddMember("fov", camState.fov, allocator);
+    camera.AddMember("yaw", camState.yaw, allocator);
+    camera.AddMember("pitch", camState.pitch, allocator);
+    doc.AddMember("camera", camera, allocator);
+
+    StringBuffer buffer;
+    PrettyWriter<StringBuffer> writer(buffer);
+    doc.Accept(writer);
+
+    std::ofstream stream(workspaceStatePath(), std::ios::binary | std::ios::trunc);
+    if (!stream) {
+        errorMessage = "Unable to open workspace state for writing.";
+        return false;
+    }
+    stream << buffer.GetString() << '\n';
+    if (!stream) {
+        errorMessage = "Failed to write workspace state file.";
+        return false;
+    }
+    return true;
+}
+
+bool UIBridge::loadWorkspaceState(std::string* errorMessage)
+{
+    if (!ensureWorkspaceFolder(errorMessage)) {
+        return false;
+    }
+
+    const auto statePath = workspaceStatePath();
+    std::error_code existsError;
+    if (!std::filesystem::exists(statePath, existsError)) {
+        if (errorMessage) {
+            *errorMessage = "Workspace state not found at " + statePath.generic_string();
+        }
+        return false;
+    }
+
+    std::ifstream stream(statePath);
+    if (!stream) {
+        if (errorMessage) {
+            *errorMessage = "Unable to open workspace state.";
+        }
+        return false;
+    }
+
+    rapidjson::IStreamWrapper wrapper(stream);
+    rapidjson::Document doc;
+    doc.ParseStream(wrapper);
+    if (doc.HasParseError() || !doc.IsObject()) {
+        if (errorMessage) {
+            *errorMessage = "Workspace state is invalid.";
+        }
+        return false;
+    }
+
+    clearSceneForWorkspace();
+
+    if (doc.HasMember("objects") && doc["objects"].IsArray()) {
+        for (const auto& entry : doc["objects"].GetArray()) {
+            if (!entry.IsObject() || !entry.HasMember("name") || !entry["name"].IsString()
+                || !entry.HasMember("path") || !entry["path"].IsString()) {
+                continue;
+            }
+
+            const char* name = entry["name"].GetString();
+            const char* pathStr = entry["path"].GetString();
+
+            glm::vec3 translation(0.0f);
+            glm::vec3 rotation(0.0f);
+            glm::vec3 scale(1.0f);
+            if (entry.HasMember("translation") && entry["translation"].IsArray()) {
+                parseVec3(entry["translation"], translation);
+            }
+            if (entry.HasMember("rotation") && entry["rotation"].IsArray()) {
+                parseVec3(entry["rotation"], rotation);
+            }
+            if (entry.HasMember("scale") && entry["scale"].IsArray()) {
+                parseVec3(entry["scale"], scale);
+            }
+
+            auto resolved = resolveWorkspacePath(pathStr);
+            std::error_code loadError;
+            if (!std::filesystem::exists(resolved, loadError)) {
+                addConsoleMessage("Missing workspace asset: " + resolved.generic_string());
+                continue;
+            }
+
+            if (!m_scene.loadObject(name, resolved.generic_string(), translation, scale)) {
+                addConsoleMessage(std::string("Failed to load workspace object: ") + name);
+                continue;
+            }
+
+            glm::mat4 transform = composeTransform(translation, rotation, scale);
+            m_scene.setLocalMatrix(name, transform);
+        }
+    }
+
+    if (doc.HasMember("camera") && doc["camera"].IsObject()) {
+        const auto& cameraNode = doc["camera"];
+        glm::vec3 position = m_camera.getCameraState().position;
+        glm::vec3 front = m_camera.getCameraState().front;
+        glm::vec3 up = m_camera.getCameraState().up;
+        float fov = m_camera.getCameraState().fov;
+        float yaw = m_camera.getCameraState().yaw;
+        float pitch = m_camera.getCameraState().pitch;
+
+        if (cameraNode.HasMember("position") && cameraNode["position"].IsArray()) {
+            parseVec3(cameraNode["position"], position);
+        }
+        if (cameraNode.HasMember("front") && cameraNode["front"].IsArray()) {
+            parseVec3(cameraNode["front"], front);
+        }
+        if (cameraNode.HasMember("up") && cameraNode["up"].IsArray()) {
+            parseVec3(cameraNode["up"], up);
+        }
+        if (cameraNode.HasMember("fov") && cameraNode["fov"].IsNumber()) {
+            fov = static_cast<float>(cameraNode["fov"].GetDouble());
+        }
+        if (cameraNode.HasMember("yaw") && cameraNode["yaw"].IsNumber()) {
+            yaw = static_cast<float>(cameraNode["yaw"].GetDouble());
+        }
+        if (cameraNode.HasMember("pitch") && cameraNode["pitch"].IsNumber()) {
+            pitch = static_cast<float>(cameraNode["pitch"].GetDouble());
+        }
+
+        CameraState camState = m_camera.getCameraState();
+        camState.position = position;
+        camState.front = front;
+        camState.up = up;
+        camState.fov = fov;
+        camState.yaw = yaw;
+        camState.pitch = pitch;
+        m_camera.setCameraState(camState);
+    }
+
+    return true;
+}
+
+bool UIBridge::switchWorkspace(const std::filesystem::path& newRoot)
+{
+    std::error_code existsError;
+    if (newRoot.empty() || !std::filesystem::exists(newRoot, existsError)) {
+        addConsoleMessage("Workspace path does not exist: " + newRoot.generic_string());
+        return false;
+    }
+    if (!std::filesystem::exists(newRoot / "glint.project.json", existsError)) {
+        addConsoleMessage("glint.project.json not found in workspace: " + newRoot.generic_string());
+        return false;
+    }
+
+    setWorkspaceRoot(newRoot);
+
+    std::error_code cwdError;
+    std::filesystem::current_path(m_workspaceRoot, cwdError);
+
+    std::string error;
+    bool loaded = loadWorkspaceState(&error);
+    if (loaded) {
+        addConsoleMessage("Loaded workspace: " + m_workspaceRoot.generic_string());
+    } else {
+        if (!error.empty() && error.find("not found") == std::string::npos) {
+            addConsoleMessage(error);
+        }
+        clearSceneForWorkspace();
+        addConsoleMessage("Workspace ready: " + m_workspaceRoot.generic_string());
+    }
+    return true;
 }
 
 bool UIBridge::applyJsonOps(const std::string& json, std::string& error)

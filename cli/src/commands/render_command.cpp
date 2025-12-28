@@ -7,7 +7,8 @@
 #include "glint/cli/services/run_manifest_writer.h"
 #include "glint/cli/command_io.h"
 #include "application/cli_parser.h"
-// TODO: Add render_offscreen.h when available
+#include "application/application_core.h"
+#include <rapidjson/document.h>
 
 #include <chrono>
 #include <filesystem>
@@ -15,8 +16,11 @@
 #include <sstream>
 #include <algorithm>
 #include <random>
+#include <limits>
+#include <iomanip>
 
 #ifdef _WIN32
+#define NOMINMAX  // Prevent Windows.h from defining min/max macros
 #include <windows.h>
 #include <intrin.h>
 #else
@@ -116,10 +120,138 @@ std::string generateRunId()
     return oss.str();
 }
 
+bool parseVec3(const std::string& value, std::array<double, 3>& out)
+{
+    std::stringstream ss(value);
+    std::string token;
+    std::vector<double> nums;
+    while (std::getline(ss, token, ',')) {
+        try {
+            nums.push_back(std::stod(token));
+        } catch (...) {
+            return false;
+        }
+    }
+    if (nums.size() != 3) {
+        return false;
+    }
+    out = {nums[0], nums[1], nums[2]};
+    return true;
+}
+
+services::FrameRecord applyOverridesToFrame(const RenderCommand::RenderOptions& options,
+                                            const services::FrameRecord& baseFrame)
+{
+    services::FrameRecord result = baseFrame;
+    if (options.modelTranslate.has_value() && !result.transform.translation.has_value()) {
+        result.transform.translation = options.modelTranslate;
+    }
+    if (options.modelRotateEuler.has_value() && !result.transform.rotationEuler.has_value()) {
+        result.transform.rotationEuler = options.modelRotateEuler;
+    }
+    if (options.modelScale.has_value() && !result.transform.scale.has_value()) {
+        result.transform.scale = options.modelScale;
+    }
+    if (options.cameraPos.has_value() && !result.camera.position.has_value()) {
+        result.camera.position = options.cameraPos;
+    }
+    if (options.cameraTarget.has_value() && !result.camera.target.has_value()) {
+        result.camera.target = options.cameraTarget;
+    }
+    if (options.cameraUp.has_value() && !result.camera.up.has_value()) {
+        result.camera.up = options.cameraUp;
+    }
+    if (options.cameraFov.has_value() && !result.camera.fovDeg.has_value()) {
+        result.camera.fovDeg = options.cameraFov;
+    }
+    return result;
+}
+
+bool parseAnimationScript(const std::string& scriptPath,
+                          std::vector<services::FrameRecord>& framesOut,
+                          int& defaultStart,
+                          int& defaultEnd,
+                          std::string& errorMessage)
+{
+    std::ifstream file(scriptPath);
+    if (!file.is_open()) {
+        errorMessage = "Failed to open animation script: " + scriptPath;
+        return false;
+    }
+    std::string json((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    rapidjson::Document doc;
+    doc.Parse(json.c_str());
+    if (!doc.IsObject()) {
+        errorMessage = "Animation script must be a JSON object";
+        return false;
+    }
+    if (!doc.HasMember("frames") || !doc["frames"].IsArray()) {
+        errorMessage = "Animation script missing `frames` array";
+        return false;
+    }
+    const auto& frames = doc["frames"];
+    defaultStart = std::numeric_limits<int>::max();
+    defaultEnd = std::numeric_limits<int>::min();
+    for (auto& f : frames.GetArray()) {
+        if (!f.IsObject() || !f.HasMember("frame") || !f["frame"].IsInt()) {
+            errorMessage = "Each frame must be an object with integer `frame`";
+            return false;
+        }
+        services::FrameRecord rec;
+        rec.frame = f["frame"].GetInt();
+        defaultStart = std::min(defaultStart, rec.frame);
+        defaultEnd = std::max(defaultEnd, rec.frame);
+        if (f.HasMember("model_transform") && f["model_transform"].IsObject()) {
+            const auto& mt = f["model_transform"];
+            if (mt.HasMember("translation") && mt["translation"].IsArray() && mt["translation"].Size() == 3) {
+                rec.transform.translation = {mt["translation"][0].GetDouble(), mt["translation"][1].GetDouble(), mt["translation"][2].GetDouble()};
+            }
+            if (mt.HasMember("rotation_euler") && mt["rotation_euler"].IsArray() && mt["rotation_euler"].Size() == 3) {
+                rec.transform.rotationEuler = {mt["rotation_euler"][0].GetDouble(), mt["rotation_euler"][1].GetDouble(), mt["rotation_euler"][2].GetDouble()};
+            }
+            if (mt.HasMember("scale") && mt["scale"].IsArray() && mt["scale"].Size() == 3) {
+                rec.transform.scale = {mt["scale"][0].GetDouble(), mt["scale"][1].GetDouble(), mt["scale"][2].GetDouble()};
+            }
+        }
+        if (f.HasMember("camera") && f["camera"].IsObject()) {
+            const auto& cam = f["camera"];
+            if (cam.HasMember("position") && cam["position"].IsArray() && cam["position"].Size() == 3) {
+                rec.camera.position = {cam["position"][0].GetDouble(), cam["position"][1].GetDouble(), cam["position"][2].GetDouble()};
+            }
+            if (cam.HasMember("target") && cam["target"].IsArray() && cam["target"].Size() == 3) {
+                rec.camera.target = {cam["target"][0].GetDouble(), cam["target"][1].GetDouble(), cam["target"][2].GetDouble()};
+            }
+            if (cam.HasMember("up") && cam["up"].IsArray() && cam["up"].Size() == 3) {
+                rec.camera.up = {cam["up"][0].GetDouble(), cam["up"][1].GetDouble(), cam["up"][2].GetDouble()};
+            }
+            if (cam.HasMember("fov_deg") && cam["fov_deg"].IsNumber()) {
+                rec.camera.fovDeg = cam["fov_deg"].GetDouble();
+            }
+        }
+        framesOut.push_back(rec);
+    }
+    if (framesOut.empty()) {
+        errorMessage = "Animation script contains no frames";
+        return false;
+    }
+    return true;
+}
+
 } // namespace
 
 CLIExitCode RenderCommand::run(const CommandExecutionContext& context)
 {
+    // Respect caller working directory (so relative ops/assets resolve where user invoked glint)
+    std::filesystem::path originalCwd = std::filesystem::current_path();
+    const char* callerCwd = std::getenv("GLINT_CALLER_CWD");
+    if (callerCwd && *callerCwd) {
+        std::error_code ec;
+        std::filesystem::current_path(callerCwd, ec);
+        if (ec) {
+            emitCommandWarning(context, std::string("Warning: could not use caller working directory: ") + ec.message());
+        }
+    }
+
     RenderOptions options;
     std::string errorMessage;
 
@@ -213,6 +345,130 @@ CLIExitCode RenderCommand::parseArguments(const std::vector<std::string>& args,
         else if (arg == "--no-manifest") {
             options.writeManifest = false;
         }
+        else if (arg == "--animation-script") {
+            if (i + 1 >= args.size()) {
+                errorMessage = "Missing value for --animation-script";
+                return CLIExitCode::RuntimeError;
+            }
+            options.animationScriptPath = args[++i];
+            options.sequenceMode = true;
+        }
+        else if (arg == "--png-sequence-out") {
+            if (i + 1 >= args.size()) {
+                errorMessage = "Missing value for --png-sequence-out";
+                return CLIExitCode::RuntimeError;
+            }
+            options.pngSequenceOut = args[++i];
+            options.sequenceMode = true;
+        }
+        else if (arg == "--frame-start") {
+            if (i + 1 >= args.size()) {
+                errorMessage = "Missing value for --frame-start";
+                return CLIExitCode::RuntimeError;
+            }
+            options.frameStart = std::stoi(args[++i]);
+            options.sequenceMode = true;
+        }
+        else if (arg == "--frame-end") {
+            if (i + 1 >= args.size()) {
+                errorMessage = "Missing value for --frame-end";
+                return CLIExitCode::RuntimeError;
+            }
+            options.frameEnd = std::stoi(args[++i]);
+            options.sequenceMode = true;
+        }
+        else if (arg == "--frame-step") {
+            if (i + 1 >= args.size()) {
+                errorMessage = "Missing value for --frame-step";
+                return CLIExitCode::RuntimeError;
+            }
+            options.frameStep = std::max(1, std::stoi(args[++i]));
+            options.sequenceMode = true;
+        }
+        else if (arg == "--camera-pos") {
+            if (i + 1 >= args.size()) {
+                errorMessage = "Missing value for --camera-pos";
+                return CLIExitCode::RuntimeError;
+            }
+            std::array<double, 3> vec{};
+            if (!parseVec3(args[++i], vec)) {
+                errorMessage = "Invalid vector for --camera-pos (expected x,y,z)";
+                return CLIExitCode::RuntimeError;
+            }
+            options.cameraPos = vec;
+        }
+        else if (arg == "--camera-target") {
+            if (i + 1 >= args.size()) {
+                errorMessage = "Missing value for --camera-target";
+                return CLIExitCode::RuntimeError;
+            }
+            std::array<double, 3> vec{};
+            if (!parseVec3(args[++i], vec)) {
+                errorMessage = "Invalid vector for --camera-target (expected x,y,z)";
+                return CLIExitCode::RuntimeError;
+            }
+            options.cameraTarget = vec;
+        }
+        else if (arg == "--camera-up") {
+            if (i + 1 >= args.size()) {
+                errorMessage = "Missing value for --camera-up";
+                return CLIExitCode::RuntimeError;
+            }
+            std::array<double, 3> vec{};
+            if (!parseVec3(args[++i], vec)) {
+                errorMessage = "Invalid vector for --camera-up (expected x,y,z)";
+                return CLIExitCode::RuntimeError;
+            }
+            options.cameraUp = vec;
+        }
+        else if (arg == "--camera-fov") {
+            if (i + 1 >= args.size()) {
+                errorMessage = "Missing value for --camera-fov";
+                return CLIExitCode::RuntimeError;
+            }
+            try {
+                options.cameraFov = std::stod(args[++i]);
+            } catch (...) {
+                errorMessage = "Invalid value for --camera-fov";
+                return CLIExitCode::RuntimeError;
+            }
+        }
+        else if (arg == "--model-translate") {
+            if (i + 1 >= args.size()) {
+                errorMessage = "Missing value for --model-translate";
+                return CLIExitCode::RuntimeError;
+            }
+            std::array<double, 3> vec{};
+            if (!parseVec3(args[++i], vec)) {
+                errorMessage = "Invalid vector for --model-translate (expected x,y,z)";
+                return CLIExitCode::RuntimeError;
+            }
+            options.modelTranslate = vec;
+        }
+        else if (arg == "--model-rotate-euler") {
+            if (i + 1 >= args.size()) {
+                errorMessage = "Missing value for --model-rotate-euler";
+                return CLIExitCode::RuntimeError;
+            }
+            std::array<double, 3> vec{};
+            if (!parseVec3(args[++i], vec)) {
+                errorMessage = "Invalid vector for --model-rotate-euler (expected x,y,z in degrees)";
+                return CLIExitCode::RuntimeError;
+            }
+            options.modelRotateEuler = vec;
+        }
+        else if (arg == "--model-scale") {
+            if (i + 1 >= args.size()) {
+                errorMessage = "Missing value for --model-scale";
+                return CLIExitCode::RuntimeError;
+            }
+            std::array<double, 3> vec{};
+            if (!parseVec3(args[++i], vec)) {
+                errorMessage = "Invalid vector for --model-scale (expected x,y,z)";
+                return CLIExitCode::RuntimeError;
+            }
+            options.modelScale = vec;
+        }
         else if (!arg.empty() && arg[0] == '-') {
             errorMessage = "Unknown flag: " + arg;
             return CLIExitCode::UnknownFlag;
@@ -228,10 +484,36 @@ CLIExitCode RenderCommand::parseArguments(const std::vector<std::string>& args,
         }
     }
 
-    // Validation
-    if (options.outputPath.empty()) {
-        errorMessage = "Missing required --output path";
-        return CLIExitCode::UnknownFlag;
+    // Derive defaults when only --ops is provided
+    if (options.outputPath.empty() && !options.opsPath.empty()) {
+        std::filesystem::path opsPath(options.opsPath);
+        auto stem = opsPath.stem().string();
+        if (stem.empty()) {
+            stem = "render";
+        }
+        if (options.renderName == "default") {
+            options.renderName = stem;
+        }
+        options.outputPath = stem + ".png";
+    }
+
+    if (options.sequenceMode) {
+        if (options.animationScriptPath.empty()) {
+            errorMessage = "Animation mode requires --animation-script";
+            return CLIExitCode::RuntimeError;
+        }
+        if (options.pngSequenceOut.empty()) {
+            options.pngSequenceOut = (std::filesystem::path("renders") / options.renderName / "frames").string();
+        }
+        if (options.frameEnd < options.frameStart) {
+            options.frameEnd = options.frameStart;
+        }
+    } else {
+        // Validation
+        if (options.outputPath.empty()) {
+            errorMessage = "Missing required --output path";
+            return CLIExitCode::UnknownFlag;
+        }
     }
 
     if (options.inputPath.empty() && options.opsPath.empty()) {
@@ -247,22 +529,14 @@ CLIExitCode RenderCommand::executeRender(const CommandExecutionContext& context,
 {
     using namespace services;
 
-    auto startTime = std::chrono::high_resolution_clock::now();
-
-    // TODO: Integrate with actual engine rendering pipeline
-    // For now, this is a placeholder that would call the offscreen renderer
-
-    // Simulate render (in real implementation, call render_offscreen.h functions)
     std::string warningMessage;
     bool renderSuccess = false;
+    std::vector<FrameRecord> manifestFrames;
+    AnimationMetadata animationMeta;
+    std::vector<int> determinismFrames;
 
     try {
-        // This would be replaced with actual rendering code:
-        // renderSuccess = performOffscreenRender(options.inputPath, options.opsPath,
-        //                                        options.outputPath, options.width,
-        //                                        options.height, options.raytrace, options.denoise);
-
-        // For now, just verify input files exist
+        // Verify input files exist
         if (!options.inputPath.empty() && !std::filesystem::exists(options.inputPath)) {
             emitCommandFailed(context, CLIExitCode::FileNotFound,
                             "Input file not found: " + options.inputPath,
@@ -277,9 +551,156 @@ CLIExitCode RenderCommand::executeRender(const CommandExecutionContext& context,
             return CLIExitCode::FileNotFound;
         }
 
-        // Placeholder: mark as success for now
-        renderSuccess = true;
-        warningMessage = "Render command integration with engine is pending";
+        // Initialize headless application
+        ApplicationCore app;
+        if (!app.init("Glint Headless Render", options.width, options.height, true)) {
+            emitCommandFailed(context, CLIExitCode::RuntimeError,
+                            "Failed to initialize rendering engine",
+                            "init_failed");
+            return CLIExitCode::RuntimeError;
+        }
+
+        // Configure render settings
+        app.setRaytraceMode(options.raytrace);
+        app.setDenoiseEnabled(options.denoise);
+
+        // Load scene via JSON ops if provided
+        if (!options.opsPath.empty()) {
+            std::ifstream opsFile(options.opsPath);
+            if (!opsFile.is_open()) {
+                emitCommandFailed(context, CLIExitCode::FileNotFound,
+                                "Failed to open ops file: " + options.opsPath,
+                                "file_not_found");
+                return CLIExitCode::FileNotFound;
+            }
+
+            std::string opsJson((std::istreambuf_iterator<char>(opsFile)),
+                               std::istreambuf_iterator<char>());
+            std::string error;
+            if (!app.applyJsonOpsV1(opsJson, error)) {
+                emitCommandFailed(context, CLIExitCode::RuntimeError,
+                                "Failed to apply JSON ops: " + error,
+                                "ops_failed");
+                return CLIExitCode::RuntimeError;
+            }
+        } else if (!options.inputPath.empty()) {
+            // Load scene directly (if it's a scene JSON file)
+            std::ifstream sceneFile(options.inputPath);
+            if (!sceneFile.is_open()) {
+                emitCommandFailed(context, CLIExitCode::FileNotFound,
+                                "Failed to open scene file: " + options.inputPath,
+                                "file_not_found");
+                return CLIExitCode::FileNotFound;
+            }
+
+            std::string sceneJson((std::istreambuf_iterator<char>(sceneFile)),
+                                 std::istreambuf_iterator<char>());
+            std::string error;
+            if (!app.applyJsonOpsV1(sceneJson, error)) {
+                emitCommandFailed(context, CLIExitCode::RuntimeError,
+                                "Failed to load scene: " + error,
+                                "scene_load_failed");
+                return CLIExitCode::RuntimeError;
+            }
+        }
+
+        std::filesystem::path renderDir = std::filesystem::path("renders") / options.renderName;
+        std::filesystem::create_directories(renderDir);
+
+        if (options.sequenceMode) {
+            // Parse animation script
+            if (!std::filesystem::exists(options.animationScriptPath)) {
+                emitCommandFailed(context, CLIExitCode::FileNotFound,
+                                "Animation script not found: " + options.animationScriptPath,
+                                "file_not_found");
+                return CLIExitCode::FileNotFound;
+            }
+            std::vector<FrameRecord> scriptFrames;
+            int defaultStart = 0;
+            int defaultEnd = 0;
+            std::string parseError;
+            if (!parseAnimationScript(options.animationScriptPath, scriptFrames, defaultStart, defaultEnd, parseError)) {
+                emitCommandFailed(context, CLIExitCode::RuntimeError, parseError, "animation_parse_error");
+                return CLIExitCode::RuntimeError;
+            }
+            int frameStart = (options.frameStart == 0 && options.frameEnd == 0) ? defaultStart : options.frameStart;
+            int frameEnd = (options.frameStart == 0 && options.frameEnd == 0) ? defaultEnd : options.frameEnd;
+            if (frameEnd < frameStart) {
+                frameEnd = frameStart;
+            }
+            std::filesystem::path frameDir = options.pngSequenceOut.empty()
+                                                 ? renderDir / "frames"
+                                                 : std::filesystem::path(options.pngSequenceOut);
+            std::filesystem::create_directories(frameDir);
+
+            for (const auto& frame : scriptFrames) {
+                if (frame.frame < frameStart || frame.frame > frameEnd) {
+                    continue;
+                }
+                if (((frame.frame - frameStart) % options.frameStep) != 0) {
+                    continue;
+                }
+                FrameRecord resolved = applyOverridesToFrame(options, frame);
+                std::ostringstream fname;
+                fname << "frame_" << std::setfill('0') << std::setw(4) << frame.frame << ".png";
+                std::filesystem::path outPath = frameDir / fname.str();
+                auto perFrameStart = std::chrono::high_resolution_clock::now();
+                renderSuccess = app.renderToPNG(outPath.string(), options.width, options.height);
+                auto perFrameEnd = std::chrono::high_resolution_clock::now();
+                resolved.durationMs = std::chrono::duration<double, std::milli>(perFrameEnd - perFrameStart).count();
+                // Store output relative to renderDir when possible
+                std::error_code relEc;
+                auto relPath = std::filesystem::relative(outPath, renderDir, relEc);
+                resolved.output = relEc ? outPath.generic_string() : relPath.generic_string();
+                manifestFrames.push_back(resolved);
+                determinismFrames.push_back(resolved.frame);
+                if (!renderSuccess) {
+                    emitCommandFailed(context, CLIExitCode::RuntimeError,
+                                    "Rendering failed for frame " + std::to_string(frame.frame),
+                                    "render_failed");
+                    return CLIExitCode::RuntimeError;
+                }
+            }
+
+            if (manifestFrames.empty()) {
+                emitCommandFailed(context, CLIExitCode::RuntimeError,
+                                "No frames rendered: check frame range/step and script contents",
+                                "animation_no_frames");
+                return CLIExitCode::RuntimeError;
+            }
+
+            animationMeta.enabled = true;
+            animationMeta.frameStart = frameStart;
+            animationMeta.frameEnd = frameEnd;
+            animationMeta.frameStep = options.frameStep;
+            animationMeta.type = "keyframe";
+            animationMeta.scriptPath = options.animationScriptPath;
+            animationMeta.frames = manifestFrames;
+            renderSuccess = true;
+        } else {
+            // Single-frame render
+            std::filesystem::path fullOutputPath = renderDir / std::filesystem::path(options.outputPath).filename();
+            auto perFrameStart = std::chrono::high_resolution_clock::now();
+            renderSuccess = app.renderToPNG(fullOutputPath.string(), options.width, options.height);
+            auto perFrameEnd = std::chrono::high_resolution_clock::now();
+            double durationMs = std::chrono::duration<double, std::milli>(perFrameEnd - perFrameStart).count();
+
+            if (!renderSuccess) {
+                emitCommandFailed(context, CLIExitCode::RuntimeError,
+                                "Rendering failed - check console for details",
+                                "render_failed");
+                return CLIExitCode::RuntimeError;
+            }
+
+            FrameRecord frame;
+            frame.frame = 0;
+            frame.durationMs = durationMs;
+            frame.output = std::filesystem::path(options.outputPath).filename().string();
+            manifestFrames.push_back(frame);
+            determinismFrames.push_back(0);
+        }
+
+        app.shutdown();
 
     } catch (const std::exception& e) {
         emitCommandFailed(context, CLIExitCode::RuntimeError,
@@ -287,9 +708,6 @@ CLIExitCode RenderCommand::executeRender(const CommandExecutionContext& context,
                         "render_error");
         return CLIExitCode::RuntimeError;
     }
-
-    auto endTime = std::chrono::high_resolution_clock::now();
-    auto durationMs = std::chrono::duration<double, std::milli>(endTime - startTime).count();
 
     if (!renderSuccess) {
         emitCommandFailed(context, CLIExitCode::RuntimeError,
@@ -326,14 +744,11 @@ CLIExitCode RenderCommand::executeRender(const CommandExecutionContext& context,
             manifestOpts.engine = captureEngineMetadata();
 
             // Determinism metadata
-            manifestOpts.determinism = captureDeterminismMetadata(options);
+            manifestOpts.determinism = captureDeterminismMetadata(options, determinismFrames);
 
-            // Frame records
-            FrameRecord frame;
-            frame.frame = 0;
-            frame.durationMs = durationMs;
-            frame.output = options.outputPath;
-            manifestOpts.frames.push_back(frame);
+            // Frames and optional animation metadata
+            manifestOpts.frames = manifestFrames;
+            manifestOpts.animation = animationMeta;
 
             // Warnings
             if (!warningMessage.empty()) {
@@ -379,14 +794,19 @@ services::EngineMetadata RenderCommand::captureEngineMetadata() const
     return meta;
 }
 
-services::DeterminismMetadata RenderCommand::captureDeterminismMetadata(const RenderOptions& options) const
+services::DeterminismMetadata RenderCommand::captureDeterminismMetadata(const RenderOptions& options,
+                                                                        const std::vector<int>& frames) const
 {
     services::DeterminismMetadata meta;
 
     // Use deterministic seed (could be made configurable)
     meta.rngSeed = 42;
 
-    meta.frames.push_back(0);
+    if (!frames.empty()) {
+        meta.frames = frames;
+    } else {
+        meta.frames.push_back(0);
+    }
 
     // Compute digests of input files
     if (!options.inputPath.empty()) {

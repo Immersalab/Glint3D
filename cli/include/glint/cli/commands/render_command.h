@@ -8,6 +8,9 @@
 #include "glint/cli/command_dispatcher.h"
 #include "glint/cli/services/run_manifest_writer.h"
 
+#include <array>
+#include <optional>
+
 /**
  * @file render_command.h
  * @brief Command handler for `glint render`.
@@ -34,7 +37,6 @@ public:
      */
     CLIExitCode run(const CommandExecutionContext& context) override;
 
-private:
     struct RenderOptions {
         std::string outputPath;
         std::string inputPath;
@@ -45,6 +47,20 @@ private:
         bool raytrace = false;
         std::string renderName = "default";
         bool writeManifest = true;
+        std::string animationScriptPath;
+        std::string pngSequenceOut;
+        int frameStart = 0;
+        int frameEnd = 0;
+        int frameStep = 1;
+        bool sequenceMode = false;
+        std::optional<std::array<double, 3>> cameraPos;
+        std::optional<std::array<double, 3>> cameraTarget;
+        std::optional<std::array<double, 3>> cameraUp;
+        std::optional<double> cameraFov;
+        std::optional<std::array<double, 3>> modelTranslate;
+        std::optional<std::array<double, 3>> modelRotateEuler;
+        std::optional<std::array<double, 3>> modelScale;
+        std::vector<int> frameNumbers;
     };
 
     /**
@@ -84,7 +100,8 @@ private:
      * @param options Render options.
      * @return Determinism metadata structure.
      */
-    services::DeterminismMetadata captureDeterminismMetadata(const RenderOptions& options) const;
+    services::DeterminismMetadata captureDeterminismMetadata(const RenderOptions& options,
+                                                             const std::vector<int>& frames) const;
 };
 
 } // namespace glint::cli

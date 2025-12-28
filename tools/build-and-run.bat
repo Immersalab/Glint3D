@@ -309,6 +309,9 @@ echo     echo Run: tools\build-and-run.bat
 echo     exit /b 1
 echo ^)
 echo.
+echo REM Preserve caller working directory for default init target and other relative inputs
+echo set "GLINT_CALLER_CWD=%%CD%%"
+echo.
 echo REM Change to repository root for correct asset paths
 echo cd /d "%%~dp0.."
 echo.

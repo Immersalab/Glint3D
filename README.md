@@ -1,49 +1,97 @@
-<!-- Machine Summary Block -->
-{"file":"README.md","purpose":"Top-level overview, build instructions, and roadmap for Glint3D.","exports":[],"depends_on":["docs","engine","schemas"],"notes":["desktop_focus","modular_engine_layout","future_web_placeholder"]}
-<!-- Human Summary -->
-Entry-point README describing Glint3D, how to build it, the modular engine layout, and future roadmap notes.
-
 # Glint3D
 
-Glint3D is a lightweight OpenGL/GLFW renderer focused on deterministic desktop workflows, JSON-driven automation, and headless rendering. The previous WebAssembly pipeline has been retired for now; references remain in the history if we decide to bring it back.
+A lightweight 3D rendering engine with dual rendering pipelines (OpenGL rasterization and CPU raytracing), JSON-driven automation, and headless rendering support.
 
-## Engine Layout (Modular)
-See `docs/external_dependencies.md` for a detailed breakdown of vendored and managed dependencies.
+![Glint3D Interface](docs/images/interface-overview.png)
 
-- `engine/core/` - Application, rendering, scene, and IO systems that ship with every build.
-- `engine/modules/` - Optional features (ray tracing, gizmos, post-processing) toggled via CMake options.
-- `engine/platform/desktop/` - ImGui UI bridge, native file dialogs, and GLFW/Win32 glue for desktop targets.
-- `third_party/` - Vendored headers and managed dependencies (GLFW, OpenImageDenoise, etc.).
+## Features
 
-## Building (Desktop Only)
+- **Dual Rendering**: Real-time OpenGL rasterization and offline CPU raytracing with BVH acceleration
+- **PBR Materials**: Physically-based rendering with metallic-roughness workflow
+- **JSON Operations**: Scriptable scene manipulation for automation and testing
+- **Headless Rendering**: Batch rendering and golden image validation
+- **Asset Pipeline**: Support for OBJ, glTF, FBX, PLY, and other formats via Assimp
+- **Lighting System**: Point, directional, and spot lights with full shader integration
+
+![Rendering Comparison](docs/images/render-comparison.png)
+
+## Quick Start
+
+### Building
 
 ```powershell
+# Generate build files
 cmake -S . -B builds/desktop/cmake -DCMAKE_BUILD_TYPE=Release
+
+# Compile
 cmake --build builds/desktop/cmake --config Release
 ```
 
-The executable expects to be launched from the repository root so resources resolve correctly, or set the `GLINT_RESOURCE_ROOT` environment variable to point at a relocated bundle.
+### Basic Usage
 
-### Runtime Assets
+```powershell
+# Interactive UI
+./builds/desktop/cmake/Release/glint.exe
 
-All runtime data lives under `resources/`:
-- `resources/shaders/` - GLSL programs loaded by the renderer.
-- `resources/assets/` - built-in textures, HDR maps, sample models, and icons.
+# Headless rendering
+./builds/desktop/cmake/Release/glint.exe --ops examples/json-ops/basic.json --render output.png
 
-## JSON Ops
+# Raytraced rendering
+./builds/desktop/cmake/Release/glint.exe --ops examples/json-ops/glass-sphere.json --render output.png --raytrace
+```
 
-Automation flows go through the `JsonOpsExecutor`. See `schemas/json_ops_v1.json` and the examples under `examples/json-ops/` for the command set (load, transform, lighting, rendering, etc.). These files can be applied via the in-app console or the CLI flags exposed in `engine/core/application/main.cpp`.
+## Project Structure
 
-## Testing & Headless Rendering
+```
+engine/
+├── core/              Core rendering and scene systems
+├── modules/           Optional features (raytracing, post-processing)
+└── platform/desktop/  Desktop UI and native integrations
 
-The CLI supports headless rendering, golden-image style comparisons, and batch JSON ops execution. The scripts under `tests/scripts/` contain the reference invocation patterns (e.g., `run_golden_tests.sh`, `run_integration_tests.sh`).
+resources/
+├── shaders/           GLSL shader programs
+└── assets/            Models, textures, and examples
 
-## Future Web Support
+examples/json-ops/     Sample automation scripts
+tests/                 Unit tests, integration tests, and golden images
+```
 
-All WebAssembly/WebGL pieces were removed to simplify the project. Reintroducing the browser build will require:
+## JSON Operations
 
-1. Restoring the `EMSCRIPTEN` branch in `CMakeLists.txt` (the current file aborts with a fatal error if configured with Emscripten).
-2. Reinstating the wasm bindings, React/Tailwind UI, and associated npm workspace.
-3. Re-adding the HTML/JS bridge in `engine/core/application/main.cpp` and enabling the `WEB_USE_HTML_UI` code paths in the desktop UI bridge (`engine/platform/desktop`).
+Automate scene manipulation with JSON operations:
 
-Until then the engine is desktop-only.
+```json
+{
+  "operations": [
+    { "op": "load", "path": "model.obj" },
+    { "op": "add_light", "type": "point", "position": [0, 5, 0] },
+    { "op": "render", "output": "result.png", "width": 1920, "height": 1080 }
+  ]
+}
+```
+
+Full schema available in `schemas/json_ops_v1.json`.
+
+## Documentation
+
+- **Build Instructions**: See `CLAUDE.md` for detailed build configurations
+- **JSON Ops Reference**: Check `schemas/json_ops_v1.json` and `examples/json-ops/`
+- **Testing**: Run `tests/scripts/run_all_tests.sh` for comprehensive validation
+- **Dependencies**: See `docs/external_dependencies.md` for third-party libraries
+
+## Development
+
+The engine is designed for modularity and cross-platform support:
+
+- **RHI Abstraction**: Prepared for Vulkan/WebGPU backends
+- **Dual Material System**: Unified MaterialCore in development
+- **Security**: Path validation with `--asset-root` flag
+- **CI/CD**: Automated golden image testing and cross-platform builds
+
+## License
+
+[Add license information]
+
+## Contributing
+
+[Add contribution guidelines]

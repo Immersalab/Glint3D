@@ -13,6 +13,7 @@
 struct SceneObject
 {
     std::string name;
+    std::string sourcePath;
     GLuint   VAO = 0, VBO_positions = 0, VBO_normals = 0, VBO_uvs = 0, VBO_tangents = 0, EBO = 0;
     glm::mat4 modelMatrix{ 1.0f };        // World transform (computed from hierarchy)
     

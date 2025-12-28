@@ -31,6 +31,10 @@ public:
     // Utility functions for file type detection
     static bool isSceneFile(const std::string& filepath);
     static bool isModelFile(const std::string& filepath);
+
+    // Directory picker (returns workspace root or empty string when cancelled)
+    static std::string selectDirectory(const std::string& title = "Select Folder",
+                                       const std::string& defaultPath = "");
     
 private:
     static std::string platformOpenFile(const std::string& title,
@@ -40,4 +44,6 @@ private:
                                        const std::vector<Filter>& filters,
                                        const std::string& defaultPath,
                                        const std::string& defaultName);
+    static std::string platformSelectDirectory(const std::string& title,
+                                               const std::string& defaultPath);
 };

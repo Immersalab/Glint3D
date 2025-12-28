@@ -1,5 +1,5 @@
 // Machine Summary Block
-// {"file":"cli/include/glint/cli/command_dispatcher.h","purpose":"Declares the dispatcher and shared context for Glint CLI verbs.","exports":["glint::cli::GlobalOptions","glint::cli::CommandExecutionContext","glint::cli::ICommand","glint::cli::CommandDispatcher"],"depends_on":["glint/cli/ndjson_emitter.h","application/cli_parser.h","<memory>","<optional>","<string>","<vector>"],"notes":["phase2_cli_scaffolding","structured_output","global_flag_handling"]}
+// {"file":"cli/include/glint/cli/command_dispatcher.h","purpose":"Declares the dispatcher and shared context for Glint CLI verbs.","exports":["glint::cli::GlobalOptions","glint::cli::CommandExecutionContext","glint::cli::ICommand","glint::cli::CommandDispatcher"],"depends_on":["glint/cli/ndjson_emitter.h","glint/cli/logger.h","application/cli_parser.h","<memory>","<optional>","<string>","<vector>"],"notes":["phase2_cli_scaffolding","structured_output","global_flag_handling"]}
 // Human Summary
 // Defines the command dispatcher that parses global flags, prepares execution context, and routes verbs to their handlers.
 
@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "glint/cli/ndjson_emitter.h"
+#include "glint/cli/logger.h"
 
 #include "application/cli_parser.h"
 
@@ -23,10 +24,12 @@ namespace glint::cli {
 
 /// @brief Global flags applicable to all CLI verbs.
 struct GlobalOptions {
-    bool jsonOutput = false;              ///< Emit NDJSON events when true.
-    LogLevel logLevel = LogLevel::Info;   ///< Verbose logging control.
-    std::string projectPath;              ///< Optional project manifest override.
-    std::string configPath;               ///< Optional CLI config override.
+    bool jsonOutput = false;                         ///< Emit NDJSON events when true.
+    bool showHelp = false;                           ///< Show help message when true.
+    bool showVersion = false;                        ///< Show version information when true.
+    glint::cli::LogLevel logLevel = glint::cli::LogLevel::Info;   ///< Verbose logging control.
+    std::string projectPath;                         ///< Optional project manifest override.
+    std::string configPath;                          ///< Optional CLI config override.
 };
 
 /// @brief Shared context passed to individual command implementations.

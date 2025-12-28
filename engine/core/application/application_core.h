@@ -8,6 +8,7 @@
 /// @brief Declares the ApplicationCore orchestration facade for Glint3D.
 #include <string>
 #include <memory>
+#include <filesystem>
 #include <glm/glm.hpp>
 #include "gizmo.h"
 #include "render_settings.h"
@@ -159,6 +160,9 @@ public:
     /// @brief Provides direct access to the GLFW window handle.
     /// @return Pointer to the GLFW window, or nullptr when headless.
     GLFWwindow* getWindow() const { return m_window; }
+
+    /// @brief Configure the active workspace root for UI-driven workflows.
+    void setWorkspaceRoot(const std::filesystem::path& workspaceRoot);
     
     /// @brief Retrieves the primary camera controller.
     /// @return Mutable camera controller reference.

@@ -259,6 +259,49 @@ done < output.ndjson
 
 ---
 
+### TC-09: Animation Script + PNG Sequence Provenance
+
+**Objective**: Verify that animation scripting writes per-frame transforms/camera data, PNG sequences, and per-frame checksums into `run.json`.
+
+**Setup (sample script `ops/turntable_anim.json`):**
+```json
+{
+  "frames": [
+    {"frame": 0, "model_transform": {"rotation_euler": [0, 0, 0]}, "camera": {"position": [0, 0.5, 3.5]}},
+    {"frame": 10, "model_transform": {"rotation_euler": [0, 36, 0]}, "camera": {"position": [0, 0.5, 3.5]}},
+    {"frame": 20, "model_transform": {"rotation_euler": [0, 72, 0]}, "camera": {"position": [0, 0.5, 3.5]}}
+  ]
+}
+```
+
+**Execution:**
+```bash
+glint render --input examples/models/sphere.obj \
+  --animation-script ops/turntable_anim.json \
+  --png-sequence-out renders/turntable_frames \
+  --name turntable_anim --frame-start 0 --frame-end 20 --frame-step 10 --json
+```
+
+**Expected Results**:
+- Exit code 0 (Success)
+- PNG files exist: renders/turntable_frames/frame_0000.png, frame_0010.png, frame_0020.png
+- renders/turntable_anim/run.json contains:
+  - `animation` block with `frame_range` and `frames[*].model_transform` + `frames[*].camera`
+  - outputs.frames[*].output paths match PNGs
+  - Per-frame checksum entries present
+- NDJSON stream contains render_frame_completed per frame with output paths
+- When quick CLI overrides are passed (e.g., `--camera-pos 0,0.5,3.5 --model-rotate-euler 0,36,0`), the manifest must still include those explicit values in the frame entries.
+- If both a quick override and a script value exist for the same field on a frame, the script value wins; overrides apply only where the script omits that field.
+
+**Validation**:
+```bash
+jq '.animation.frames | length' renders/turntable_anim/run.json | grep 3
+jq '.animation.frames[] | select(.frame==10) | .model_transform.rotation_euler[1]' renders/turntable_anim/run.json | grep 36
+sha256sum renders/turntable_frames/frame_0000.png
+```
+
+---
+
 ## Automation Script
 
 ```bash

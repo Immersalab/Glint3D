@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <array>
 #include <filesystem>
 #include <optional>
 #include <string>
@@ -75,6 +76,31 @@ struct FrameRecord {
     int frame = 0;
     double durationMs = 0.0;
     std::string output;
+    std::string checksum;
+
+    struct Transform {
+        std::optional<std::array<double, 3>> translation;
+        std::optional<std::array<double, 3>> rotationEuler;
+        std::optional<std::array<double, 3>> scale;
+    } transform;
+
+    struct Camera {
+        std::optional<std::array<double, 3>> position;
+        std::optional<std::array<double, 3>> target;
+        std::optional<std::array<double, 3>> up;
+        std::optional<double> fovDeg;
+    } camera;
+};
+
+/// @brief Animation metadata persisted when rendering sequences.
+struct AnimationMetadata {
+    bool enabled = false;
+    int frameStart = 0;
+    int frameEnd = 0;
+    int frameStep = 1;
+    std::string type = "keyframe";
+    std::string scriptPath;
+    std::vector<FrameRecord> frames;
 };
 
 /// @brief Options supplied when finalising the run manifest.
@@ -88,6 +114,7 @@ struct RunManifestOptions {
     DeterminismMetadata determinism;
     std::filesystem::path outputDirectory;                   ///< Workspace-relative render output directory.
     std::vector<FrameRecord> frames;
+    AnimationMetadata animation;
     std::vector<std::string> warnings;
     CLIExitCode exitCode = CLIExitCode::Success;
 };

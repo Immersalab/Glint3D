@@ -18,6 +18,9 @@
 #include "glint/cli/commands/watch_command.h"
 #include "glint/cli/commands/profile_command.h"
 #include "glint/cli/commands/convert_command.h"
+#include "glint/cli/commands/ops_command.h"
+#include "glint/cli/commands/help_command.h"
+#include "glint/cli/commands/ui_command.h"
 
 #include <algorithm>
 #include <iostream>
@@ -86,6 +89,17 @@ GlobalFlagResult parseGlobalFlag(const std::vector<std::string>& tokens,
         }
         globals.configPath = tokens[index + 1];
         index += 1;
+        return GlobalFlagResult::Consumed;
+    }
+
+    // --help and --version are handled as special flags
+    if (token == "--help" || token == "-h") {
+        globals.showHelp = true;
+        return GlobalFlagResult::Consumed;
+    }
+
+    if (token == "--version" || token == "-v") {
+        globals.showVersion = true;
         return GlobalFlagResult::Consumed;
     }
 
@@ -162,6 +176,22 @@ public:
 std::optional<int> CommandDispatcher::tryRun(int argc, char** argv) const
 {
     auto outcome = parseArguments(argc, argv);
+
+    // Handle --help and --version early, even if no specific verb was recognized
+    if (outcome.success && outcome.parsed.globals.showHelp) {
+        HelpCommand helpCmd;
+        CommandExecutionContext ctx;
+        ctx.verb = "help";
+        ctx.globals = outcome.parsed.globals;
+        helpCmd.run(ctx);
+        return 0;
+    }
+
+    if (outcome.success && outcome.parsed.globals.showVersion) {
+        CLIParser::printVersion();
+        return 0;
+    }
+
     if (!outcome.recognized) {
         return std::nullopt;
     }
@@ -191,6 +221,8 @@ std::optional<int> CommandDispatcher::tryRun(int argc, char** argv) const
 bool CommandDispatcher::isSupportedVerb(const std::string& verb)
 {
     static const std::vector<std::string> verbs = {
+        "help",
+        "ui",
         "init",
         "validate",
         "inspect",
@@ -202,7 +234,8 @@ bool CommandDispatcher::isSupportedVerb(const std::string& verb)
         "assets",
         "watch",
         "profile",
-        "convert"
+        "convert",
+        "ops"
     };
     return std::find(verbs.begin(), verbs.end(), verb) != verbs.end();
 }
@@ -254,6 +287,12 @@ CommandDispatcher::ParseOutcome CommandDispatcher::parseArguments(int argc, char
     }
 
     if (commandIndex == std::string::npos) {
+        // No verb found - but if --help or --version was specified, mark as successful
+        if (globals.showHelp || globals.showVersion) {
+            outcome.success = true;
+            outcome.recognized = true;
+            outcome.parsed.globals = globals;
+        }
         return outcome;
     }
 
@@ -296,6 +335,12 @@ CommandDispatcher::ParseOutcome CommandDispatcher::parseArguments(int argc, char
 
 std::unique_ptr<ICommand> CommandDispatcher::createCommand(const std::string& verb)
 {
+    if (verb == "help") {
+        return std::make_unique<HelpCommand>();
+    }
+    if (verb == "ui") {
+        return std::make_unique<UiCommand>();
+    }
     if (verb == "init") {
         return std::make_unique<InitCommandAdapter>();
     }
@@ -331,6 +376,9 @@ std::unique_ptr<ICommand> CommandDispatcher::createCommand(const std::string& ve
     }
     if (verb == "convert") {
         return std::make_unique<ConvertCommand>();
+    }
+    if (verb == "ops") {
+        return std::make_unique<OpsCommand>();
     }
     return std::make_unique<StubCommand>(verb);
 }

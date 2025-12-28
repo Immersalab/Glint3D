@@ -463,6 +463,12 @@ for (const auto& material : scene.materials) {
 11. **Align BSDF Models** - Consistent shading across pipelines
 12. **Clearcoat & Attenuation** - Advanced material features
 
+---
+
+### Update: CLI Animation + UI Workspace (Nov 2025)
+- `glint render` now supports animation scripts (per-frame TRS + camera) producing PNG sequences; quick overrides (`--camera-pos/target/up/fov`, `--model-translate/rotate-euler/scale`) apply when the script omits that field. Run manifests include per-frame transforms/camera/checksums and an `animation` block.
+- `glint ui` launches against the active workspace (auto-detected or via `--workspace`) and the UI exposes **Open Workspace** and **Save Workspace**; legacy boot paths should be removed in favor of workspace-aware startup.
+
 #### **Phase 6: Production Features (Tasks 13-15)**
 13. **Auxiliary Readback** - Depth, normals, instance IDs
 14. **Deterministic Rendering** - Seeded outputs + metadata

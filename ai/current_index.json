@@ -1,6 +1,6 @@
 {
     "schema_version":  "1.0.0",
-    "last_updated":  "2025-11-05T21:00:00.0000000-05:00",
+    "last_updated":  "2025-11-16T14:00:00.0000000-05:00",
     "task_status":  {
                         "rendering_system_rhi_refactor":  {
                                                               "status":  "pending",
@@ -46,15 +46,15 @@
                                                     "notes":  "Superseded by glint_cli_platform_v1; keep artifacts for historical context."
                                                 },
                         "glint_cli_platform_v1":  {
-                                                      "status":  "pending",
+                                                      "status":  "in_progress",
                                                       "priority":  "high",
                                                       "blocked_by":  [
 
                                                                      ],
-                                                      "completion_percentage":  0,
-                                                      "current_phase":  "Not Started",
+                                                      "completion_percentage":  62,
+                                                      "current_phase":  "Phase 2: Implementation & Tooling (14/16 complete)",
                                                       "completion_date":  null,
-                                                      "notes":  "Deliver CLI platform v1 (Milestone A): commands, determinism, workspace scaffolding."
+                                                      "notes":  "Phase 1 complete (4/4). Phase 2: 14/16 complete - core commands, determinism logging, modules/assets, structured output, rendering integration. Remaining: legacy CLI migration (2 steps), Phase 3 validation/distribution (10 steps)."
                                                   },
                         "glint_rpc_daemon":  {
                                                  "status":  "pending",
@@ -78,7 +78,7 @@
                                                   "completion_date":  null,
                                                   "notes":  "Ship C++/Python/Node SDKs aligned with CLI/RPC."
                                               },
-                        "glint_platform_contracts":  {
+        "glint_platform_contracts":  {
                                                          "status":  "pending",
                                                          "priority":  "high",
                                                          "blocked_by":  [
@@ -88,19 +88,31 @@
                                                          "current_phase":  "Not Started",
                                                          "completion_date":  null,
                                                          "notes":  "Stabilize schemas, determinism, compatibility matrix, run manifests."
-                                                     }
+                                                     },
+        "bgfx_cli_automation_overhaul":  {
+                                             "status":  "pending",
+                                             "priority":  "high",
+                                             "blocked_by":  [
+                                                                "glint_cli_platform_v1"
+                                                            ],
+                                             "completion_percentage":  0,
+                                             "current_phase":  "Phase 0 \u2013 Alignment & Scoping",
+                                             "completion_date":  null,
+                                             "notes":  "Migrate renderer to BGFX with RHI abstraction, CLI-first automation flow, deterministic logging, and updated UI layer."
+                                         }
                     },
     "critical_path":  [
                           "cross_platform_user_paths",
                           "engine_modular_architecture",
                           "glint_cli_platform_v1",
+                          "bgfx_cli_automation_overhaul",
                           "glint_rpc_daemon",
                           "glint_sdk_rollout",
                           "glint_platform_contracts"
                       ],
     "current_focus":  {
                           "active_task":  "glint_cli_platform_v1",
-                          "phase":  "Planning",
-                          "notes":  "Kick off CLI platform milestone (v1) before RPC, SDK, and contracts tasks."
+                          "phase":  "Phase 2: Implementation & Tooling (13/15)",
+                          "notes":  "Completing CLI platform v1 implementation. Next: legacy CLI migration, then Phase 3 validation/distribution."
                       }
 }

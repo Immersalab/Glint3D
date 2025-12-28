@@ -223,7 +223,41 @@ Documents every render invocation for reproducibility: inputs, environment probe
 }
 ```
 
-### 3.3 Field Reference
+### 3.3 Animation + Camera Overrides (PNG Sequence Mode)
+- `command.flags.animation_script`: path to animation script JSON (validated before render).
+- `animation`: present only when sequence mode is used.
+  ```json
+  "animation": {
+    "type": "keyframe",
+    "frame_range": {"start": 0, "end": 120, "step": 10},
+    "frames": [
+      {
+        "frame": 0,
+        "model_transform": {
+          "translation": [0.0, 0.0, 0.0],
+          "rotation_euler": [0.0, 0.0, 0.0],
+          "scale": [1.0, 1.0, 1.0]
+        },
+        "camera": {
+          "position": [0.0, 0.0, 5.0],
+          "target": [0.0, 0.0, 0.0],
+          "up": [0.0, 1.0, 0.0],
+          "fov_deg": 45.0
+        },
+        "duration_ms": 412.6,
+        "output": "renders/turntable/frame_0000.png",
+        "checksum": "sha256:..."
+      }
+    ]
+  }
+  ```
+- Transform representation is normalized TRS (translation/rotation_euler/scale) to avoid matrix precision drift; all values must be numeric and finite.
+- Camera overrides capture position/target/up/FOV per frame; depth-of-field and exposure remain in `settings` unless explicitly overridden in the script.
+- PNG sequence outputs live under `renders/<name>/frames/frame_<####>.png`; per-frame checksums are required when files exist.
+- Quick CLI overrides (`--camera-pos/--camera-target/--camera-up/--camera-fov/--model-translate/--model-rotate-euler/--model-scale`) are expanded into the per-frame `animation.frames[*]` entries (or single-frame equivalent) before writing the manifest to keep determinism explicit; no implicit defaults are allowed when scripting is active.
+- Precedence: CLI overrides apply to all frames unless the animation script supplies that specific field for a frame; script values win per field, then defaults.
+
+### 3.4 Field Reference
 - `command.timestamp_utc`: ISO 8601 w/ milliseconds UTC.
 - `command.flags`: canonical map of parsed flags; booleans for toggles.
 - `engine.modules[*].hash`: deterministic SHA-256 of module payload (binary + manifest).
@@ -232,14 +266,14 @@ Documents every render invocation for reproducibility: inputs, environment probe
 - `outputs.checksums`: at least SHA-256 for each produced artifact. CLI writes actual values post-render.
 - `warnings`: array of human-readable warnings; empty array if none.
 
-### 3.4 Determinism Guarantees
+### 3.5 Determinism Guarantees
 - File is written atomically via temp file rename.
 - Keys serialized in alphabetical order when using `--json` deterministic mode.
 - Floating-point values (e.g., durations) formatted with 3 decimal places.
 - Arrays maintain lexical order: modules sorted by `name`, auxiliary outputs sorted by `kind`.
 - CLI must refuse to overwrite an existing `run.json` unless `--resume` is provided; on resume, append `"resumed_from":"<timestamp>"` to `command`.
 
-### 3.5 Validation Rules
+### 3.6 Validation Rules
 - Missing `schema_version`, `project`, `command`, `engine`, `environment`, or `settings` causes `DeterminismError`.
 - `command.exit_code` must match process exit status.
 - `settings.seed` must be numeric; CLI verifies and normalizes.
