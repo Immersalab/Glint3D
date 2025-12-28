@@ -83,8 +83,8 @@ Full schema available in `schemas/json_ops_v1.json`.
 
 The engine is designed for modularity and cross-platform support:
 
-- **RHI Abstraction**: Prepared for Vulkan/WebGPU backends
-- **Dual Material System**: Unified MaterialCore in development
+- **BGFX Migration Planned**: Future multi-backend support (Vulkan/DirectX/Metal/OpenGL/WebGL)
+- **Modular Architecture**: Separate core, modules, and platform-specific code
 - **Security**: Path validation with `--asset-root` flag
 - **CI/CD**: Automated golden image testing and cross-platform builds
 
