@@ -79,6 +79,8 @@ public:
                         GLuint textureId, int width, int height);
     bool renderToPNG(const SceneManager& scene, const Light& lights,
                     const std::string& path, int width, int height);
+    void setOffscreenSelectionOverlayEnabled(bool enabled) { m_offscreenSelectionOverlayEnabled = enabled; }
+    bool isOffscreenSelectionOverlayEnabled() const { return m_offscreenSelectionOverlayEnabled; }
 
     // Camera management
     void setCamera(const CameraState& camera) { m_camera = camera; }
@@ -203,6 +205,7 @@ private:
     bool m_showGrid = true;
     bool m_showAxes = true;
     bool m_showSkybox = false;
+    bool m_offscreenSelectionOverlayEnabled = false;
     
     // Utility renderers
     std::unique_ptr<AxisRenderer> m_axisRenderer;

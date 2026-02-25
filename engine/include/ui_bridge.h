@@ -152,6 +152,7 @@ enum class UICommand {
     // File operations
     ImportAsset,          // Unified import for models and JSON scenes
     ExportScene,
+    ExportPreviewPreset,
     OpenFile,
     OpenWorkspace,
     SaveWorkspace,
@@ -256,6 +257,8 @@ private:
     bool switchWorkspace(const std::filesystem::path& newRoot);
     std::string serializeWorkspacePath(const std::filesystem::path& path) const;
     std::filesystem::path resolveWorkspacePath(const std::string& path) const;
+    std::string previewPresetOpsToJson() const;
+    bool exportPreviewPresetOpsToFile(const std::string& path, std::string& errorMessage) const;
     
     // Command handlers
     void handleLoadObject(const UICommandData& cmd);

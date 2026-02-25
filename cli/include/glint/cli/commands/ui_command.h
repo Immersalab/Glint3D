@@ -28,7 +28,7 @@ public:
      * @return CLIExitCode::Success if UI launched successfully, error code otherwise
      *
      * @note This command blocks until the UI window is closed.
-     * @note Any command-line arguments are currently ignored.
+     * @note Supports `--ops <file.json>` to apply JsonOps after UI startup.
      */
     CLIExitCode run(const CommandExecutionContext& context) override;
 };

@@ -40,7 +40,7 @@ static inline void print_cli_help()
     std::printf("  glint --version               # Print version\n\n");
 
     std::printf("Core Commands:\n");
-    std::printf("  ui                   Launch interactive UI application\n");
+    std::printf("  ui [--ops <file>]    Launch interactive UI application (optionally apply JsonOps on startup)\n");
     std::printf("  init                 Initialize new Glint project workspace\n");
     std::printf("  render               Render scenes with determinism logging\n");
     std::printf("  inspect              Inspect scenes, manifests, and project files\n");
@@ -64,6 +64,7 @@ static inline void print_cli_help()
 
     std::printf("Quick Examples:\n");
     std::printf("  glint init --template pbr my_project\n");
+    std::printf("  glint ui --ops preview_mesh.ops.json\n");
     std::printf("  glint render --input scene.obj --output result.png --width 1920 --height 1080\n");
     std::printf("  glint ops operations.json --render output.png --raytrace --denoise\n");
     std::printf("  glint doctor\n");

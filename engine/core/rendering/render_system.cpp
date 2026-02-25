@@ -256,7 +256,7 @@ void RenderSystem::render(const SceneManager& scene, const Light& lights)
                 glEnable(GL_POLYGON_OFFSET_LINE);
                 glPolygonOffset(-1.0f, -1.0f);
                 glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-                glLineWidth(1.5f);
+                glLineWidth(1.0f);
                 glBindVertexArray(obj.VAO);
                 if (obj.EBO != 0) {
                     glDrawElements(GL_TRIANGLES, obj.objLoader.getIndexCount(), GL_UNSIGNED_INT, 0);
@@ -419,6 +419,9 @@ bool RenderSystem::renderToTexture(const SceneManager& scene, const Light& light
         } else {
             renderRasterized(scene, lights);
         }
+        if (m_offscreenSelectionOverlayEnabled) {
+            renderSelectionOutline(scene);
+        }
 
         // Create resolve framebuffer with provided texture
         glGenFramebuffers(1, &fboResolve);
@@ -493,6 +496,9 @@ bool RenderSystem::renderToTexture(const SceneManager& scene, const Light& light
             renderRaytraced(scene, lights);
         } else {
             renderRasterized(scene, lights);
+        }
+        if (m_offscreenSelectionOverlayEnabled) {
+            renderSelectionOutline(scene);
         }
 
         // Restore projection, framebuffer and viewport
@@ -1221,7 +1227,7 @@ void RenderSystem::renderSelectionOutline(const SceneManager& scene)
             glEnable(GL_POLYGON_OFFSET_LINE);
             glPolygonOffset(-1.0f, -1.0f);
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-            glLineWidth(1.5f);
+            glLineWidth(1.0f);
             glBindVertexArray(obj.VAO);
             if (obj.EBO != 0) {
                 glDrawElements(GL_TRIANGLES, obj.objLoader.getIndexCount(), GL_UNSIGNED_INT, 0);

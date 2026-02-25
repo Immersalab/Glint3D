@@ -246,6 +246,21 @@ bool ApplicationCore::renderToPNG(const std::string& path, int width, int height
     return m_renderer->renderToPNG(*m_scene, *m_lights, path, width, height);
 }
 
+void ApplicationCore::setOffscreenSelectionOverlayEnabled(bool enabled)
+{
+    if (m_renderer) {
+        m_renderer->setOffscreenSelectionOverlayEnabled(enabled);
+    }
+}
+
+bool ApplicationCore::isOffscreenSelectionOverlayEnabled() const
+{
+    if (m_renderer) {
+        return m_renderer->isOffscreenSelectionOverlayEnabled();
+    }
+    return false;
+}
+
 bool ApplicationCore::applyJsonOpsV1(const std::string& json, std::string& error)
 {
     if (m_ops) return m_ops->apply(json, error);

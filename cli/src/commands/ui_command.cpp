@@ -6,11 +6,15 @@
 #include "glint/cli/commands/ui_command.h"
 #include "glint/cli/logger.h"
 #include "application_core.h"
+#include "scene_manager.h"
+#include "light.h"
 
 #include <filesystem>
 #include <iostream>
 #include <optional>
 #include <cstdlib>
+#include <fstream>
+#include <sstream>
 
 namespace glint::cli {
 
@@ -91,6 +95,19 @@ std::filesystem::path resolveWorkspaceRoot(const CommandExecutionContext& contex
 
 CLIExitCode UiCommand::run(const CommandExecutionContext& context)
 {
+    std::string opsFileToApply;
+    for (size_t i = 0; i < context.arguments.size(); ++i) {
+        if (context.arguments[i] == "--ops") {
+            if (i + 1 >= context.arguments.size()) {
+                Logger::error("Missing value for --ops (expected a JsonOps file path)");
+                return CLIExitCode::UnknownFlag;
+            }
+            opsFileToApply = context.arguments[i + 1];
+            ++i;
+            continue;
+        }
+    }
+
     // Resolve workspace from flag or active project
     bool workspaceDetected = false;
     const std::filesystem::path workspacePath = resolveWorkspaceRoot(context, workspaceDetected);
@@ -117,6 +134,30 @@ CLIExitCode UiCommand::run(const CommandExecutionContext& context)
         Logger::error("Failed to initialize UI application");
         delete app;
         return CLIExitCode::RuntimeError;
+    }
+
+    if (!opsFileToApply.empty()) {
+        std::ifstream in(opsFileToApply, std::ios::binary);
+        if (!in.is_open()) {
+            Logger::error("Failed to open UI ops file: " + opsFileToApply);
+            delete app;
+            return CLIExitCode::FileNotFound;
+        }
+        std::ostringstream ss;
+        ss << in.rdbuf();
+        std::string opsJson = ss.str();
+
+        // Start from a clean state so staged preview ops replace the default scene/light setup.
+        app->getSceneManager().clear();
+        app->getLights().clearLights();
+
+        std::string err;
+        if (!app->applyJsonOpsV1(opsJson, err)) {
+            Logger::error("Failed to apply UI ops file: " + err);
+            delete app;
+            return CLIExitCode::RuntimeError;
+        }
+        Logger::info("Applied UI JsonOps: " + opsFileToApply);
     }
 
     // Run the application (blocks until window closes)

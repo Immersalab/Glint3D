@@ -1,0 +1,30 @@
+#!/bin/bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+candidates=(
+    "$REPO_ROOT/builds/desktop/cmake/Release/glint"
+    "$REPO_ROOT/builds/desktop/cmake/RelWithDebInfo/glint"
+    "$REPO_ROOT/builds/desktop/cmake/MinSizeRel/glint"
+    "$REPO_ROOT/builds/desktop/cmake/Debug/glint"
+    "$REPO_ROOT/builds/desktop/cmake/glint"
+    "$REPO_ROOT/builds/desktop/cmake/bin/glint"
+)
+
+GLINT_EXE=""
+for candidate in "${candidates[@]}"; do
+    if [ -x "$candidate" ]; then
+        GLINT_EXE="$candidate"
+        break
+    fi
+done
+
+if [ -z "$GLINT_EXE" ]; then
+    echo "ERROR: glint executable not found. Please run tools/build-and-run.sh first." >&2
+    exit 1
+fi
+
+cd "$REPO_ROOT"
+exec "$GLINT_EXE" "$@"

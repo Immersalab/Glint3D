@@ -1,7 +1,18 @@
 {
     "schema_version":  "1.0.0",
-    "last_updated":  "2025-11-16T14:00:00.0000000-05:00",
+    "last_updated":  "2026-02-24T20:08:00Z",
     "task_status":  {
+                        "qem_mesh_simplifier_baseline_plan":  {
+                                                                  "status":  "in_progress",
+                                                                  "priority":  "high",
+                                                                  "blocked_by":  [
+
+                                                                                 ],
+                                                                  "completion_percentage":  96,
+                                                                  "current_phase":  "Phase 5: Final Artifact Packaging / Validation (A-F planning deliverables drafted)",
+                                                                  "completion_date":  null,
+                                                                  "notes":  "A-F planning deliverables are now present in the QEM baseline plan artifact: repo recon, removable architecture, public API, baseline QEM algorithm plan, staged implementation/test checklist, and CMake integration notes. Vertical slice scaffold under tools/qem_simplifier remains the active implementation harness. Remaining work on this planning task is final packaging/validation review and (optionally) splitting plan details into implementation tickets before replacing qem_core stub with real code."
+                                                              },
                         "cross_platform_user_paths":  {
                                                           "status":  "completed",
                                                           "priority":  "high",
@@ -36,62 +47,63 @@
                                                     "notes":  "Superseded by glint_cli_platform_v1; keep artifacts for historical context."
                                                 },
                         "glint_cli_platform_v1":  {
-                                                      "status":  "in_progress",
+                                                      "status":  "on_hold",
                                                       "priority":  "high",
                                                       "blocked_by":  [
 
                                                                      ],
                                                       "completion_percentage":  62,
-                                                      "current_phase":  "Phase 2: Implementation & Tooling (14/16 complete)",
+                                                      "current_phase":  "On Hold - Reprioritized for qem_mesh_simplifier_baseline_plan",
                                                       "completion_date":  null,
-                                                      "notes":  "Phase 1 complete (4/4). Phase 2: 14/16 complete - core commands, determinism logging, modules/assets, structured output, rendering integration. Remaining: legacy CLI migration (2 steps), Phase 3 validation/distribution (10 steps)."
+                                                      "notes":  "Phase 1 complete (4/4). Phase 2: 14/16 complete - core commands, determinism logging, modules/assets, structured output, rendering integration. Remaining: legacy CLI migration (2 steps), Phase 3 validation/distribution (10 steps). On hold while top-priority QEM simplifier planning task is active."
                                                   },
                         "glint_rpc_daemon":  {
-                                                 "status":  "pending",
+                                                 "status":  "on_hold",
                                                  "priority":  "medium",
                                                  "blocked_by":  [
 
                                                                 ],
                                                  "completion_percentage":  0,
-                                                 "current_phase":  "Not Started",
+                                                 "current_phase":  "On Hold - Reprioritized for qem_mesh_simplifier_baseline_plan",
                                                  "completion_date":  null,
-                                                 "notes":  "Build glintd JSON-RPC daemon (Milestone B)."
+                                                 "notes":  "Build glintd JSON-RPC daemon (Milestone B). On hold while top-priority QEM simplifier planning task is active."
                                              },
                         "glint_sdk_rollout":  {
-                                                  "status":  "pending",
+                                                  "status":  "on_hold",
                                                   "priority":  "medium",
                                                   "blocked_by":  [
 
                                                                  ],
                                                   "completion_percentage":  0,
-                                                  "current_phase":  "Not Started",
+                                                  "current_phase":  "On Hold - Reprioritized for qem_mesh_simplifier_baseline_plan",
                                                   "completion_date":  null,
-                                                  "notes":  "Ship C++/Python/Node SDKs aligned with CLI/RPC."
+                                                  "notes":  "Ship C++/Python/Node SDKs aligned with CLI/RPC. On hold while top-priority QEM simplifier planning task is active."
                                               },
-        "glint_platform_contracts":  {
-                                                         "status":  "pending",
+                        "glint_platform_contracts":  {
+                                                         "status":  "on_hold",
                                                          "priority":  "high",
                                                          "blocked_by":  [
 
                                                                         ],
                                                          "completion_percentage":  0,
-                                                         "current_phase":  "Not Started",
+                                                         "current_phase":  "On Hold - Reprioritized for qem_mesh_simplifier_baseline_plan",
                                                          "completion_date":  null,
-                                                         "notes":  "Stabilize schemas, determinism, compatibility matrix, run manifests."
+                                                         "notes":  "Stabilize schemas, determinism, compatibility matrix, run manifests. On hold while top-priority QEM simplifier planning task is active."
                                                      },
-        "bgfx_cli_automation_overhaul":  {
-                                             "status":  "pending",
-                                             "priority":  "high",
-                                             "blocked_by":  [
-                                                                "glint_cli_platform_v1"
-                                                            ],
-                                             "completion_percentage":  0,
-                                             "current_phase":  "Phase 0 \u2013 Alignment & Scoping",
-                                             "completion_date":  null,
-                                             "notes":  "Replace direct OpenGL calls with BGFX for cross-platform rendering, deterministic automation, and unified MaterialCore. BGFX provides built-in hardware abstraction without needing custom RHI layer. Supersedes previous RHI refactor task."
-                                         }
+                        "bgfx_cli_automation_overhaul":  {
+                                                             "status":  "on_hold",
+                                                             "priority":  "high",
+                                                             "blocked_by":  [
+                                                                                "glint_cli_platform_v1"
+                                                                            ],
+                                                             "completion_percentage":  0,
+                                                             "current_phase":  "On Hold - Reprioritized for qem_mesh_simplifier_baseline_plan",
+                                                             "completion_date":  null,
+                                                             "notes":  "Replace direct OpenGL calls with BGFX for cross-platform rendering, deterministic automation, and unified MaterialCore. BGFX provides built-in hardware abstraction without needing custom RHI layer. Supersedes previous RHI refactor task. On hold while top-priority QEM simplifier planning task is active."
+                                                         }
                     },
     "critical_path":  [
+                          "qem_mesh_simplifier_baseline_plan",
                           "cross_platform_user_paths",
                           "engine_modular_architecture",
                           "glint_cli_platform_v1",
@@ -101,8 +113,8 @@
                           "glint_platform_contracts"
                       ],
     "current_focus":  {
-                          "active_task":  "glint_cli_platform_v1",
-                          "phase":  "Phase 2: Implementation & Tooling (13/15)",
-                          "notes":  "Completing CLI platform v1 implementation. Next: legacy CLI migration, then Phase 3 validation/distribution."
+                          "active_task":  "qem_mesh_simplifier_baseline_plan",
+                          "phase":  "Phase 5: Final Artifact Packaging / Validation",
+                          "notes":  "A-F planning sections are drafted in the QEM plan doc and checklist Phases 0-4 are complete. Next: final pass for formatting/assumptions validation, then begin real qem_core implementation (quadric math + adjacency) against the existing scaffold."
                       }
 }

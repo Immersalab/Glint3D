@@ -705,6 +705,28 @@ void UIBridge::handleUICommand(const UICommandData& command)
                 }
             }
             break;
+        case UICommand::ExportPreviewPreset:
+            {
+                std::string defaultDir;
+                if (!m_workspaceRoot.empty()) {
+                    defaultDir = (m_workspaceRoot / "output").generic_string();
+                }
+                std::string filepath = FileDialog::saveFile("Export Preview Preset (JsonOps)",
+                                                            FileDialog::getJSONFilters(),
+                                                            defaultDir,
+                                                            "preview_preset.ops.json");
+                if (!filepath.empty()) {
+                    std::string error;
+                    if (exportPreviewPresetOpsToFile(filepath, error)) {
+                        addConsoleMessage("Preview preset exported to: " + filepath);
+                    } else {
+                        addConsoleMessage("Failed to export preview preset: " + error);
+                    }
+                } else {
+                    addConsoleMessage("Preview preset export cancelled.");
+                }
+            }
+            break;
         case UICommand::OpenWorkspace:
             {
                 std::string defaultDir = m_workspaceRoot.empty()
@@ -849,6 +871,7 @@ void UIBridge::handleConsoleCommand(const UICommandData& cmd)
         addConsoleMessage("  save_png [<out.png>] [W H] - Alias for render");
         addConsoleMessage("  list             - List scene objects with indices");
         addConsoleMessage("  select <name|index> - Select an object by name or index");
+        addConsoleMessage("  export_preview_ops [<out.json>] - Export camera+lights JsonOps preset");
         addConsoleMessage("  json_ops         - Show detailed JSON Operations help");
         addConsoleMessage("");
         addConsoleMessage("JSON Operations v1.3 - Quick Reference:");
@@ -859,7 +882,7 @@ void UIBridge::handleConsoleCommand(const UICommandData& cmd)
         addConsoleMessage("--- Lighting ---");
         addConsoleMessage("  add_light (point/directional/spot types)");
         addConsoleMessage("--- Materials & Appearance ---");
-        addConsoleMessage("  set_material, set_background, exposure, tone_map");
+        addConsoleMessage("  set_material, set_background, exposure, tone_map, set_render_mode");
         addConsoleMessage("--- Rendering ---");
         addConsoleMessage("  render_image");
         addConsoleMessage("");
@@ -887,6 +910,7 @@ void UIBridge::handleConsoleCommand(const UICommandData& cmd)
         addConsoleMessage("  set_background   - Set background (solid/gradient/HDR stub/skybox)");
         addConsoleMessage("  exposure         - Adjust scene exposure");
         addConsoleMessage("  tone_map         - Configure tone mapping (linear/reinhard/filmic/aces)");
+        addConsoleMessage("  set_render_mode  - Set renderer mode (points|wireframe|solid|raytrace)");
         addConsoleMessage("--- Rendering ---");
         addConsoleMessage("  render_image     - Render scene to PNG file");
         addConsoleMessage("");
@@ -959,6 +983,23 @@ void UIBridge::handleConsoleCommand(const UICommandData& cmd)
         addConsoleMessage("Objects:");
         for (size_t i = 0; i < objs.size(); ++i) {
             addConsoleMessage(std::to_string(i) + ": " + objs[i].name);
+        }
+    }
+    else if (command.rfind("export_preview_ops", 0) == 0) {
+        std::string path;
+        if (command.size() > 18) {
+            path = command.substr(18);
+            while (!path.empty() && std::isspace(static_cast<unsigned char>(path.front()))) path.erase(path.begin());
+        }
+        if (path.empty()) {
+            path = "preview_preset.ops.json";
+        }
+
+        std::string err;
+        if (exportPreviewPresetOpsToFile(path, err)) {
+            addConsoleMessage("Preview preset exported to: " + path);
+        } else {
+            addConsoleMessage("Failed to export preview preset: " + err);
         }
     }
     else if (command.rfind("select ", 0) == 0) {
@@ -1390,6 +1431,131 @@ bool UIBridge::applyJsonOps(const std::string& json, std::string& error)
     }
     error = "JSON ops executor unavailable";
     return false;
+}
+
+std::string UIBridge::previewPresetOpsToJson() const
+{
+    using namespace rapidjson;
+
+    Document doc;
+    doc.SetObject();
+    Document::AllocatorType& allocator = doc.GetAllocator();
+
+    Value ops(kArrayType);
+
+    // Camera preset op (preserve current interactive view)
+    const CameraState camState = m_camera.getCameraState();
+    Value setCameraOp(kObjectType);
+    setCameraOp.AddMember("op", "set_camera", allocator);
+
+    Value position(kArrayType);
+    position.PushBack(camState.position.x, allocator);
+    position.PushBack(camState.position.y, allocator);
+    position.PushBack(camState.position.z, allocator);
+    setCameraOp.AddMember("position", position, allocator);
+
+    Value front(kArrayType);
+    front.PushBack(camState.front.x, allocator);
+    front.PushBack(camState.front.y, allocator);
+    front.PushBack(camState.front.z, allocator);
+    setCameraOp.AddMember("front", front, allocator);
+
+    Value up(kArrayType);
+    up.PushBack(camState.up.x, allocator);
+    up.PushBack(camState.up.y, allocator);
+    up.PushBack(camState.up.z, allocator);
+    setCameraOp.AddMember("up", up, allocator);
+
+    setCameraOp.AddMember("fov", camState.fov, allocator);
+    setCameraOp.AddMember("near", camState.nearClip, allocator);
+    setCameraOp.AddMember("far", camState.farClip, allocator);
+    ops.PushBack(setCameraOp, allocator);
+
+    // Lighting preset ops
+    for (size_t i = 0; i < m_lights.getLightCount(); ++i) {
+        const auto& light = m_lights.m_lights[i];
+        Value addLightOp(kObjectType);
+        addLightOp.AddMember("op", "add_light", allocator);
+
+        if (light.type == LightType::POINT) {
+            addLightOp.AddMember("type", "point", allocator);
+            Value lightPos(kArrayType);
+            lightPos.PushBack(light.position.x, allocator);
+            lightPos.PushBack(light.position.y, allocator);
+            lightPos.PushBack(light.position.z, allocator);
+            addLightOp.AddMember("position", lightPos, allocator);
+        } else if (light.type == LightType::DIRECTIONAL) {
+            addLightOp.AddMember("type", "directional", allocator);
+            Value lightDir(kArrayType);
+            lightDir.PushBack(light.direction.x, allocator);
+            lightDir.PushBack(light.direction.y, allocator);
+            lightDir.PushBack(light.direction.z, allocator);
+            addLightOp.AddMember("direction", lightDir, allocator);
+        } else if (light.type == LightType::SPOT) {
+            addLightOp.AddMember("type", "spot", allocator);
+
+            Value lightPos(kArrayType);
+            lightPos.PushBack(light.position.x, allocator);
+            lightPos.PushBack(light.position.y, allocator);
+            lightPos.PushBack(light.position.z, allocator);
+            addLightOp.AddMember("position", lightPos, allocator);
+
+            Value lightDir(kArrayType);
+            lightDir.PushBack(light.direction.x, allocator);
+            lightDir.PushBack(light.direction.y, allocator);
+            lightDir.PushBack(light.direction.z, allocator);
+            addLightOp.AddMember("direction", lightDir, allocator);
+            addLightOp.AddMember("inner_deg", light.innerConeDeg, allocator);
+            addLightOp.AddMember("outer_deg", light.outerConeDeg, allocator);
+        }
+
+        Value lightColor(kArrayType);
+        lightColor.PushBack(light.color.x, allocator);
+        lightColor.PushBack(light.color.y, allocator);
+        lightColor.PushBack(light.color.z, allocator);
+        addLightOp.AddMember("color", lightColor, allocator);
+        addLightOp.AddMember("intensity", light.intensity, allocator);
+        ops.PushBack(addLightOp, allocator);
+    }
+
+    doc.AddMember("ops", ops, allocator);
+
+    StringBuffer buffer;
+    PrettyWriter<StringBuffer> writer(buffer);
+    doc.Accept(writer);
+    return buffer.GetString();
+}
+
+bool UIBridge::exportPreviewPresetOpsToFile(const std::string& path, std::string& errorMessage) const
+{
+    if (path.empty()) {
+        errorMessage = "output path is empty";
+        return false;
+    }
+
+    const std::filesystem::path outPath = std::filesystem::u8path(path);
+    std::error_code ec;
+    if (outPath.has_parent_path()) {
+        std::filesystem::create_directories(outPath.parent_path(), ec);
+        if (ec) {
+            errorMessage = "failed to create parent directory: " + ec.message();
+            return false;
+        }
+    }
+
+    std::ofstream file(outPath, std::ios::binary | std::ios::trunc);
+    if (!file.is_open()) {
+        errorMessage = "failed to open file for write";
+        return false;
+    }
+
+    const std::string json = previewPresetOpsToJson();
+    file << json;
+    if (!file.good()) {
+        errorMessage = "write error";
+        return false;
+    }
+    return true;
 }
 
 std::string UIBridge::buildShareLink() const

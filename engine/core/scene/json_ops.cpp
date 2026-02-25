@@ -349,6 +349,34 @@ bool JsonOpsExecutor::apply(const std::string& json, std::string& error)
             }
             return true;
         }
+        else if (op == "set_render_mode") {
+            if (!obj.HasMember("mode") || !obj["mode"].IsString()) {
+                error = "set_render_mode: missing 'mode'";
+                return false;
+            }
+            std::string mode = obj["mode"].GetString();
+            std::string lower;
+            lower.resize(mode.size());
+            std::transform(mode.begin(), mode.end(), lower.begin(),
+                           [](unsigned char c){ return (char)std::tolower(c); });
+
+            RenderMode renderMode = RenderMode::Solid;
+            if (lower == "points" || lower == "point") {
+                renderMode = RenderMode::Points;
+            } else if (lower == "wireframe" || lower == "wire") {
+                renderMode = RenderMode::Wireframe;
+            } else if (lower == "solid") {
+                renderMode = RenderMode::Solid;
+            } else if (lower == "raytrace" || lower == "ray_traced" || lower == "rt") {
+                renderMode = RenderMode::Raytrace;
+            } else {
+                error = "set_render_mode: invalid mode '" + mode + "'";
+                return false;
+            }
+
+            m_renderer.setRenderMode(renderMode);
+            return true;
+        }
         else if (op == "set_material") {
             if (!obj.HasMember("target") || !obj["target"].IsString()) { error = "set_material: missing 'target'"; return false; }
             std::string target = obj["target"].GetString();

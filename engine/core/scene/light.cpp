@@ -121,6 +121,11 @@ size_t Light::getLightCount() const
     return m_lights.size();
 }
 
+void Light::clearLights()
+{
+    m_lights.clear();
+}
+
 // Initialize indicator geometry (cube for point lights, arrow for directional lights, cone for spot lights)
 void Light::initIndicator()
 {

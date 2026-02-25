@@ -226,6 +226,11 @@ void ImGuiUILayer::renderMainMenuBar(const UIState& state)
                 cmd.command = UICommand::ExportScene;
                 if (onCommand) onCommand(cmd);
             }
+            if (ImGui::MenuItem("Export Preview Preset...", "Ctrl+Shift+E")) {
+                UICommandData cmd;
+                cmd.command = UICommand::ExportPreviewPreset;
+                if (onCommand) onCommand(cmd);
+            }
 
             ImGui::Separator();
             if (ImGui::MenuItem("Open Workspace...", "Ctrl+Shift+O")) {
@@ -1249,6 +1254,7 @@ void ImGuiUILayer::renderHelpDialogs()
                 ImGui::BulletText("set_ibl_intensity - Set IBL strength: {\"op\":\"set_ibl_intensity\", \"value\":2.0}");
                 ImGui::BulletText("exposure - Adjust exposure: {\"op\":\"exposure\", \"value\":-1.0}");
                 ImGui::BulletText("tone_map - Configure tone mapping: {\"op\":\"tone_map\", \"type\":\"filmic|linear|reinhard|aces\"}");
+                ImGui::BulletText("set_render_mode - Set renderer mode: {\"op\":\"set_render_mode\", \"mode\":\"wireframe|solid|points|raytrace\"}");
             }
             
             if (ImGui::CollapsingHeader("Rendering")) {

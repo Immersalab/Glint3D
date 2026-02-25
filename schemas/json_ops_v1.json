@@ -274,6 +274,18 @@
       },
       "additionalProperties": false
     },
+    "opSetRenderMode": {
+      "type": "object",
+      "required": ["op", "mode"],
+      "properties": {
+        "op": { "const": "set_render_mode" },
+        "mode": {
+          "type": "string",
+          "enum": ["points", "wireframe", "solid", "raytrace"]
+        }
+      },
+      "additionalProperties": false
+    },
     "opRenderImage": {
       "type": "object",
       "required": ["op", "path"],
@@ -305,6 +317,7 @@
         { "$ref": "#/definitions/opSetIBLIntensity" },
         { "$ref": "#/definitions/opExposure" },
         { "$ref": "#/definitions/opToneMap" },
+        { "$ref": "#/definitions/opSetRenderMode" },
         { "$ref": "#/definitions/opRenderImage" }
       ]
     }

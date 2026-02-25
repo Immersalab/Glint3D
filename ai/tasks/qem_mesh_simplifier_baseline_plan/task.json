@@ -1,0 +1,69 @@
+﻿{
+    "id":  "qem_mesh_simplifier_baseline_plan",
+    "title":  "Baseline QEM Mesh Simplifier - Repo Recon \u0026 Integration Plan",
+    "owner":  "geometry_team",
+    "status":  "in_progress",
+    "updated":  "2026-02-24T20:52:46Z",
+    "inputs":  {
+                   "files":  [
+                                 "CMakeLists.txt",
+                                 "README.md",
+                                 "CLAUDE.md",
+                                 "engine/core/io/*",
+                                 "engine/core/scene/*",
+                                 "engine/core/rendering/*",
+                                 "engine/modules/*",
+                                 "engine/platform/desktop/*",
+                                 "engine/include/*",
+                                 "cli/*",
+                                 "docs/*",
+                                 "resources/*",
+                                 "third_party/*",
+                                 "schemas/*",
+                                 "ai/current_index.json"
+                             ],
+                   "schema_version":  "1.0.0"
+               },
+    "outputs":  {
+                    "artifacts":  [
+                                      "artifacts/documentation/qem_baseline_simplifier_plan.md",
+                                      "artifacts/validation/qem_repo_recon_inventory.md"
+                                  ],
+                    "events":  [
+                                   "task_created",
+                                   "task_registered",
+                                   "task_started",
+                                   "phase_completed",
+                                   "task_completed"
+                               ]
+                },
+    "acceptance":  [
+                       "A single deliverable (or clearly linked artifact set) provides sections A-F in order: Repo Recon, Proposed Architecture, Public API Design, Baseline QEM Algorithm Plan, Implementation Checklist, and Build/Integration Notes.",
+                       "Repo recon is grounded in actual repository inspection and explicitly identifies inferred build system, top-level layout, rendering/GUI organization, mesh-related code locations, and math libraries; unknowns are called out with 1-2 reasonable options.",
+                       "Proposed QEM module architecture is removable/system-agnostic, separates core/adapters/io/viewer layers, and keeps the core library free of viewer/GUI/render backend dependencies.",
+                       "Public API defines SimplifyOptions, SimplifyResult, and a Simplify entry point with concise header-level examples showing how glint can call through a thin adapter boundary.",
+                       "Baseline QEM algorithm plan specifies face planes, quadric accumulation, edge enumeration, deterministic priority queue behavior, collapse validation, local updates, and optimal-position solve fallback policy for singular systems.",
+                       "Implementation checklist includes staged milestones and non-rendering unit tests with known meshes and invariants, plus minimal-churn build integration notes based on the repository build system actually present.",
+                       "Data ownership/lifetime rules, epsilon policy, stable tie-breaks, and deterministic indexing expectations are documented explicitly."
+                   ],
+    "dependencies":  [
+
+                     ],
+    "priority":  "high",
+    "estimated_duration":  "1-2 days",
+    "seed_policy":  "deterministic",
+    "events":  [
+                   {
+                       "event":  "task_created",
+                       "timestamp":  "2026-02-24T19:45:01Z"
+                   },
+                   {
+                       "event":  "task_started",
+                       "timestamp":  null
+                   },
+                   {
+                       "event":  "task_completed",
+                       "timestamp":  null
+                   }
+               ]
+}

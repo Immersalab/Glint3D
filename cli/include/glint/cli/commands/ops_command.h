@@ -25,6 +25,7 @@ namespace glint::cli {
  *
  * @par Options
  * - --render [<output.png>] - Render to PNG after applying ops
+ * - --selection-overlay - Render selected-object wireframe overlay in offscreen output
  * - --w <width> - Output width (default: 1024)
  * - --h <height> - Output height (default: 1024)
  * - --denoise - Enable denoising if available
@@ -76,6 +77,7 @@ private:
         bool forceRaytrace = false;
         bool strictSchema = false;
         bool shouldRender = false;
+        bool selectionOverlay = false;
     };
 
     /**

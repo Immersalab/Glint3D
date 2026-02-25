@@ -94,6 +94,7 @@ bool OpsCommand::parseOpsArguments(const std::vector<std::string>& args,
     options.forceRaytrace = hasFlag(args, "--raytrace");
     options.strictSchema = hasFlag(args, "--strict-schema");
     options.shouldRender = hasFlag(args, "--render");
+    options.selectionOverlay = hasFlag(args, "--selection-overlay");
 
     // Parse string values
     options.outputFile = getValue(args, "--render");
@@ -210,6 +211,7 @@ CLIExitCode OpsCommand::executeOps(const OpsOptions& options,
     }
 
     app->setReflectionSpp(options.reflectionSpp);
+    app->setOffscreenSelectionOverlayEnabled(options.selectionOverlay);
 
     if (options.strictSchema) {
         Logger::debug("Enabling strict schema validation for " + options.schemaVersion);

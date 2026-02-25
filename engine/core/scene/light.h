@@ -38,6 +38,7 @@ public:
                       float innerConeDeg, float outerConeDeg);
     void applyLights(GLuint shaderProgram) const;
     size_t getLightCount() const;
+    void clearLights();
 
     // New functions for indicator visualization
     void initIndicator();         // Create geometry (cube for point lights, arrow for directional)

@@ -65,6 +65,8 @@ public:
     /// @param height Output height in pixels.
     /// @return True if rendering and file write succeeded.
     bool renderToPNG(const std::string& path, int width, int height);
+    void setOffscreenSelectionOverlayEnabled(bool enabled);
+    bool isOffscreenSelectionOverlayEnabled() const;
 
     /// @brief Applies a JSON Ops v1 script to the active scene.
     /// @param json JSON document describing operations to run.
@@ -179,6 +181,14 @@ public:
     /// @brief Retrieves the active scene manager.
     /// @return Immutable scene manager reference.
     const SceneManager& getSceneManager() const { return *m_scene; }
+
+    /// @brief Retrieves the active light manager.
+    /// @return Mutable light manager reference.
+    Light& getLights() { return *m_lights; }
+
+    /// @brief Retrieves the active light manager.
+    /// @return Immutable light manager reference.
+    const Light& getLights() const { return *m_lights; }
 
 private:
     // Core systems
