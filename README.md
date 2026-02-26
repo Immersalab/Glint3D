@@ -11,11 +11,13 @@ Welcome to...
 
 ```
 
-Glint3D is a C++ 3D engine focused on interactive desktop rendering and automation-friendly CLI workflows. It supports real-time OpenGL rendering, CPU raytracing, JSON-driven operations, and headless output generation.
+Glint3D is a 3D engine with an easy-to-use UI and an automation- and AI-friendly CLI for fast rendering, scripting, and visual workflows.
 
 ![Glint3D HUD Wireframe](resources/assets/img/HUD-Wireframe.png)
 
 ![Glint3D HUD Solid](resources/assets/img/HUD-Solid.png)
+
+Animate a simplification pass: `glint simplify --10 --animate`
 
 ![QEM Decomposition Sample](resources/assets/videos/decomposition%20-%201.gif)
 
@@ -53,69 +55,46 @@ Output binary (typical):
 
 ## Run
 
-### Interactive UI
-
 ```powershell
-.\builds\desktop\cmake\Release\glint.exe
+glint ui
+glint help
+glint init my_project
+glint render --input scene.obj --output img.png
+glint ops .\path\to\ops.json --render .\output.png --raytrace --denoise
 ```
 
-### CLI Help
-
-```powershell
-.\builds\desktop\cmake\Release\glint.exe help
-```
-
-### JSON Ops / Headless Render (legacy-compatible flags)
-
-```powershell
-.\builds\desktop\cmake\Release\glint.exe --ops .\path\to\ops.json --render .\output.png
-.\builds\desktop\cmake\Release\glint.exe --ops .\path\to\ops.json --render .\output.png --raytrace --denoise
-```
+If `glint` is not on your `PATH`, run `.\builds\desktop\cmake\Release\glint.exe`.
 
 ## Using Glint3D (Overview)
 
-Glint3D can be used in two primary ways:
-
-- Interactive mode: launch the desktop app to inspect scenes, tweak rendering, and work visually.
-- CLI mode: run commands and JSON Ops for automation, reproducible renders, and tooling integration.
-
-Common workflows:
-
-1. Build `glint.exe`.
-2. Launch the UI for interactive work.
-3. Use CLI commands (`help`, `init`, `render`, `ops`) for scripted tasks.
-4. Use `schemas/json_ops_v1.json` to validate or author JSON Ops inputs.
+- Interactive UI: `glint ui`
+- CLI workflows: `glint help`, `glint render`, `glint ops`, `glint init`
+- JSON Ops schema: `schemas/json_ops_v1.json`
 
 ## Project Layout
 
 ```text
 engine/
-  core/               Core rendering, scene, IO, and application systems
-  modules/            Optional engine modules (raytracing, gizmos, post FX)
-  platform/desktop/   Desktop UI and native platform integration
+  core/               Engine systems
+  modules/            Optional modules
+  platform/desktop/   Desktop UI/platform layer
 
 resources/
-  assets/             Runtime assets and icons
-  shaders/            GLSL shader sources
-  templates/          Project scaffolding templates
+  assets/             Images, videos, icons
+  shaders/            Shader sources
+  templates/          Scaffolding templates
 
-cli/                  CLI command platform implementation
-schemas/              JSON schemas (including JSON Ops)
-docs/                 Project and dependency documentation
+cli/                  CLI command platform
+schemas/              JSON schemas
+docs/                 Documentation
 ```
 
 ## JSON Ops
 
-Glint3D supports JSON-based scripted operations for loading, scene edits, and rendering.
-
 - Schema: `schemas/json_ops_v1.json`
-- Use with: `glint --ops <file> --render <output.png>`
+- Run: `glint ops <file> --render <output.png>`
 
 ## Notes
 
-- The built-in CLI banner/help reflects the current command platform and available subcommands.
-- Some commands shown in help may be in-progress depending on your local branch/build state.
-
-## License
-
-License information is not yet published in this repository.
+- Use `glint help` for the current command list.
+- Some commands may still be in progress depending on branch state.
