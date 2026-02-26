@@ -1,0 +1,163 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\application\application_core.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\application\cli_parser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\application\render_settings.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\application\schema_validator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\scene\scene_manager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\scene\light.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\scene\material.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\scene\json_ops.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\rendering\camera_controller.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\rendering\render_system.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\rendering\shader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\rendering\texture.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\rendering\texture_cache.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\rendering\skybox.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\rendering\ibl_system.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\io\objloader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\io\mesh_loader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\io\importer_registry.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\io\importers\obj_importer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\io\importers\assimp_importer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\io\assimp_loader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\io\image_io.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\io\resource_paths.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\io\user_paths.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\io\path_security.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\platform\desktop\ui_bridge.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\platform\desktop\imgui_ui_layer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\platform\desktop\file_dialog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\platform\desktop\panels\scene_tree_panel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\modules\raytracing\raytracer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\modules\raytracing\BVHNode.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\modules\raytracing\triangle.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\modules\raytracing\RayUtils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\modules\raytracing\brdf.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\modules\raytracing\microfacet_sampling.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\modules\raytracing\raytracer_lighting.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\modules\raytracing\refraction.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\modules\gizmos\gizmo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\modules\gizmos\grid.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\modules\gizmos\axisrenderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\third_party\vendored\imgui\imgui.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\third_party\vendored\imgui\imgui_draw.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\third_party\vendored\imgui\imgui_tables.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\third_party\vendored\imgui\imgui_widgets.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\third_party\vendored\imgui\backends\imgui_impl_glfw.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\third_party\vendored\imgui\backends\imgui_impl_opengl3.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\third_party\vendored\miniz\miniz.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\third_party\vendored\miniz\miniz_tdef.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\third_party\vendored\miniz\miniz_tinfl.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\third_party\vendored\miniz\miniz_zip.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="D:\ahoqp1\Repositories\Glint3D\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{85A9EF3D-CB74-39BE-8310-3F3451042155}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="D:\ahoqp1\Repositories\Glint3D\output\glint_debug_build\CMakeFiles\987f60036af624f48f32a8b1bac317ed\INSTALL_force.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{71B76A2E-1CC6-31ED-9C90-6F57C7AECFE8}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

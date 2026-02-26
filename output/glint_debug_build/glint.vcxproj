@@ -1,0 +1,454 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
+  </PropertyGroup>
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="MinSizeRel|x64">
+      <Configuration>MinSizeRel</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="RelWithDebInfo|x64">
+      <Configuration>RelWithDebInfo</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{348358F6-65F3-3065-A862-87C6B8443B9C}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
+    <Platform>x64</Platform>
+    <ProjectName>glint</ProjectName>
+    <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.20506.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\ahoqp1\Repositories\Glint3D\output\glint_debug_build\Debug\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">glint.dir\Debug\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">glint</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.exe</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateManifest>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\ahoqp1\Repositories\Glint3D\output\glint_debug_build\Release\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">glint.dir\Release\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">glint</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.exe</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateManifest>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">D:\ahoqp1\Repositories\Glint3D\output\glint_debug_build\MinSizeRel\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">glint.dir\MinSizeRel\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">glint</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">.exe</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">true</GenerateManifest>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">D:\ahoqp1\Repositories\Glint3D\output\glint_debug_build\RelWithDebInfo\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">glint.dir\RelWithDebInfo\</IntDir>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">glint</TargetName>
+    <TargetExt Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">.exe</TargetExt>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">true</LinkIncremental>
+    <GenerateManifest Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">true</GenerateManifest>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>D:\ahoqp1\Repositories\Glint3D\engine\core;D:\ahoqp1\Repositories\Glint3D\engine\core\application;D:\ahoqp1\Repositories\Glint3D\engine\core\scene;D:\ahoqp1\Repositories\Glint3D\engine\core\rendering;D:\ahoqp1\Repositories\Glint3D\engine\core\io;D:\ahoqp1\Repositories\Glint3D\engine\modules;D:\ahoqp1\Repositories\Glint3D\engine\modules\raytracing;D:\ahoqp1\Repositories\Glint3D\engine\modules\gizmos;D:\ahoqp1\Repositories\Glint3D\engine\modules\post_processing;D:\ahoqp1\Repositories\Glint3D\engine\platform;D:\ahoqp1\Repositories\Glint3D\engine\platform\web;D:\ahoqp1\Repositories\Glint3D\cli\include;D:\ahoqp1\Repositories\Glint3D\third_party\managed\glfw\include;D:\ahoqp1\Repositories\Glint3D\third_party\managed\assimp\include;D:\ahoqp1\Repositories\Glint3D\engine\include;D:\ahoqp1\Repositories\Glint3D\third_party\vendored;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\stb;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\imgui;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\imgui\backends;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\glad;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\KHR;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\glm;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\rapidjson;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\OpenImageDenoise;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\tinyexr;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\miniz;D:\ahoqp1\Repositories\Glint3D\third_party\managed;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>Disabled</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;GLINT_RESOURCE_ROOT="D:/ahoqp1/Repositories/Glint3D/resources";GLINT_ENABLE_RAYTRACING=1;GLINT_ENABLE_GIZMOS=1;HAVE_ASSIMP=1;USE_ASSIMP=1;EXR_ENABLED=1;CMAKE_INTDIR="Debug"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_DEBUG;_WINDOWS;GLINT_RESOURCE_ROOT=\"D:/ahoqp1/Repositories/Glint3D/resources\";GLINT_ENABLE_RAYTRACING=1;GLINT_ENABLE_GIZMOS=1;HAVE_ASSIMP=1;USE_ASSIMP=1;EXR_ENABLED=1;CMAKE_INTDIR=\"Debug\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>D:\ahoqp1\Repositories\Glint3D\engine\core;D:\ahoqp1\Repositories\Glint3D\engine\core\application;D:\ahoqp1\Repositories\Glint3D\engine\core\scene;D:\ahoqp1\Repositories\Glint3D\engine\core\rendering;D:\ahoqp1\Repositories\Glint3D\engine\core\io;D:\ahoqp1\Repositories\Glint3D\engine\modules;D:\ahoqp1\Repositories\Glint3D\engine\modules\raytracing;D:\ahoqp1\Repositories\Glint3D\engine\modules\gizmos;D:\ahoqp1\Repositories\Glint3D\engine\modules\post_processing;D:\ahoqp1\Repositories\Glint3D\engine\platform;D:\ahoqp1\Repositories\Glint3D\engine\platform\web;D:\ahoqp1\Repositories\Glint3D\cli\include;D:\ahoqp1\Repositories\Glint3D\third_party\managed\glfw\include;D:\ahoqp1\Repositories\Glint3D\third_party\managed\assimp\include;D:\ahoqp1\Repositories\Glint3D\engine\include;D:\ahoqp1\Repositories\Glint3D\third_party\vendored;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\stb;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\imgui;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\imgui\backends;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\glad;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\KHR;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\glm;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\rapidjson;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\OpenImageDenoise;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\tinyexr;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\miniz;D:\ahoqp1\Repositories\Glint3D\third_party\managed;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>D:\ahoqp1\Repositories\Glint3D\engine\core;D:\ahoqp1\Repositories\Glint3D\engine\core\application;D:\ahoqp1\Repositories\Glint3D\engine\core\scene;D:\ahoqp1\Repositories\Glint3D\engine\core\rendering;D:\ahoqp1\Repositories\Glint3D\engine\core\io;D:\ahoqp1\Repositories\Glint3D\engine\modules;D:\ahoqp1\Repositories\Glint3D\engine\modules\raytracing;D:\ahoqp1\Repositories\Glint3D\engine\modules\gizmos;D:\ahoqp1\Repositories\Glint3D\engine\modules\post_processing;D:\ahoqp1\Repositories\Glint3D\engine\platform;D:\ahoqp1\Repositories\Glint3D\engine\platform\web;D:\ahoqp1\Repositories\Glint3D\cli\include;D:\ahoqp1\Repositories\Glint3D\third_party\managed\glfw\include;D:\ahoqp1\Repositories\Glint3D\third_party\managed\assimp\include;D:\ahoqp1\Repositories\Glint3D\engine\include;D:\ahoqp1\Repositories\Glint3D\third_party\vendored;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\stb;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\imgui;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\imgui\backends;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\glad;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\KHR;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\glm;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\rapidjson;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\OpenImageDenoise;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\tinyexr;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\miniz;D:\ahoqp1\Repositories\Glint3D\third_party\managed;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Link>
+      <AdditionalDependencies>Debug\glint_core.lib;opengl32.lib;D:\ahoqp1\Repositories\Glint3D\third_party\managed\glfw\lib\glfw3.lib;gdi32.lib;user32.lib;shell32.lib;D:\ahoqp1\Repositories\Glint3D\third_party\managed\assimp\lib\assimp-vc143-mt.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <DataExecutionPrevention></DataExecutionPrevention>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImageHasSafeExceptionHandlers></ImageHasSafeExceptionHandlers>
+      <ImportLibrary>D:/ahoqp1/Repositories/Glint3D/output/glint_debug_build/Debug/glint.lib</ImportLibrary>
+      <LinkErrorReporting></LinkErrorReporting>
+      <ProgramDataBaseFile>D:/ahoqp1/Repositories/Glint3D/output/glint_debug_build/Debug/glint.pdb</ProgramDataBaseFile>
+      <RandomizedBaseAddress></RandomizedBaseAddress>
+      <SubSystem>Console</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>D:\ahoqp1\Repositories\Glint3D\engine\core;D:\ahoqp1\Repositories\Glint3D\engine\core\application;D:\ahoqp1\Repositories\Glint3D\engine\core\scene;D:\ahoqp1\Repositories\Glint3D\engine\core\rendering;D:\ahoqp1\Repositories\Glint3D\engine\core\io;D:\ahoqp1\Repositories\Glint3D\engine\modules;D:\ahoqp1\Repositories\Glint3D\engine\modules\raytracing;D:\ahoqp1\Repositories\Glint3D\engine\modules\gizmos;D:\ahoqp1\Repositories\Glint3D\engine\modules\post_processing;D:\ahoqp1\Repositories\Glint3D\engine\platform;D:\ahoqp1\Repositories\Glint3D\engine\platform\web;D:\ahoqp1\Repositories\Glint3D\cli\include;D:\ahoqp1\Repositories\Glint3D\third_party\managed\glfw\include;D:\ahoqp1\Repositories\Glint3D\third_party\managed\assimp\include;D:\ahoqp1\Repositories\Glint3D\engine\include;D:\ahoqp1\Repositories\Glint3D\third_party\vendored;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\stb;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\imgui;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\imgui\backends;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\glad;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\KHR;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\glm;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\rapidjson;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\OpenImageDenoise;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\tinyexr;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\miniz;D:\ahoqp1\Repositories\Glint3D\third_party\managed;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;GLINT_RESOURCE_ROOT="D:/ahoqp1/Repositories/Glint3D/resources";GLINT_ENABLE_RAYTRACING=1;GLINT_ENABLE_GIZMOS=1;HAVE_ASSIMP=1;USE_ASSIMP=1;EXR_ENABLED=1;CMAKE_INTDIR="Release"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;GLINT_RESOURCE_ROOT=\"D:/ahoqp1/Repositories/Glint3D/resources\";GLINT_ENABLE_RAYTRACING=1;GLINT_ENABLE_GIZMOS=1;HAVE_ASSIMP=1;USE_ASSIMP=1;EXR_ENABLED=1;CMAKE_INTDIR=\"Release\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>D:\ahoqp1\Repositories\Glint3D\engine\core;D:\ahoqp1\Repositories\Glint3D\engine\core\application;D:\ahoqp1\Repositories\Glint3D\engine\core\scene;D:\ahoqp1\Repositories\Glint3D\engine\core\rendering;D:\ahoqp1\Repositories\Glint3D\engine\core\io;D:\ahoqp1\Repositories\Glint3D\engine\modules;D:\ahoqp1\Repositories\Glint3D\engine\modules\raytracing;D:\ahoqp1\Repositories\Glint3D\engine\modules\gizmos;D:\ahoqp1\Repositories\Glint3D\engine\modules\post_processing;D:\ahoqp1\Repositories\Glint3D\engine\platform;D:\ahoqp1\Repositories\Glint3D\engine\platform\web;D:\ahoqp1\Repositories\Glint3D\cli\include;D:\ahoqp1\Repositories\Glint3D\third_party\managed\glfw\include;D:\ahoqp1\Repositories\Glint3D\third_party\managed\assimp\include;D:\ahoqp1\Repositories\Glint3D\engine\include;D:\ahoqp1\Repositories\Glint3D\third_party\vendored;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\stb;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\imgui;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\imgui\backends;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\glad;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\KHR;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\glm;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\rapidjson;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\OpenImageDenoise;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\tinyexr;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\miniz;D:\ahoqp1\Repositories\Glint3D\third_party\managed;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>D:\ahoqp1\Repositories\Glint3D\engine\core;D:\ahoqp1\Repositories\Glint3D\engine\core\application;D:\ahoqp1\Repositories\Glint3D\engine\core\scene;D:\ahoqp1\Repositories\Glint3D\engine\core\rendering;D:\ahoqp1\Repositories\Glint3D\engine\core\io;D:\ahoqp1\Repositories\Glint3D\engine\modules;D:\ahoqp1\Repositories\Glint3D\engine\modules\raytracing;D:\ahoqp1\Repositories\Glint3D\engine\modules\gizmos;D:\ahoqp1\Repositories\Glint3D\engine\modules\post_processing;D:\ahoqp1\Repositories\Glint3D\engine\platform;D:\ahoqp1\Repositories\Glint3D\engine\platform\web;D:\ahoqp1\Repositories\Glint3D\cli\include;D:\ahoqp1\Repositories\Glint3D\third_party\managed\glfw\include;D:\ahoqp1\Repositories\Glint3D\third_party\managed\assimp\include;D:\ahoqp1\Repositories\Glint3D\engine\include;D:\ahoqp1\Repositories\Glint3D\third_party\vendored;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\stb;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\imgui;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\imgui\backends;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\glad;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\KHR;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\glm;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\rapidjson;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\OpenImageDenoise;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\tinyexr;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\miniz;D:\ahoqp1\Repositories\Glint3D\third_party\managed;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Link>
+      <AdditionalDependencies>Release\glint_core.lib;opengl32.lib;D:\ahoqp1\Repositories\Glint3D\third_party\managed\glfw\lib\glfw3.lib;gdi32.lib;user32.lib;shell32.lib;D:\ahoqp1\Repositories\Glint3D\third_party\managed\assimp\lib\assimp-vc143-mt.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <DataExecutionPrevention></DataExecutionPrevention>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImageHasSafeExceptionHandlers></ImageHasSafeExceptionHandlers>
+      <ImportLibrary>D:/ahoqp1/Repositories/Glint3D/output/glint_debug_build/Release/glint.lib</ImportLibrary>
+      <LinkErrorReporting></LinkErrorReporting>
+      <ProgramDataBaseFile>D:/ahoqp1/Repositories/Glint3D/output/glint_debug_build/Release/glint.pdb</ProgramDataBaseFile>
+      <RandomizedBaseAddress></RandomizedBaseAddress>
+      <SubSystem>Console</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>D:\ahoqp1\Repositories\Glint3D\engine\core;D:\ahoqp1\Repositories\Glint3D\engine\core\application;D:\ahoqp1\Repositories\Glint3D\engine\core\scene;D:\ahoqp1\Repositories\Glint3D\engine\core\rendering;D:\ahoqp1\Repositories\Glint3D\engine\core\io;D:\ahoqp1\Repositories\Glint3D\engine\modules;D:\ahoqp1\Repositories\Glint3D\engine\modules\raytracing;D:\ahoqp1\Repositories\Glint3D\engine\modules\gizmos;D:\ahoqp1\Repositories\Glint3D\engine\modules\post_processing;D:\ahoqp1\Repositories\Glint3D\engine\platform;D:\ahoqp1\Repositories\Glint3D\engine\platform\web;D:\ahoqp1\Repositories\Glint3D\cli\include;D:\ahoqp1\Repositories\Glint3D\third_party\managed\glfw\include;D:\ahoqp1\Repositories\Glint3D\third_party\managed\assimp\include;D:\ahoqp1\Repositories\Glint3D\engine\include;D:\ahoqp1\Repositories\Glint3D\third_party\vendored;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\stb;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\imgui;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\imgui\backends;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\glad;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\KHR;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\glm;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\rapidjson;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\OpenImageDenoise;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\tinyexr;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\miniz;D:\ahoqp1\Repositories\Glint3D\third_party\managed;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MinSpace</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;GLINT_RESOURCE_ROOT="D:/ahoqp1/Repositories/Glint3D/resources";GLINT_ENABLE_RAYTRACING=1;GLINT_ENABLE_GIZMOS=1;HAVE_ASSIMP=1;USE_ASSIMP=1;EXR_ENABLED=1;CMAKE_INTDIR="MinSizeRel"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;GLINT_RESOURCE_ROOT=\"D:/ahoqp1/Repositories/Glint3D/resources\";GLINT_ENABLE_RAYTRACING=1;GLINT_ENABLE_GIZMOS=1;HAVE_ASSIMP=1;USE_ASSIMP=1;EXR_ENABLED=1;CMAKE_INTDIR=\"MinSizeRel\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>D:\ahoqp1\Repositories\Glint3D\engine\core;D:\ahoqp1\Repositories\Glint3D\engine\core\application;D:\ahoqp1\Repositories\Glint3D\engine\core\scene;D:\ahoqp1\Repositories\Glint3D\engine\core\rendering;D:\ahoqp1\Repositories\Glint3D\engine\core\io;D:\ahoqp1\Repositories\Glint3D\engine\modules;D:\ahoqp1\Repositories\Glint3D\engine\modules\raytracing;D:\ahoqp1\Repositories\Glint3D\engine\modules\gizmos;D:\ahoqp1\Repositories\Glint3D\engine\modules\post_processing;D:\ahoqp1\Repositories\Glint3D\engine\platform;D:\ahoqp1\Repositories\Glint3D\engine\platform\web;D:\ahoqp1\Repositories\Glint3D\cli\include;D:\ahoqp1\Repositories\Glint3D\third_party\managed\glfw\include;D:\ahoqp1\Repositories\Glint3D\third_party\managed\assimp\include;D:\ahoqp1\Repositories\Glint3D\engine\include;D:\ahoqp1\Repositories\Glint3D\third_party\vendored;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\stb;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\imgui;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\imgui\backends;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\glad;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\KHR;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\glm;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\rapidjson;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\OpenImageDenoise;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\tinyexr;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\miniz;D:\ahoqp1\Repositories\Glint3D\third_party\managed;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>D:\ahoqp1\Repositories\Glint3D\engine\core;D:\ahoqp1\Repositories\Glint3D\engine\core\application;D:\ahoqp1\Repositories\Glint3D\engine\core\scene;D:\ahoqp1\Repositories\Glint3D\engine\core\rendering;D:\ahoqp1\Repositories\Glint3D\engine\core\io;D:\ahoqp1\Repositories\Glint3D\engine\modules;D:\ahoqp1\Repositories\Glint3D\engine\modules\raytracing;D:\ahoqp1\Repositories\Glint3D\engine\modules\gizmos;D:\ahoqp1\Repositories\Glint3D\engine\modules\post_processing;D:\ahoqp1\Repositories\Glint3D\engine\platform;D:\ahoqp1\Repositories\Glint3D\engine\platform\web;D:\ahoqp1\Repositories\Glint3D\cli\include;D:\ahoqp1\Repositories\Glint3D\third_party\managed\glfw\include;D:\ahoqp1\Repositories\Glint3D\third_party\managed\assimp\include;D:\ahoqp1\Repositories\Glint3D\engine\include;D:\ahoqp1\Repositories\Glint3D\third_party\vendored;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\stb;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\imgui;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\imgui\backends;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\glad;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\KHR;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\glm;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\rapidjson;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\OpenImageDenoise;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\tinyexr;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\miniz;D:\ahoqp1\Repositories\Glint3D\third_party\managed;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Link>
+      <AdditionalDependencies>MinSizeRel\glint_core.lib;opengl32.lib;D:\ahoqp1\Repositories\Glint3D\third_party\managed\glfw\lib\glfw3.lib;gdi32.lib;user32.lib;shell32.lib;D:\ahoqp1\Repositories\Glint3D\third_party\managed\assimp\lib\assimp-vc143-mt.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <DataExecutionPrevention></DataExecutionPrevention>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImageHasSafeExceptionHandlers></ImageHasSafeExceptionHandlers>
+      <ImportLibrary>D:/ahoqp1/Repositories/Glint3D/output/glint_debug_build/MinSizeRel/glint.lib</ImportLibrary>
+      <LinkErrorReporting></LinkErrorReporting>
+      <ProgramDataBaseFile>D:/ahoqp1/Repositories/Glint3D/output/glint_debug_build/MinSizeRel/glint.pdb</ProgramDataBaseFile>
+      <RandomizedBaseAddress></RandomizedBaseAddress>
+      <SubSystem>Console</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>D:\ahoqp1\Repositories\Glint3D\engine\core;D:\ahoqp1\Repositories\Glint3D\engine\core\application;D:\ahoqp1\Repositories\Glint3D\engine\core\scene;D:\ahoqp1\Repositories\Glint3D\engine\core\rendering;D:\ahoqp1\Repositories\Glint3D\engine\core\io;D:\ahoqp1\Repositories\Glint3D\engine\modules;D:\ahoqp1\Repositories\Glint3D\engine\modules\raytracing;D:\ahoqp1\Repositories\Glint3D\engine\modules\gizmos;D:\ahoqp1\Repositories\Glint3D\engine\modules\post_processing;D:\ahoqp1\Repositories\Glint3D\engine\platform;D:\ahoqp1\Repositories\Glint3D\engine\platform\web;D:\ahoqp1\Repositories\Glint3D\cli\include;D:\ahoqp1\Repositories\Glint3D\third_party\managed\glfw\include;D:\ahoqp1\Repositories\Glint3D\third_party\managed\assimp\include;D:\ahoqp1\Repositories\Glint3D\engine\include;D:\ahoqp1\Repositories\Glint3D\third_party\vendored;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\stb;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\imgui;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\imgui\backends;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\glad;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\KHR;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\glm;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\rapidjson;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\OpenImageDenoise;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\tinyexr;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\miniz;D:\ahoqp1\Repositories\Glint3D\third_party\managed;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <MinimalRebuild></MinimalRebuild>
+      <Optimization>MaxSpeed</Optimization>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <RemoveUnreferencedCodeData></RemoveUnreferencedCodeData>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <SupportJustMyCode></SupportJustMyCode>
+      <TreatWChar_tAsBuiltInType></TreatWChar_tAsBuiltInType>
+      <UseFullPaths>false</UseFullPaths>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;GLINT_RESOURCE_ROOT="D:/ahoqp1/Repositories/Glint3D/resources";GLINT_ENABLE_RAYTRACING=1;GLINT_ENABLE_GIZMOS=1;HAVE_ASSIMP=1;USE_ASSIMP=1;EXR_ENABLED=1;CMAKE_INTDIR="RelWithDebInfo"</PreprocessorDefinitions>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;GLINT_RESOURCE_ROOT=\"D:/ahoqp1/Repositories/Glint3D/resources\";GLINT_ENABLE_RAYTRACING=1;GLINT_ENABLE_GIZMOS=1;HAVE_ASSIMP=1;USE_ASSIMP=1;EXR_ENABLED=1;CMAKE_INTDIR=\"RelWithDebInfo\"</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>D:\ahoqp1\Repositories\Glint3D\engine\core;D:\ahoqp1\Repositories\Glint3D\engine\core\application;D:\ahoqp1\Repositories\Glint3D\engine\core\scene;D:\ahoqp1\Repositories\Glint3D\engine\core\rendering;D:\ahoqp1\Repositories\Glint3D\engine\core\io;D:\ahoqp1\Repositories\Glint3D\engine\modules;D:\ahoqp1\Repositories\Glint3D\engine\modules\raytracing;D:\ahoqp1\Repositories\Glint3D\engine\modules\gizmos;D:\ahoqp1\Repositories\Glint3D\engine\modules\post_processing;D:\ahoqp1\Repositories\Glint3D\engine\platform;D:\ahoqp1\Repositories\Glint3D\engine\platform\web;D:\ahoqp1\Repositories\Glint3D\cli\include;D:\ahoqp1\Repositories\Glint3D\third_party\managed\glfw\include;D:\ahoqp1\Repositories\Glint3D\third_party\managed\assimp\include;D:\ahoqp1\Repositories\Glint3D\engine\include;D:\ahoqp1\Repositories\Glint3D\third_party\vendored;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\stb;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\imgui;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\imgui\backends;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\glad;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\KHR;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\glm;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\rapidjson;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\OpenImageDenoise;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\tinyexr;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\miniz;D:\ahoqp1\Repositories\Glint3D\third_party\managed;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>D:\ahoqp1\Repositories\Glint3D\engine\core;D:\ahoqp1\Repositories\Glint3D\engine\core\application;D:\ahoqp1\Repositories\Glint3D\engine\core\scene;D:\ahoqp1\Repositories\Glint3D\engine\core\rendering;D:\ahoqp1\Repositories\Glint3D\engine\core\io;D:\ahoqp1\Repositories\Glint3D\engine\modules;D:\ahoqp1\Repositories\Glint3D\engine\modules\raytracing;D:\ahoqp1\Repositories\Glint3D\engine\modules\gizmos;D:\ahoqp1\Repositories\Glint3D\engine\modules\post_processing;D:\ahoqp1\Repositories\Glint3D\engine\platform;D:\ahoqp1\Repositories\Glint3D\engine\platform\web;D:\ahoqp1\Repositories\Glint3D\cli\include;D:\ahoqp1\Repositories\Glint3D\third_party\managed\glfw\include;D:\ahoqp1\Repositories\Glint3D\third_party\managed\assimp\include;D:\ahoqp1\Repositories\Glint3D\engine\include;D:\ahoqp1\Repositories\Glint3D\third_party\vendored;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\stb;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\imgui;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\imgui\backends;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\glad;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\KHR;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\glm;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\rapidjson;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\OpenImageDenoise;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\tinyexr;D:\ahoqp1\Repositories\Glint3D\third_party\vendored\miniz;D:\ahoqp1\Repositories\Glint3D\third_party\managed;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
+      <InterfaceIdentifierFileName>%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>%(Filename)_p.c</ProxyFileName>
+    </Midl>
+    <Link>
+      <AdditionalDependencies>RelWithDebInfo\glint_core.lib;opengl32.lib;D:\ahoqp1\Repositories\Glint3D\third_party\managed\glfw\lib\glfw3.lib;gdi32.lib;user32.lib;shell32.lib;D:\ahoqp1\Repositories\Glint3D\third_party\managed\assimp\lib\assimp-vc143-mt.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
+      <DataExecutionPrevention></DataExecutionPrevention>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <ImageHasSafeExceptionHandlers></ImageHasSafeExceptionHandlers>
+      <ImportLibrary>D:/ahoqp1/Repositories/Glint3D/output/glint_debug_build/RelWithDebInfo/glint.lib</ImportLibrary>
+      <LinkErrorReporting></LinkErrorReporting>
+      <ProgramDataBaseFile>D:/ahoqp1/Repositories/Glint3D/output/glint_debug_build/RelWithDebInfo/glint.pdb</ProgramDataBaseFile>
+      <RandomizedBaseAddress></RandomizedBaseAddress>
+      <SubSystem>Console</SubSystem>
+    </Link>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <CustomBuild Include="D:\ahoqp1\Repositories\Glint3D\CMakeLists.txt">
+      <UseUtf8Encoding>Always</UseUtf8Encoding>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Custom Rule D:/ahoqp1/Repositories/Glint3D/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SD:/ahoqp1/Repositories/Glint3D -BD:/ahoqp1/Repositories/Glint3D/output/glint_debug_build --check-stamp-file D:/ahoqp1/Repositories/Glint3D/output/glint_debug_build/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeCInformation.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeCXXInformation.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeCommonLanguageInclude.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeGenericSystem.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeInitializeConfigs.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeLanguageInformation.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeRCInformation.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeSystemSpecificInitialize.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Compiler\CMakeCommonCompilerMacros.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Compiler\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Compiler\MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Compiler\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\FindOpenGL.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\FindPackageMessage.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Internal\CMakeCLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Internal\CMakeCXXLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Internal\CMakeCommonLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Linker\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Linker\MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Linker\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\Linker\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\Linker\Windows-MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\Linker\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\Windows-Initialize.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\Windows-MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\Windows.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\WindowsPaths.cmake;D:\ahoqp1\Repositories\Glint3D\output\glint_debug_build\CMakeFiles\4.1.2\CMakeCCompiler.cmake;D:\ahoqp1\Repositories\Glint3D\output\glint_debug_build\CMakeFiles\4.1.2\CMakeCXXCompiler.cmake;D:\ahoqp1\Repositories\Glint3D\output\glint_debug_build\CMakeFiles\4.1.2\CMakeRCCompiler.cmake;D:\ahoqp1\Repositories\Glint3D\output\glint_debug_build\CMakeFiles\4.1.2\CMakeSystem.cmake;D:\ahoqp1\Repositories\Glint3D\resources\windows\glint3d.rc.in;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">D:\ahoqp1\Repositories\Glint3D\output\glint_debug_build\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building Custom Rule D:/ahoqp1/Repositories/Glint3D/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SD:/ahoqp1/Repositories/Glint3D -BD:/ahoqp1/Repositories/Glint3D/output/glint_debug_build --check-stamp-file D:/ahoqp1/Repositories/Glint3D/output/glint_debug_build/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeCInformation.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeCXXInformation.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeCommonLanguageInclude.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeGenericSystem.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeInitializeConfigs.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeLanguageInformation.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeRCInformation.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeSystemSpecificInitialize.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Compiler\CMakeCommonCompilerMacros.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Compiler\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Compiler\MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Compiler\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\FindOpenGL.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\FindPackageMessage.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Internal\CMakeCLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Internal\CMakeCXXLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Internal\CMakeCommonLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Linker\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Linker\MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Linker\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\Linker\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\Linker\Windows-MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\Linker\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\Windows-Initialize.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\Windows-MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\Windows.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\WindowsPaths.cmake;D:\ahoqp1\Repositories\Glint3D\output\glint_debug_build\CMakeFiles\4.1.2\CMakeCCompiler.cmake;D:\ahoqp1\Repositories\Glint3D\output\glint_debug_build\CMakeFiles\4.1.2\CMakeCXXCompiler.cmake;D:\ahoqp1\Repositories\Glint3D\output\glint_debug_build\CMakeFiles\4.1.2\CMakeRCCompiler.cmake;D:\ahoqp1\Repositories\Glint3D\output\glint_debug_build\CMakeFiles\4.1.2\CMakeSystem.cmake;D:\ahoqp1\Repositories\Glint3D\resources\windows\glint3d.rc.in;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">D:\ahoqp1\Repositories\Glint3D\output\glint_debug_build\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">Building Custom Rule D:/ahoqp1/Repositories/Glint3D/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SD:/ahoqp1/Repositories/Glint3D -BD:/ahoqp1/Repositories/Glint3D/output/glint_debug_build --check-stamp-file D:/ahoqp1/Repositories/Glint3D/output/glint_debug_build/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeCInformation.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeCXXInformation.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeCommonLanguageInclude.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeGenericSystem.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeInitializeConfigs.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeLanguageInformation.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeRCInformation.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeSystemSpecificInitialize.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Compiler\CMakeCommonCompilerMacros.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Compiler\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Compiler\MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Compiler\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\FindOpenGL.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\FindPackageMessage.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Internal\CMakeCLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Internal\CMakeCXXLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Internal\CMakeCommonLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Linker\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Linker\MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Linker\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\Linker\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\Linker\Windows-MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\Linker\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\Windows-Initialize.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\Windows-MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\Windows.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\WindowsPaths.cmake;D:\ahoqp1\Repositories\Glint3D\output\glint_debug_build\CMakeFiles\4.1.2\CMakeCCompiler.cmake;D:\ahoqp1\Repositories\Glint3D\output\glint_debug_build\CMakeFiles\4.1.2\CMakeCXXCompiler.cmake;D:\ahoqp1\Repositories\Glint3D\output\glint_debug_build\CMakeFiles\4.1.2\CMakeRCCompiler.cmake;D:\ahoqp1\Repositories\Glint3D\output\glint_debug_build\CMakeFiles\4.1.2\CMakeSystem.cmake;D:\ahoqp1\Repositories\Glint3D\resources\windows\glint3d.rc.in;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">D:\ahoqp1\Repositories\Glint3D\output\glint_debug_build\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">false</LinkObjects>
+      <Message Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">Building Custom Rule D:/ahoqp1/Repositories/Glint3D/CMakeLists.txt</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SD:/ahoqp1/Repositories/Glint3D -BD:/ahoqp1/Repositories/Glint3D/output/glint_debug_build --check-stamp-file D:/ahoqp1/Repositories/Glint3D/output/glint_debug_build/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeCInformation.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeCXXInformation.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeCommonLanguageInclude.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeGenericSystem.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeInitializeConfigs.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeLanguageInformation.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeRCInformation.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeSystemSpecificInitialize.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Compiler\CMakeCommonCompilerMacros.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Compiler\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Compiler\MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Compiler\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\FindOpenGL.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\FindPackageHandleStandardArgs.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\FindPackageMessage.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Internal\CMakeCLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Internal\CMakeCXXLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Internal\CMakeCommonLinkerInformation.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Linker\MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Linker\MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Linker\MSVC.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\Linker\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\Linker\Windows-MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\Linker\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\Windows-Initialize.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\Windows-MSVC-C.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\Windows-MSVC-CXX.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\Windows-MSVC.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\Windows.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\WindowsPaths.cmake;D:\ahoqp1\Repositories\Glint3D\output\glint_debug_build\CMakeFiles\4.1.2\CMakeCCompiler.cmake;D:\ahoqp1\Repositories\Glint3D\output\glint_debug_build\CMakeFiles\4.1.2\CMakeCXXCompiler.cmake;D:\ahoqp1\Repositories\Glint3D\output\glint_debug_build\CMakeFiles\4.1.2\CMakeRCCompiler.cmake;D:\ahoqp1\Repositories\Glint3D\output\glint_debug_build\CMakeFiles\4.1.2\CMakeSystem.cmake;D:\ahoqp1\Repositories\Glint3D\resources\windows\glint3d.rc.in;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">D:\ahoqp1\Repositories\Glint3D\output\glint_debug_build\CMakeFiles\generate.stamp</Outputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">false</LinkObjects>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\application\main.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\application\application_core.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\application\cli_parser.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\application\render_settings.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\application\schema_validator.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\scene\scene_manager.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\scene\light.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\scene\material.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\scene\json_ops.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\rendering\camera_controller.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\rendering\render_system.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\rendering\shader.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\rendering\texture.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\rendering\texture_cache.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\rendering\skybox.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\rendering\ibl_system.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\io\objloader.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\io\mesh_loader.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\io\importer_registry.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\io\importers\obj_importer.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\io\importers\assimp_importer.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\io\assimp_loader.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\io\image_io.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\io\resource_paths.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\io\user_paths.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\io\path_security.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\platform\desktop\ui_bridge.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\platform\desktop\imgui_ui_layer.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\platform\desktop\file_dialog.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\platform\desktop\panels\scene_tree_panel.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\cli\src\logger.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\cli\src\config_resolver.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\cli\src\init_scaffolder.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\cli\src\init_command.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\cli\src\ndjson_emitter.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\cli\src\command_dispatcher.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\cli\src\command_io.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\cli\src\commands\help_command.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\cli\src\commands\ui_command.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\cli\src\commands\validate_command.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\cli\src\commands\config_command.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\cli\src\commands\doctor_command.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\cli\src\commands\modules_command.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\cli\src\commands\assets_command.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\cli\src\commands\render_command.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\cli\src\commands\inspect_command.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\cli\src\commands\clean_command.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\cli\src\commands\watch_command.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\cli\src\commands\profile_command.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\cli\src\commands\convert_command.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\cli\src\commands\ops_command.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\cli\src\services\run_manifest_writer.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\cli\src\services\run_manifest_validator.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\cli\src\services\workspace_locks.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\cli\src\services\project_manifest.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\modules\raytracing\raytracer.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\modules\raytracing\BVHNode.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\modules\raytracing\triangle.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\modules\raytracing\RayUtils.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\modules\raytracing\brdf.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\modules\raytracing\microfacet_sampling.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\modules\raytracing\raytracer_lighting.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\modules\raytracing\refraction.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\modules\gizmos\gizmo.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\modules\gizmos\grid.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\modules\gizmos\axisrenderer.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\third_party\vendored\imgui\imgui.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\third_party\vendored\imgui\imgui_draw.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\third_party\vendored\imgui\imgui_tables.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\third_party\vendored\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\third_party\vendored\imgui\backends\imgui_impl_glfw.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\third_party\vendored\imgui\backends\imgui_impl_opengl3.cpp" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\engine\core\rendering\glad.c" />
+    <ResourceCompile Include="D:\ahoqp1\Repositories\Glint3D\output\glint_debug_build\generated\glint3d.rc" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\third_party\vendored\miniz\miniz.c" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\third_party\vendored\miniz\miniz_tdef.c" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\third_party\vendored\miniz\miniz_tinfl.c" />
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\third_party\vendored\miniz\miniz_zip.c" />
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="D:\ahoqp1\Repositories\Glint3D\output\glint_debug_build\ZERO_CHECK.vcxproj">
+      <Project>{9554190A-0D2B-3CFE-BF35-F64B871591F4}</Project>
+      <Name>ZERO_CHECK</Name>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </ProjectReference>
+    <ProjectReference Include="D:\ahoqp1\Repositories\Glint3D\output\glint_debug_build\glint_core.vcxproj">
+      <Project>{16EBF67E-C00F-3216-9038-9FF9B74E00C4}</Project>
+      <Name>glint_core</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

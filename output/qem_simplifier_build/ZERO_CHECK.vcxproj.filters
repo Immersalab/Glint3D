@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="D:\ahoqp1\Repositories\Glint3D\output\qem_simplifier_build\CMakeFiles\b9afa24f5fcd6280a2600bac202579fa\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{D602AEBC-D595-3242-8DED-17AE94B40BDD}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

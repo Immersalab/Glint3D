@@ -12,11 +12,15 @@ const std::vector<std::unique_ptr<IImporter>>& GetImporters()
     static std::vector<std::unique_ptr<IImporter>> s_importers;
     static std::once_flag s_once;
     std::call_once(s_once, []{
-        s_importers.emplace_back(CreateOBJImporter());
-        (void)0;
         #ifdef USE_ASSIMP
+        // Prefer Assimp first so .obj imports use the more robust parser when available.
         s_importers.emplace_back(CreateAssimpImporter());
         #endif
+
+        // Keep the lightweight custom OBJ path as a fallback.
+        s_importers.emplace_back(CreateOBJImporter());
+
+        (void)0;
     });
     return s_importers;
 }

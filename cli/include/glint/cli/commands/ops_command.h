@@ -25,6 +25,8 @@ namespace glint::cli {
  *
  * @par Options
  * - --render [<output.png>] - Render to PNG after applying ops
+ * - --batch-dir <dir> - Render all `*.ops.json` files in a directory using one app session
+ * - --render-dir <dir> - Output directory for `--batch-dir` frame PNGs (same stem names)
  * - --selection-overlay - Render selected-object wireframe overlay in offscreen output
  * - --w <width> - Output width (default: 1024)
  * - --h <height> - Output height (default: 1024)
@@ -59,6 +61,8 @@ public:
 private:
     struct OpsOptions {
         std::string opsFile;
+        std::string batchOpsDir;
+        std::string batchRenderDir;
         std::string outputFile;
         std::string assetRoot;
         std::string schemaVersion = "v1.3";
@@ -78,6 +82,7 @@ private:
         bool strictSchema = false;
         bool shouldRender = false;
         bool selectionOverlay = false;
+        bool batchMode = false;
     };
 
     /**
@@ -99,6 +104,9 @@ private:
      */
     static CLIExitCode executeOps(const OpsOptions& options,
                                   const CommandExecutionContext& context);
+
+    static CLIExitCode executeBatchOps(const OpsOptions& options,
+                                       const CommandExecutionContext& context);
 };
 
 } // namespace glint::cli

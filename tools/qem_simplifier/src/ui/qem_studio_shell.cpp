@@ -17,6 +17,7 @@
 #include <sstream>
 #include <string>
 #include <algorithm>
+#include <limits>
 #include <vector>
 
 namespace {
@@ -48,7 +49,58 @@ struct ShellConfig {
     std::string output_dir = "tools/qem_simplifier/output";
     std::string preview_preset_ops = "tools/qem_simplifier/output/preview_preset.ops.json";
     std::string preview_display_mode = "solid";
+    std::string decomp_output_dir = "tools/qem_simplifier/output/decomp";
+    std::string decomp_ffmpeg_executable = "ffmpeg";
+    std::uint32_t decomp_every_collapses = 500u;
+    std::uint32_t decomp_fps = 24u;
+    bool decomp_make_video = true;
+    bool decomp_keep_obj_snapshots = false;
 };
+
+bool ParseBoolText(const std::string& value, bool* out) {
+    if (out == nullptr) {
+        return false;
+    }
+
+    std::string t = value;
+    std::transform(t.begin(), t.end(), t.begin(),
+                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
+    if (t == "1" || t == "true" || t == "yes" || t == "on") {
+        *out = true;
+        return true;
+    }
+    if (t == "0" || t == "false" || t == "no" || t == "off") {
+        *out = false;
+        return true;
+    }
+    return false;
+}
+
+std::string BoolToText(bool value) {
+    return value ? "true" : "false";
+}
+
+bool ParseUInt32Text(const std::string& value, std::uint32_t min_value, std::uint32_t* out) {
+    if (out == nullptr || value.empty()) {
+        return false;
+    }
+    for (char c : value) {
+        if (!std::isdigit(static_cast<unsigned char>(c))) {
+            return false;
+        }
+    }
+    try {
+        const unsigned long parsed = std::stoul(value);
+        if (parsed < min_value || parsed > std::numeric_limits<std::uint32_t>::max()) {
+            return false;
+        }
+        *out = static_cast<std::uint32_t>(parsed);
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
 
 bool IsValidPreviewDisplayMode(const std::string& value) {
     return value == "default" || value == "solid" || value == "wireframe" || value == "points" ||
@@ -108,6 +160,38 @@ bool LoadShellConfigFile(const std::string& path, ShellConfig* cfg, std::string*
                 return false;
             }
             loaded.preview_display_mode = value;
+        } else if (key == "decomp_output_dir") {
+            loaded.decomp_output_dir = value;
+        } else if (key == "decomp_ffmpeg_executable") {
+            loaded.decomp_ffmpeg_executable = value;
+        } else if (key == "decomp_every_collapses") {
+            std::uint32_t parsed = 0u;
+            if (!ParseUInt32Text(value, 1u, &parsed)) {
+                if (error) *error = "config load failed: invalid decomp_every_collapses '" + value + "'";
+                return false;
+            }
+            loaded.decomp_every_collapses = parsed;
+        } else if (key == "decomp_fps") {
+            std::uint32_t parsed = 0u;
+            if (!ParseUInt32Text(value, 1u, &parsed)) {
+                if (error) *error = "config load failed: invalid decomp_fps '" + value + "'";
+                return false;
+            }
+            loaded.decomp_fps = parsed;
+        } else if (key == "decomp_make_video") {
+            bool parsed = false;
+            if (!ParseBoolText(value, &parsed)) {
+                if (error) *error = "config load failed: invalid decomp_make_video '" + value + "'";
+                return false;
+            }
+            loaded.decomp_make_video = parsed;
+        } else if (key == "decomp_keep_obj_snapshots") {
+            bool parsed = false;
+            if (!ParseBoolText(value, &parsed)) {
+                if (error) *error = "config load failed: invalid decomp_keep_obj_snapshots '" + value + "'";
+                return false;
+            }
+            loaded.decomp_keep_obj_snapshots = parsed;
         } else {
             if (error) *error = "config load failed: unknown key '" + key + "'";
             return false;
@@ -147,6 +231,12 @@ bool SaveShellConfigFile(const std::string& path, const ShellConfig& cfg, std::s
     out << "output_dir=" << cfg.output_dir << "\n";
     out << "preview_preset_ops=" << cfg.preview_preset_ops << "\n";
     out << "preview_display_mode=" << cfg.preview_display_mode << "\n";
+    out << "decomp_output_dir=" << cfg.decomp_output_dir << "\n";
+    out << "decomp_ffmpeg_executable=" << cfg.decomp_ffmpeg_executable << "\n";
+    out << "decomp_every_collapses=" << cfg.decomp_every_collapses << "\n";
+    out << "decomp_fps=" << cfg.decomp_fps << "\n";
+    out << "decomp_make_video=" << BoolToText(cfg.decomp_make_video) << "\n";
+    out << "decomp_keep_obj_snapshots=" << BoolToText(cfg.decomp_keep_obj_snapshots) << "\n";
     if (!out.good()) {
         if (error) *error = "config save failed: write error";
         return false;
@@ -226,7 +316,7 @@ private:
         const int filled = std::max(0, std::min(kBarWidth, static_cast<int>((pct / 100.0) * kBarWidth + 0.5)));
 
         std::ostringstream oss;
-        oss << "[qem] [";
+        oss << "[";
         for (int i = 0; i < kBarWidth; ++i) {
             oss << (i < filled ? '#' : '-');
         }
@@ -289,49 +379,72 @@ bool LoadSimplifyInputMesh(const ShellConfig& config,
     return true;
 }
 
-bool ParseSimplifyPercentArg(const std::vector<std::string>& args, float* out_ratio, std::string* error) {
-    if (out_ratio == nullptr) {
-        if (error) *error = "internal error: null out_ratio";
+struct SimplifyCommandOptions {
+    float target_ratio = 0.5f; // default: keep 50%
+    bool animate = false;
+};
+
+bool ParseSimplifyCommandArgs(const std::vector<std::string>& args,
+                              SimplifyCommandOptions* out,
+                              std::string* error) {
+    if (out == nullptr) {
+        if (error) *error = "internal error: null simplify options";
         return false;
     }
 
-    *out_ratio = 0.5f; // default: keep 50%
-    if (args.size() <= 1) {
-        return true;
-    }
-    if (args.size() != 2) {
-        if (error) *error = "usage: simplify [--percent]";
-        return false;
-    }
+    SimplifyCommandOptions parsed;
+    bool percent_seen = false;
 
-    const std::string& token = args[1];
-    if (token.size() < 3 || token.rfind("--", 0) != 0) {
-        if (error) *error = "usage: simplify [--percent] (example: simplify --50)";
-        return false;
-    }
+    for (std::size_t i = 1; i < args.size(); ++i) {
+        const std::string& token = args[i];
 
-    const std::string number_text = token.substr(2);
-    for (char c : number_text) {
-        if (!std::isdigit(static_cast<unsigned char>(c))) {
-            if (error) *error = "invalid simplify percent: " + token + " (use integer 1..100, e.g. --50)";
-            return false;
+        if (token == "--animate") {
+            parsed.animate = true;
+            continue;
         }
-    }
 
-    int percent = 0;
-    try {
-        percent = std::stoi(number_text);
-    } catch (...) {
-        if (error) *error = "invalid simplify percent: " + token;
+        if (token.size() >= 3 && token.rfind("--", 0) == 0) {
+            const std::string number_text = token.substr(2);
+            bool digits_only = !number_text.empty();
+            for (char c : number_text) {
+                if (!std::isdigit(static_cast<unsigned char>(c))) {
+                    digits_only = false;
+                    break;
+                }
+            }
+
+            if (digits_only) {
+                if (percent_seen) {
+                    if (error) *error = "simplify percent specified more than once";
+                    return false;
+                }
+
+                int percent = 0;
+                try {
+                    percent = std::stoi(number_text);
+                } catch (...) {
+                    if (error) *error = "invalid simplify percent: " + token;
+                    return false;
+                }
+
+                if (percent < 1 || percent > 100) {
+                    if (error) *error = "simplify percent out of range: use 1..100";
+                    return false;
+                }
+
+                parsed.target_ratio = static_cast<float>(percent) / 100.0f;
+                percent_seen = true;
+                continue;
+            }
+        }
+
+        if (error) {
+            *error = "usage: simplify [--N] [--animate] (example: simplify --30 --animate)";
+        }
         return false;
     }
 
-    if (percent < 1 || percent > 100) {
-        if (error) *error = "simplify percent out of range: use 1..100";
-        return false;
-    }
-
-    *out_ratio = static_cast<float>(percent) / 100.0f;
+    *out = parsed;
     return true;
 }
 
@@ -346,7 +459,11 @@ void PrintSimplifySummary(const glint_qem::SimplifyResult& r,
 }
 
 std::string QuoteCmdArg(const std::string& arg) {
-    if (arg.find_first_of(" \t\"") == std::string::npos) {
+    std::string quote_chars = " \t\"&|()^<>%";
+#if defined(_WIN32)
+    quote_chars += "/\\";
+#endif
+    if (arg.find_first_of(quote_chars) == std::string::npos) {
         return arg;
     }
     std::string quoted = "\"";
@@ -361,9 +478,42 @@ std::string QuoteCmdArg(const std::string& arg) {
     return quoted;
 }
 
+std::string NormalizeShellPath(const std::string& path_text) {
+    std::filesystem::path p(path_text);
+    p.make_preferred();
+    return p.string();
+}
+
 std::string BuildGlintUiOpsCommand(const std::string& glint_executable,
                                    const std::string& ops_path) {
-    return QuoteCmdArg(glint_executable) + " ui --ops " + QuoteCmdArg(ops_path);
+    std::string cmd = QuoteCmdArg(NormalizeShellPath(glint_executable)) +
+                      " ui --ops " +
+                      QuoteCmdArg(NormalizeShellPath(ops_path));
+#if defined(_WIN32)
+    // `std::system()` uses `cmd.exe`; `call` avoids the leading-quoted-exe parse bug.
+    return "call " + cmd;
+#else
+    return cmd;
+#endif
+}
+
+std::string BuildGlintOpsBatchDirectoryCommand(const std::string& glint_executable,
+                                               const std::string& ops_dir,
+                                               const std::string& frames_dir,
+                                               bool selection_overlay) {
+    std::ostringstream cmd;
+    cmd << QuoteCmdArg(NormalizeShellPath(glint_executable))
+        << " ops"
+        << " --batch-dir " << QuoteCmdArg(NormalizeShellPath(ops_dir))
+        << " --render-dir " << QuoteCmdArg(NormalizeShellPath(frames_dir));
+    if (selection_overlay) {
+        cmd << " --selection-overlay";
+    }
+#if defined(_WIN32)
+    return "call " + cmd.str();
+#else
+    return cmd.str();
+#endif
 }
 
 struct StagePreviewArtifactsResult {
@@ -586,6 +736,301 @@ StageCompareArtifactsResult StageCompareArtifacts(const ShellConfig& config,
     return out;
 }
 
+bool WritePreviewOpsForMeshPathWithConfig(const ShellConfig& config,
+                                          const std::string& mesh_path,
+                                          const std::string& ops_path,
+                                          bool* used_preset,
+                                          std::string* preset_path_used,
+                                          std::string* error) {
+    namespace fs = std::filesystem;
+    glint_qem_tool::PreviewSceneStagingOptions opts{};
+    opts.display_mode = ParsePreviewDisplayMode(config.preview_display_mode);
+    opts.emit_select_loaded_object = UsesSelectionWireframeOverlay(config.preview_display_mode);
+
+    const bool has_preset_path = !config.preview_preset_ops.empty();
+    const bool preset_exists = has_preset_path && fs::exists(fs::path(config.preview_preset_ops));
+
+    if (used_preset) *used_preset = false;
+    if (preset_path_used) *preset_path_used = has_preset_path ? config.preview_preset_ops : std::string();
+
+    std::string staging_error;
+    if (preset_exists) {
+        opts.emit_camera = false;
+        if (!glint_qem_tool::WritePreviewOpsForMeshWithPreset(mesh_path,
+                                                              config.preview_preset_ops,
+                                                              ops_path,
+                                                              opts,
+                                                              &staging_error)) {
+            if (error) *error = "ops staging failed: " + staging_error;
+            return false;
+        }
+        if (used_preset) *used_preset = true;
+        return true;
+    }
+
+    if (!glint_qem_tool::WritePreviewOpsForMesh(mesh_path, ops_path, opts, &staging_error)) {
+        if (error) *error = "ops staging failed: " + staging_error;
+        return false;
+    }
+    return true;
+}
+
+struct SimplifyReplayMeshState {
+    std::vector<glint_qem::Vec3f> positions;
+    std::vector<std::uint32_t> indices;
+};
+
+void InitReplayMeshState(const glint_qem::IndexedTriangleMesh& source, SimplifyReplayMeshState& state) {
+    state.positions = source.positions;
+    state.indices = source.indices;
+}
+
+bool ApplyCollapseReplayStep(SimplifyReplayMeshState& state,
+                             const glint_qem::CollapseEvent& evt,
+                             std::string* error) {
+    if (evt.kept_vertex >= state.positions.size() || evt.removed_vertex >= state.positions.size()) {
+        if (error) *error = "collapse trace replay failed: vertex index out of range";
+        return false;
+    }
+
+    state.positions[evt.kept_vertex] = evt.new_position;
+    for (std::uint32_t& idx : state.indices) {
+        if (idx == evt.removed_vertex) {
+            idx = evt.kept_vertex;
+        }
+    }
+    return true;
+}
+
+glint_qem::IndexedTriangleMesh BuildCompactedReplaySnapshotMesh(const SimplifyReplayMeshState& state) {
+    glint_qem::IndexedTriangleMesh out;
+
+    std::vector<std::uint32_t> old_to_new(state.positions.size(),
+        std::numeric_limits<std::uint32_t>::max());
+    out.indices.reserve(state.indices.size());
+
+    for (std::size_t i = 0; i + 2 < state.indices.size(); i += 3) {
+        const std::uint32_t a = state.indices[i + 0];
+        const std::uint32_t b = state.indices[i + 1];
+        const std::uint32_t c = state.indices[i + 2];
+        if (a >= state.positions.size() || b >= state.positions.size() || c >= state.positions.size()) {
+            continue;
+        }
+        if (a == b || b == c || a == c) {
+            continue;
+        }
+
+        const std::uint32_t src[3] = {a, b, c};
+        for (int k = 0; k < 3; ++k) {
+            if (old_to_new[src[k]] == std::numeric_limits<std::uint32_t>::max()) {
+                old_to_new[src[k]] = static_cast<std::uint32_t>(out.positions.size());
+                out.positions.push_back(state.positions[src[k]]);
+            }
+            out.indices.push_back(old_to_new[src[k]]);
+        }
+    }
+
+    return out;
+}
+
+std::string BuildIndexedFrameStem(std::uint32_t frame_index) {
+    std::ostringstream oss;
+    oss << "frame_" << std::setfill('0') << std::setw(6) << frame_index;
+    return oss.str();
+}
+
+bool ResetDirectory(const std::filesystem::path& dir, std::string* error) {
+    std::error_code ec;
+    std::filesystem::remove_all(dir, ec);
+    if (ec) {
+        if (error) *error = "failed to clear directory '" + dir.string() + "': " + ec.message();
+        return false;
+    }
+    std::filesystem::create_directories(dir, ec);
+    if (ec) {
+        if (error) *error = "failed to create directory '" + dir.string() + "': " + ec.message();
+        return false;
+    }
+    return true;
+}
+
+std::string BuildFfmpegEncodeCommand(const std::string& ffmpeg_executable,
+                                     const std::string& frame_pattern,
+                                     std::uint32_t fps,
+                                     const std::string& output_video_path) {
+    std::ostringstream cmd;
+    cmd << QuoteCmdArg(NormalizeShellPath(ffmpeg_executable))
+        << " -y"
+        << " -framerate " << std::max<std::uint32_t>(1u, fps)
+        << " -i " << QuoteCmdArg(NormalizeShellPath(frame_pattern))
+        << " -vf " << QuoteCmdArg("pad=ceil(iw/2)*2:ceil(ih/2)*2")
+        << " -c:v libx264 -pix_fmt yuv420p "
+        << QuoteCmdArg(NormalizeShellPath(output_video_path));
+#if defined(_WIN32)
+    // `std::system()` routes through `cmd.exe`; prefixing with `call` avoids
+    // the leading-quoted-executable parsing pitfall (`"ffmpeg.exe" ...`).
+    return "call " + cmd.str();
+#else
+    return cmd.str();
+#endif
+}
+
+struct DecompositionAnimationResult {
+    bool success = false;
+    bool frames_success = false;
+    bool video_attempted = false;
+    bool video_success = false;
+    std::uint32_t frames_rendered = 0u;
+    int glint_render_exit_code = 0;
+    int ffmpeg_exit_code = 0;
+    std::string frames_dir;
+    std::string video_path;
+    std::string glint_render_command;
+    std::string ffmpeg_command;
+    std::string error;
+};
+
+DecompositionAnimationResult RenderDecompositionAnimation(const ShellConfig& config,
+                                                          const glint_qem::IndexedTriangleMesh& source_mesh,
+                                                          const glint_qem::SimplifyResult& simplify_result) {
+    namespace fs = std::filesystem;
+    DecompositionAnimationResult out;
+
+    const fs::path base_dir = config.decomp_output_dir.empty()
+        ? (fs::path(config.output_dir) / "decomp")
+        : fs::path(config.decomp_output_dir);
+    const fs::path frames_dir = base_dir / "frames";
+    const fs::path ops_dir = base_dir / "ops";
+    const fs::path objs_dir = base_dir / "objs";
+
+    std::string dir_error;
+    if (!ResetDirectory(frames_dir, &dir_error) ||
+        !ResetDirectory(ops_dir, &dir_error) ||
+        !ResetDirectory(objs_dir, &dir_error)) {
+        out.error = dir_error;
+        return out;
+    }
+
+    out.frames_dir = frames_dir.string();
+    out.video_path = (base_dir / "decomposition.mp4").string();
+
+    const std::uint32_t total_collapses =
+        static_cast<std::uint32_t>(simplify_result.collapse_trace.size());
+    const std::uint32_t every =
+        std::max<std::uint32_t>(1u, config.decomp_every_collapses);
+
+    std::vector<std::uint32_t> snapshot_counts;
+    snapshot_counts.push_back(0u);
+    for (std::uint32_t c = every; c < total_collapses; c += every) {
+        snapshot_counts.push_back(c);
+    }
+    if (snapshot_counts.back() != total_collapses) {
+        snapshot_counts.push_back(total_collapses);
+    }
+
+    SimplifyReplayMeshState replay;
+    InitReplayMeshState(source_mesh, replay);
+
+    auto stage_snapshot = [&](std::uint32_t frame_index,
+                              std::uint32_t applied_collapses) -> bool {
+        (void)applied_collapses;
+        const glint_qem::IndexedTriangleMesh snapshot = BuildCompactedReplaySnapshotMesh(replay);
+        if (snapshot.positions.empty() || snapshot.indices.empty()) {
+            out.error = "animation snapshot mesh is empty";
+            return false;
+        }
+
+        const std::string stem = BuildIndexedFrameStem(frame_index);
+        const fs::path obj_path = objs_dir / (stem + ".obj");
+        const fs::path ops_path = ops_dir / (stem + ".ops.json");
+
+        std::string write_error;
+        if (!glint_qem_tool::WriteObjMesh(snapshot, obj_path.string(), &write_error)) {
+            out.error = "animation snapshot write failed: " + write_error;
+            return false;
+        }
+
+        bool used_preset = false;
+        std::string preset_used;
+        std::string ops_error;
+        if (!WritePreviewOpsForMeshPathWithConfig(config,
+                                                  obj_path.string(),
+                                                  ops_path.string(),
+                                                  &used_preset,
+                                                  &preset_used,
+                                                  &ops_error)) {
+            out.error = ops_error;
+            return false;
+        }
+
+        ++out.frames_rendered;
+
+        return true;
+    };
+
+    std::uint32_t snapshot_index = 0u;
+    if (!stage_snapshot(snapshot_index++, 0u)) {
+        return out;
+    }
+
+    std::uint32_t next_snapshot_pos = 1u;
+    for (std::uint32_t i = 0u; i < total_collapses; ++i) {
+        std::string replay_error;
+        if (!ApplyCollapseReplayStep(replay, simplify_result.collapse_trace[i], &replay_error)) {
+            out.error = replay_error;
+            return out;
+        }
+
+        const std::uint32_t applied = i + 1u;
+        if (next_snapshot_pos < snapshot_counts.size() &&
+            applied == snapshot_counts[next_snapshot_pos]) {
+            if (!stage_snapshot(snapshot_index++, applied)) {
+                return out;
+            }
+            ++next_snapshot_pos;
+        }
+    }
+
+    out.glint_render_command = BuildGlintOpsBatchDirectoryCommand(
+        config.glint_executable,
+        ops_dir.string(),
+        frames_dir.string(),
+        UsesSelectionWireframeOverlay(config.preview_display_mode));
+    out.glint_render_exit_code = std::system(out.glint_render_command.c_str());
+    out.frames_success = (out.glint_render_exit_code == 0);
+    if (!out.frames_success) {
+        out.error = "animation batch render failed (exit_code=" +
+                    std::to_string(out.glint_render_exit_code) + ")";
+        return out;
+    }
+
+    if (!config.decomp_keep_obj_snapshots) {
+        std::error_code ec;
+        fs::remove_all(objs_dir, ec);
+        ec.clear();
+        fs::remove_all(ops_dir, ec);
+    }
+
+    if (config.decomp_make_video) {
+        out.video_attempted = true;
+        const std::string frame_pattern = (frames_dir / "frame_%06d.png").string();
+        out.ffmpeg_command = BuildFfmpegEncodeCommand(config.decomp_ffmpeg_executable,
+                                                      frame_pattern,
+                                                      config.decomp_fps,
+                                                      out.video_path);
+        out.ffmpeg_exit_code = std::system(out.ffmpeg_command.c_str());
+        out.video_success = (out.ffmpeg_exit_code == 0);
+        if (!out.video_success) {
+            out.error = "ffmpeg encode failed (exit_code=" + std::to_string(out.ffmpeg_exit_code) + ")";
+            out.success = false;
+            return out;
+        }
+    }
+
+    out.success = true;
+    return out;
+}
+
 glint_qem::IndexedTriangleMesh MakeSampleMesh() {
     glint_qem::IndexedTriangleMesh mesh;
     mesh.positions = {
@@ -619,6 +1064,7 @@ void PrintHelp() {
         << "============================================================\n"
         << "Workflow\n"
         << "  1) simplify [--50]        Simplify configured OBJ and save staged output\n"
+        << "  1b) simplify --50 --animate  Also render decomposition frame sequence (+ ffmpeg video)\n"
         << "  2) renderqem              Render saved simplified mesh to image\n"
         << "  3) openqem                Open saved simplified mesh in Glint UI\n"
         << "  4) savecmp/opencmp        Build/open side-by-side original vs simplified compare view\n"
@@ -641,7 +1087,7 @@ void PrintHelp() {
         << "  set display <mode>        default|solid|wireframe|points|wireframe_overlay\n"
         << "\n"
         << "QEM + Preview\n"
-        << "  simplify [--N]            Run QEM and save <outdir>/staging/qem_simplified.obj (keep N%% tris)\n"
+        << "  simplify [--N] [--animate] Run QEM and save <outdir>/staging/qem_simplified.obj (keep N%% tris)\n"
         << "  render                    Stage current mesh + ops, then render\n"
         << "  renderqem                 Stage saved simplified mesh + ops, then render\n"
         << "  open                      Stage current mesh + ops, then launch Glint UI\n"
@@ -752,6 +1198,12 @@ int main(int argc, char** argv) {
                 << "  preset_ops       : " << (config.preview_preset_ops.empty() ? "<unset>" : config.preview_preset_ops) << "\n"
                 << "  preset_exists    : " << (preset_exists ? "yes" : "no") << "\n"
                 << "  display_mode     : " << config.preview_display_mode << "\n"
+                << "  decomp_dir       : " << config.decomp_output_dir << "\n"
+                << "  decomp_every     : " << config.decomp_every_collapses << " collapses/frame\n"
+                << "  decomp_fps       : " << config.decomp_fps << "\n"
+                << "  decomp_video     : " << BoolToText(config.decomp_make_video) << "\n"
+                << "  decomp_keep_objs : " << BoolToText(config.decomp_keep_obj_snapshots) << "\n"
+                << "  ffmpeg           : " << config.decomp_ffmpeg_executable << "\n"
                 << "  staged_obj       : " << (staged_obj_path.empty() ? "<none>" : staged_obj_path) << "\n"
                 << "  staged_ops       : " << (staged_ops_path.empty() ? "<none>" : staged_ops_path) << "\n"
                 << "  compare_ops      : " << (last_compare_ops_path.empty() ? "<none>" : last_compare_ops_path) << "\n"
@@ -772,6 +1224,12 @@ int main(int argc, char** argv) {
                 std::cout << "output_dir=" << config.output_dir << "\n";
                 std::cout << "preview_preset_ops=" << config.preview_preset_ops << "\n";
                 std::cout << "preview_display_mode=" << config.preview_display_mode << "\n";
+                std::cout << "decomp_output_dir=" << config.decomp_output_dir << "\n";
+                std::cout << "decomp_ffmpeg_executable=" << config.decomp_ffmpeg_executable << "\n";
+                std::cout << "decomp_every_collapses=" << config.decomp_every_collapses << "\n";
+                std::cout << "decomp_fps=" << config.decomp_fps << "\n";
+                std::cout << "decomp_make_video=" << BoolToText(config.decomp_make_video) << "\n";
+                std::cout << "decomp_keep_obj_snapshots=" << BoolToText(config.decomp_keep_obj_snapshots) << "\n";
                 continue;
             }
             std::string path = config_path;
@@ -853,14 +1311,14 @@ int main(int argc, char** argv) {
                 continue;
             }
 
-            float target_ratio = 0.5f;
+            SimplifyCommandOptions simplify_opts;
             std::string arg_error;
-            if (!ParseSimplifyPercentArg(args, &target_ratio, &arg_error)) {
+            if (!ParseSimplifyCommandArgs(args, &simplify_opts, &arg_error)) {
                 std::cout << arg_error << "\n";
                 continue;
             }
 
-            job.options.target_ratio = target_ratio;
+            job.options.target_ratio = simplify_opts.target_ratio;
             job.options.emit_collapse_trace = true;
             job.options.compact_output = true;
             ConsoleProgressLogger progress_logger(100u);
@@ -885,6 +1343,34 @@ int main(int argc, char** argv) {
 
             last_simplified_obj_path = out_obj;
             std::cout << "saved simplified obj: " << last_simplified_obj_path << "\n";
+
+            if (simplify_opts.animate) {
+                std::cout << "animation: rendering decomposition sequence...\n";
+                DecompositionAnimationResult anim =
+                    RenderDecompositionAnimation(config, job.input_mesh, r);
+
+                std::cout << "animation frames_dir: " << anim.frames_dir << "\n";
+                std::cout << "animation frames_rendered: " << anim.frames_rendered << "\n";
+                if (!anim.glint_render_command.empty()) {
+                    std::cout << "animation glint_render_exit_code: " << anim.glint_render_exit_code << "\n";
+                    std::cout << "animation glint_render_command: " << anim.glint_render_command << "\n";
+                }
+
+                if (anim.video_attempted) {
+                    std::cout << "animation video_path: " << anim.video_path << "\n";
+                    std::cout << "animation ffmpeg_exit_code: " << anim.ffmpeg_exit_code << "\n";
+                    std::cout << "animation ffmpeg_command: " << anim.ffmpeg_command << "\n";
+                }
+
+                if (!anim.success) {
+                    std::cout << "animation status: failure\n";
+                    if (!anim.error.empty()) {
+                        std::cout << "animation error: " << anim.error << "\n";
+                    }
+                } else {
+                    std::cout << "animation status: success\n";
+                }
+            }
             continue;
         }
 

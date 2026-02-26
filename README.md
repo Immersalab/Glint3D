@@ -1,97 +1,117 @@
 # Glint3D
 
-A lightweight 3D rendering engine with dual rendering pipelines (OpenGL rasterization and CPU raytracing), JSON-driven automation, and headless rendering support.
+```text
+Welcome to...
+    _____ _      _____ _   _ _______ ____  _____
+   / ____| |    |_   _| \ | |__   __|___ \|  __ \
+  | |  __| |      | | |  \| |  | |    __) | |  | |
+  | | |_ | |      | | | . ` |  | |   |__ <| |  | |
+  | |__| | |____ _| |_| |\  |  | |   ___) | |__| |
+   \_____|______|_____|_| \_|  |_|  |____/|_____/
+
+```
+
+Glint3D is a C++ 3D engine focused on interactive desktop rendering and automation-friendly CLI workflows. It supports real-time OpenGL rendering, CPU raytracing, JSON-driven operations, and headless output generation.
 
 ![Glint3D Interface](docs/images/interface-overview.png)
 
-## Features
+## Highlights
 
-- **Dual Rendering**: Real-time OpenGL rasterization and offline CPU raytracing with BVH acceleration
-- **PBR Materials**: Physically-based rendering with metallic-roughness workflow
-- **JSON Operations**: Scriptable scene manipulation for automation and testing
-- **Headless Rendering**: Batch rendering and golden image validation
-- **Asset Pipeline**: Support for OBJ, glTF, FBX, PLY, and other formats via Assimp
-- **Lighting System**: Point, directional, and spot lights with full shader integration
+- Dual rendering paths: OpenGL rasterization and CPU raytracing
+- PBR material workflow (metallic/roughness)
+- JSON Ops pipeline for scripted scene actions and rendering
+- Headless rendering support for automation and batch jobs
+- Asset import via Assimp (OBJ / glTF / FBX / PLY and more)
+- Modular engine layout (`core`, `modules`, `platform`)
 
 ![Rendering Comparison](docs/images/render-comparison.png)
 
-## Quick Start
+## Install / Build
 
-### Building
+### Prerequisites
+
+- CMake (3.15+)
+- A C++17 compiler (MSVC recommended on Windows)
+- Platform dependencies listed in `docs/external_dependencies.md`
+
+### Build (Windows / PowerShell)
 
 ```powershell
-# Generate build files
+git clone <your-fork-or-repo-url>
+cd Glint3D
 cmake -S . -B builds/desktop/cmake -DCMAKE_BUILD_TYPE=Release
-
-# Compile
 cmake --build builds/desktop/cmake --config Release
 ```
 
-### Basic Usage
+Output binary (typical):
+
+- `builds/desktop/cmake/Release/glint.exe`
+
+## Run
+
+### Interactive UI
 
 ```powershell
-# Interactive UI
-./builds/desktop/cmake/Release/glint.exe
-
-# Headless rendering
-./builds/desktop/cmake/Release/glint.exe --ops examples/json-ops/basic.json --render output.png
-
-# Raytraced rendering
-./builds/desktop/cmake/Release/glint.exe --ops examples/json-ops/glass-sphere.json --render output.png --raytrace
+.\builds\desktop\cmake\Release\glint.exe
 ```
 
-## Project Structure
+### CLI Help
 
+```powershell
+.\builds\desktop\cmake\Release\glint.exe help
 ```
+
+### JSON Ops / Headless Render (legacy-compatible flags)
+
+```powershell
+.\builds\desktop\cmake\Release\glint.exe --ops .\path\to\ops.json --render .\output.png
+.\builds\desktop\cmake\Release\glint.exe --ops .\path\to\ops.json --render .\output.png --raytrace --denoise
+```
+
+## Using Glint3D (Overview)
+
+Glint3D can be used in two primary ways:
+
+- Interactive mode: launch the desktop app to inspect scenes, tweak rendering, and work visually.
+- CLI mode: run commands and JSON Ops for automation, reproducible renders, and tooling integration.
+
+Common workflows:
+
+1. Build `glint.exe`.
+2. Launch the UI for interactive work.
+3. Use CLI commands (`help`, `init`, `render`, `ops`) for scripted tasks.
+4. Use `schemas/json_ops_v1.json` to validate or author JSON Ops inputs.
+
+## Project Layout
+
+```text
 engine/
-├── core/              Core rendering and scene systems
-├── modules/           Optional features (raytracing, post-processing)
-└── platform/desktop/  Desktop UI and native integrations
+  core/               Core rendering, scene, IO, and application systems
+  modules/            Optional engine modules (raytracing, gizmos, post FX)
+  platform/desktop/   Desktop UI and native platform integration
 
 resources/
-├── shaders/           GLSL shader programs
-└── assets/            Models, textures, and examples
+  assets/             Runtime assets and icons
+  shaders/            GLSL shader sources
+  templates/          Project scaffolding templates
 
-examples/json-ops/     Sample automation scripts
-tests/                 Unit tests, integration tests, and golden images
+cli/                  CLI command platform implementation
+schemas/              JSON schemas (including JSON Ops)
+docs/                 Project and dependency documentation
 ```
 
-## JSON Operations
+## JSON Ops
 
-Automate scene manipulation with JSON operations:
+Glint3D supports JSON-based scripted operations for loading, scene edits, and rendering.
 
-```json
-{
-  "operations": [
-    { "op": "load", "path": "model.obj" },
-    { "op": "add_light", "type": "point", "position": [0, 5, 0] },
-    { "op": "render", "output": "result.png", "width": 1920, "height": 1080 }
-  ]
-}
-```
+- Schema: `schemas/json_ops_v1.json`
+- Use with: `glint --ops <file> --render <output.png>`
 
-Full schema available in `schemas/json_ops_v1.json`.
+## Notes
 
-## Documentation
-
-- **Build Instructions**: See `CLAUDE.md` for detailed build configurations
-- **JSON Ops Reference**: Check `schemas/json_ops_v1.json` and `examples/json-ops/`
-- **Testing**: Run `tests/scripts/run_all_tests.sh` for comprehensive validation
-- **Dependencies**: See `docs/external_dependencies.md` for third-party libraries
-
-## Development
-
-The engine is designed for modularity and cross-platform support:
-
-- **BGFX Migration Planned**: Future multi-backend support (Vulkan/DirectX/Metal/OpenGL/WebGL)
-- **Modular Architecture**: Separate core, modules, and platform-specific code
-- **Security**: Path validation with `--asset-root` flag
-- **CI/CD**: Automated golden image testing and cross-platform builds
+- The built-in CLI banner/help reflects the current command platform and available subcommands.
+- Some commands shown in help may be in-progress depending on your local branch/build state.
 
 ## License
 
-[Add license information]
-
-## Contributing
-
-[Add contribution guidelines]
+License information is not yet published in this repository.

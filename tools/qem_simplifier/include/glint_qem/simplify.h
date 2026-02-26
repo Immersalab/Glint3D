@@ -28,7 +28,18 @@ struct DeterminismPolicy {
     bool stable_vertex_reindex_on_output = true;
 };
 
+enum class SimplifyProgressStage : std::uint8_t {
+    kUnknown = 0,
+    kInitializing,
+    kRebuildDerivedState, // normals/quadrics/edge candidate rebuild
+    kEvaluateCandidates,  // error evaluation + collapse validation
+    kApplyCollapse,
+    kFinalizeOutput,
+    kComplete
+};
+
 struct SimplifyProgressEvent {
+    SimplifyProgressStage stage = SimplifyProgressStage::kUnknown;
     std::uint32_t input_triangle_count = 0;
     std::uint32_t current_triangle_count = 0;
     std::uint32_t target_triangle_count = 0;

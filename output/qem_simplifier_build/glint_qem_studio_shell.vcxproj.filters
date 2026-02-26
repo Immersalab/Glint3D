@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="D:\ahoqp1\Repositories\Glint3D\tools\qem_simplifier\src\ui\qem_studio_shell.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="D:\ahoqp1\Repositories\Glint3D\tools\qem_simplifier\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{BBAFA04F-BA04-341B-9A09-4224ADBD94B6}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

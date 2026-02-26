@@ -27,7 +27,7 @@ private:
     
     // Local UI state that can be toggled independently
     bool m_showSettingsPanel = true;
-    bool m_showPerfHUD = false;
+    bool m_showPerfHUD = true;
     bool m_showHierarchyPanel = true;
     
     // Help dialogs

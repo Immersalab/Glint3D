@@ -43,6 +43,8 @@ struct FaceRec {
     bool alive = true;
     Vec3d normal{};
     double area = 0.0;
+    // Cached plane quadric for incremental local updates.
+    Quadric quadric{};
 };
 
 struct EdgeKey {
@@ -72,6 +74,8 @@ struct EdgeCandidate {
     Vec3d optimal_pos{};
     double cost = std::numeric_limits<double>::infinity();
     std::uint64_t tie_id = 0u;
+    // Lazy-invalidation tag for the persistent global priority queue.
+    std::uint32_t version = 0u;
 };
 
 struct CandidateWorse {
@@ -86,11 +90,20 @@ struct CandidateWorse {
 using CandidateQueue = std::priority_queue<EdgeCandidate, std::vector<EdgeCandidate>, CandidateWorse>;
 
 struct DerivedState {
+    // Topology/adjacency caches used by validation and local incremental updates.
     std::vector<std::vector<std::uint32_t>> vertex_faces;
     std::map<EdgeKey, std::uint32_t> edge_incidence;
+
+    // Per-edge version counters for stale priority-queue entries.
+    std::map<EdgeKey, std::uint32_t> edge_versions;
+
+    // Persistent global queue of edge candidates (stale entries are filtered on pop).
     CandidateQueue candidates;
     std::uint32_t alive_face_count = 0u;
     std::uint32_t alive_vertex_count = 0u;
+
+    // Deterministic tiebreak seed for newly queued local candidates.
+    std::uint64_t next_tie_id = 0u;
 };
 
 struct CollapseDecision {
@@ -272,10 +285,12 @@ bool SolveOptimalPosition3x3(const Quadric& q, double det_epsilon, Vec3d& out) {
 EdgeCandidate BuildEdgeCandidate(const std::vector<VertexRec>& vertices,
                                  const EdgeKey& key,
                                  std::uint64_t tie_id,
-                                 const EpsilonPolicy& eps) {
+                                 const EpsilonPolicy& eps,
+                                 std::uint32_t version = 0u) {
     EdgeCandidate c;
     c.key = key;
     c.tie_id = tie_id;
+    c.version = version;
 
     const Quadric q = AddQuadrics(vertices[key.a].q, vertices[key.b].q);
     Vec3d pos{};
@@ -376,6 +391,137 @@ bool ComputeFaceGeometry(FaceRec& face,
     return true;
 }
 
+// ---- Incremental topology / quadric cache helpers ----------------------------------------------
+
+bool RefreshFaceGeometryAndQuadric(FaceRec& face,
+                                   const std::vector<VertexRec>& vertices,
+                                   double area_epsilon) {
+    if (!ComputeFaceGeometry(face, vertices, area_epsilon)) {
+        ZeroQuadric(face.quadric);
+        return false;
+    }
+
+    const double d = -Dot(face.normal, vertices[face.v[0]].p);
+    face.quadric = BuildPlaneQuadric(face.normal, d, face.area);
+    return true;
+}
+
+void AddFaceAdjacencyEntry(std::vector<std::uint32_t>& entries, std::uint32_t face_id) {
+    if (std::find(entries.begin(), entries.end(), face_id) == entries.end()) {
+        entries.push_back(face_id);
+    }
+}
+
+void RemoveFaceAdjacencyEntry(std::vector<std::uint32_t>& entries, std::uint32_t face_id) {
+    entries.erase(std::remove(entries.begin(), entries.end(), face_id), entries.end());
+}
+
+void AddFaceAdjacency(DerivedState& state, std::uint32_t face_id, const FaceRec& face) {
+    AddFaceAdjacencyEntry(state.vertex_faces[face.v[0]], face_id);
+    AddFaceAdjacencyEntry(state.vertex_faces[face.v[1]], face_id);
+    AddFaceAdjacencyEntry(state.vertex_faces[face.v[2]], face_id);
+}
+
+void RemoveFaceAdjacency(DerivedState& state, std::uint32_t face_id, const std::uint32_t v[3]) {
+    RemoveFaceAdjacencyEntry(state.vertex_faces[v[0]], face_id);
+    RemoveFaceAdjacencyEntry(state.vertex_faces[v[1]], face_id);
+    RemoveFaceAdjacencyEntry(state.vertex_faces[v[2]], face_id);
+}
+
+void IncrementEdgeIncidence(DerivedState& state, const EdgeKey& key) {
+    ++state.edge_incidence[key];
+    state.edge_versions.emplace(key, 0u);
+}
+
+void DecrementEdgeIncidence(DerivedState& state, const EdgeKey& key) {
+    const auto it = state.edge_incidence.find(key);
+    if (it == state.edge_incidence.end()) {
+        return;
+    }
+    if (it->second > 1u) {
+        --it->second;
+        return;
+    }
+    state.edge_incidence.erase(it);
+    state.edge_versions.erase(key);
+}
+
+void AddFaceIncidence(DerivedState& state, const std::uint32_t v[3]) {
+    IncrementEdgeIncidence(state, MakeEdgeKey(v[0], v[1]));
+    IncrementEdgeIncidence(state, MakeEdgeKey(v[1], v[2]));
+    IncrementEdgeIncidence(state, MakeEdgeKey(v[2], v[0]));
+}
+
+void RemoveFaceIncidence(DerivedState& state, const std::uint32_t v[3]) {
+    DecrementEdgeIncidence(state, MakeEdgeKey(v[0], v[1]));
+    DecrementEdgeIncidence(state, MakeEdgeKey(v[1], v[2]));
+    DecrementEdgeIncidence(state, MakeEdgeKey(v[2], v[0]));
+}
+
+void RebuildVertexQuadricFromAdjacency(std::uint32_t vertex_id,
+                                       std::vector<VertexRec>& vertices,
+                                       const std::vector<FaceRec>& faces,
+                                       const DerivedState& state) {
+    if (vertex_id >= vertices.size()) {
+        return;
+    }
+
+    VertexRec& v = vertices[vertex_id];
+    ZeroQuadric(v.q);
+    if (!v.alive) {
+        return;
+    }
+
+    for (std::uint32_t face_id : state.vertex_faces[vertex_id]) {
+        if (face_id >= faces.size()) {
+            continue;
+        }
+        const FaceRec& face = faces[face_id];
+        if (!face.alive) {
+            continue;
+        }
+        AddQuadricInPlace(v.q, face.quadric);
+    }
+}
+
+void QueueEdgeCandidateIfActive(const EdgeKey& key,
+                                std::vector<VertexRec>& vertices,
+                                DerivedState& state,
+                                const SimplifyOptions& options) {
+    const auto incidence_it = state.edge_incidence.find(key);
+    if (incidence_it == state.edge_incidence.end()) {
+        state.edge_versions.erase(key);
+        return;
+    }
+    if (incidence_it->second == 0u) {
+        state.edge_incidence.erase(incidence_it);
+        state.edge_versions.erase(key);
+        return;
+    }
+    if (key.a >= vertices.size() || key.b >= vertices.size()) {
+        return;
+    }
+    if (!vertices[key.a].alive || !vertices[key.b].alive) {
+        return;
+    }
+
+    // Increment the edge version and push a fresh candidate. Older queue entries remain
+    // in the heap and are ignored later by IsCurrentCandidate().
+    std::uint32_t& version = state.edge_versions[key];
+    ++version;
+    state.candidates.push(BuildEdgeCandidate(vertices,
+                                             key,
+                                             state.next_tie_id++,
+                                             options.epsilon,
+                                             version));
+}
+
+struct FaceUpdateSnapshot {
+    bool was_alive = false;
+    std::uint32_t v[3] = {0u, 0u, 0u};
+};
+
+// Rebuild everything (used once at startup to seed the persistent queue/caches).
 DerivedState RebuildDerivedState(std::vector<VertexRec>& vertices,
                                  std::vector<FaceRec>& faces,
                                  const SimplifyOptions& options) {
@@ -393,33 +539,32 @@ DerivedState RebuildDerivedState(std::vector<VertexRec>& vertices,
     for (std::uint32_t face_id = 0u; face_id < static_cast<std::uint32_t>(faces.size()); ++face_id) {
         FaceRec& face = faces[face_id];
         if (!face.alive) continue;
-        if (!ComputeFaceGeometry(face, vertices, area_eps)) continue;
+        if (!RefreshFaceGeometryAndQuadric(face, vertices, area_eps)) continue;
 
-        const double d = -Dot(face.normal, vertices[face.v[0]].p);
-        const Quadric fq = BuildPlaneQuadric(face.normal, d, face.area);
-        AddQuadricInPlace(vertices[face.v[0]].q, fq);
-        AddQuadricInPlace(vertices[face.v[1]].q, fq);
-        AddQuadricInPlace(vertices[face.v[2]].q, fq);
+        AddQuadricInPlace(vertices[face.v[0]].q, face.quadric);
+        AddQuadricInPlace(vertices[face.v[1]].q, face.quadric);
+        AddQuadricInPlace(vertices[face.v[2]].q, face.quadric);
 
-        state.vertex_faces[face.v[0]].push_back(face_id);
-        state.vertex_faces[face.v[1]].push_back(face_id);
-        state.vertex_faces[face.v[2]].push_back(face_id);
+        AddFaceAdjacency(state, face_id, face);
 
         ++state.alive_face_count;
-        ++state.edge_incidence[MakeEdgeKey(face.v[0], face.v[1])];
-        ++state.edge_incidence[MakeEdgeKey(face.v[1], face.v[2])];
-        ++state.edge_incidence[MakeEdgeKey(face.v[2], face.v[0])];
+        AddFaceIncidence(state, face.v);
     }
 
     std::uint64_t tie = 0u;
     for (const auto& kv : state.edge_incidence) {
         const EdgeKey& key = kv.first;
         if (!vertices[key.a].alive || !vertices[key.b].alive) continue;
-        state.candidates.push(BuildEdgeCandidate(vertices, key, tie++, options.epsilon));
+        const auto ver_it = state.edge_versions.find(key);
+        const std::uint32_t version = (ver_it != state.edge_versions.end()) ? ver_it->second : 0u;
+        state.candidates.push(BuildEdgeCandidate(vertices, key, tie++, options.epsilon, version));
     }
+    state.next_tie_id = tie;
 
     return state;
 }
+
+// ---- Collapse validation ------------------------------------------------------------------------
 
 bool EdgeExistsAndManifoldOkay(const DerivedState& state, const EdgeKey& key) {
     const auto it = state.edge_incidence.find(key);
@@ -506,24 +651,162 @@ bool ValidateCollapse(const CollapseDecision& d,
     return true;
 }
 
-void ApplyCollapse(const CollapseDecision& d,
-                   std::vector<VertexRec>& vertices,
-                   std::vector<FaceRec>& faces) {
-    vertices[d.keep].p = d.new_pos;
-    vertices[d.remove].alive = false;
+// ---- Persistent priority queue helpers ----------------------------------------------------------
 
-    for (FaceRec& face : faces) {
-        if (!face.alive) continue;
-        bool touched = false;
-        for (int i = 0; i < 3; ++i) {
-            if (face.v[i] == d.remove) {
-                face.v[i] = d.keep;
-                touched = true;
+bool IsCurrentCandidate(const EdgeCandidate& candidate,
+                        const std::vector<VertexRec>& vertices,
+                        const DerivedState& state) {
+    if (candidate.key.a >= vertices.size() || candidate.key.b >= vertices.size()) {
+        return false;
+    }
+    if (!vertices[candidate.key.a].alive || !vertices[candidate.key.b].alive) {
+        return false;
+    }
+
+    const auto inc_it = state.edge_incidence.find(candidate.key);
+    if (inc_it == state.edge_incidence.end()) {
+        return false;
+    }
+
+    const auto ver_it = state.edge_versions.find(candidate.key);
+    if (ver_it == state.edge_versions.end()) {
+        return false;
+    }
+    // Candidate is valid only if it matches the latest version for that edge.
+    return ver_it->second == candidate.version;
+}
+
+// Apply one accepted collapse and update only the local neighborhood:
+// 1) touched faces / adjacency / edge incidence
+// 2) local face geometry + face quadrics
+// 3) local vertex quadrics
+// 4) local edge candidates in the persistent priority queue
+void ApplyCollapseLocalAndUpdateState(const CollapseDecision& d,
+                                      std::vector<VertexRec>& vertices,
+                                      std::vector<FaceRec>& faces,
+                                      DerivedState& state,
+                                      const SimplifyOptions& options) {
+    // Capture the pre-collapse set of touched faces.
+    std::set<std::uint32_t> touched_face_set;
+    for (std::uint32_t face_id : state.vertex_faces[d.keep]) touched_face_set.insert(face_id);
+    for (std::uint32_t face_id : state.vertex_faces[d.remove]) touched_face_set.insert(face_id);
+
+    std::vector<std::uint32_t> touched_faces(touched_face_set.begin(), touched_face_set.end());
+    std::vector<FaceUpdateSnapshot> snapshots(touched_faces.size());
+    std::set<std::uint32_t> affected_vertices;
+
+    // Snapshot face topology before mutation so we can remove old adjacency/incidence entries cleanly.
+    for (std::size_t i = 0; i < touched_faces.size(); ++i) {
+        const std::uint32_t face_id = touched_faces[i];
+        if (face_id >= faces.size()) {
+            continue;
+        }
+        const FaceRec& face = faces[face_id];
+        snapshots[i].was_alive = face.alive;
+        snapshots[i].v[0] = face.v[0];
+        snapshots[i].v[1] = face.v[1];
+        snapshots[i].v[2] = face.v[2];
+        if (face.alive) {
+            affected_vertices.insert(face.v[0]);
+            affected_vertices.insert(face.v[1]);
+            affected_vertices.insert(face.v[2]);
+        }
+    }
+
+    // Apply vertex collapse (keep lower-id vertex, remove higher-id vertex).
+    vertices[d.keep].p = d.new_pos;
+    if (vertices[d.remove].alive) {
+        vertices[d.remove].alive = false;
+        if (state.alive_vertex_count > 0u) {
+            --state.alive_vertex_count;
+        }
+    }
+
+    const double area_eps = std::max(0.0, static_cast<double>(options.epsilon.area_epsilon));
+
+    // Rebuild touched faces against the new collapsed vertex position.
+    for (std::size_t i = 0; i < touched_faces.size(); ++i) {
+        const std::uint32_t face_id = touched_faces[i];
+        if (face_id >= faces.size()) {
+            continue;
+        }
+
+        FaceRec& face = faces[face_id];
+        const FaceUpdateSnapshot& snapshot = snapshots[i];
+
+        if (snapshot.was_alive) {
+            RemoveFaceAdjacency(state, face_id, snapshot.v);
+            RemoveFaceIncidence(state, snapshot.v);
+            if (state.alive_face_count > 0u) {
+                --state.alive_face_count;
             }
         }
-        if (touched && HasRepeatedIndices(face.v)) {
-            face.alive = false;
+
+        if (snapshot.was_alive) {
+            for (int k = 0; k < 3; ++k) {
+                if (face.v[k] == d.remove) {
+                    face.v[k] = d.keep;
+                }
+            }
+            face.alive = true;
+            if (HasRepeatedIndices(face.v)) {
+                face.alive = false;
+                face.normal = Vec3d{};
+                face.area = 0.0;
+                ZeroQuadric(face.quadric);
+            } else {
+                RefreshFaceGeometryAndQuadric(face, vertices, area_eps);
+            }
         }
+
+        if (face.alive) {
+            AddFaceAdjacency(state, face_id, face);
+            AddFaceIncidence(state, face.v);
+            ++state.alive_face_count;
+
+            affected_vertices.insert(face.v[0]);
+            affected_vertices.insert(face.v[1]);
+            affected_vertices.insert(face.v[2]);
+        } else {
+            ZeroQuadric(face.quadric);
+        }
+    }
+
+    // Removed vertex no longer has incident faces.
+    if (d.remove < state.vertex_faces.size()) {
+        state.vertex_faces[d.remove].clear();
+    }
+
+    affected_vertices.insert(d.keep);
+    affected_vertices.insert(d.remove);
+
+    // Recompute only the quadrics for vertices in the touched neighborhood.
+    for (std::uint32_t v : affected_vertices) {
+        RebuildVertexQuadricFromAdjacency(v, vertices, faces, state);
+    }
+
+    // Requeue only edges in the local neighborhood. Stale entries are left in the heap.
+    std::set<EdgeKey> affected_edges;
+    for (std::uint32_t v : affected_vertices) {
+        if (v >= state.vertex_faces.size()) {
+            continue;
+        }
+        for (std::uint32_t face_id : state.vertex_faces[v]) {
+            if (face_id >= faces.size()) {
+                continue;
+            }
+            const FaceRec& face = faces[face_id];
+            if (!face.alive) {
+                continue;
+            }
+            affected_edges.insert(MakeEdgeKey(face.v[0], face.v[1]));
+            affected_edges.insert(MakeEdgeKey(face.v[1], face.v[2]));
+            affected_edges.insert(MakeEdgeKey(face.v[2], face.v[0]));
+        }
+    }
+
+    for (const EdgeKey& key : affected_edges) {
+        QueueEdgeCandidateIfActive(key, vertices, state, options);
     }
 }
 
@@ -642,6 +925,7 @@ void EmitProgressEvent(const SimplifyOptions& options,
                        const std::optional<std::uint32_t>& target_triangles,
                        const std::chrono::steady_clock::time_point& started,
                        double latest_edge_cost,
+                       SimplifyProgressStage stage,
                        bool final_event) {
     if (options.progress.callback == nullptr) {
         return;
@@ -649,6 +933,7 @@ void EmitProgressEvent(const SimplifyOptions& options,
 
     const auto now = std::chrono::steady_clock::now();
     SimplifyProgressEvent event{};
+    event.stage = stage;
     event.input_triangle_count = input_triangles;
     event.current_triangle_count = current_triangles;
     event.has_target_triangle_count = target_triangles.has_value();
@@ -712,31 +997,35 @@ SimplifyResult Simplify(const IndexedTriangleMesh& input,
     const auto started = std::chrono::steady_clock::now();
     double latest_progress_cost = 0.0;
 
+    // Build the initial global priority queue and topology caches once.
+    // After this, accepted collapses update only the local neighborhood.
+    DerivedState state = RebuildDerivedState(vertices, faces, options);
     StopReason stop_reason;
 
     for (;;) {
-        DerivedState derived = RebuildDerivedState(vertices, faces, options);
-
+        // Progress logging is sampled by accepted collapse count; the internal queue itself is persistent.
         if (emit_progress) {
             if (result.stats.accepted_collapses == 0u && result.stats.attempted_collapses == 0u) {
                 if (options.progress.emit_initial) {
                     EmitProgressEvent(options,
                                       result,
                                       input_triangles,
-                                      derived.alive_face_count,
+                                      state.alive_face_count,
                                       target_triangles,
                                       started,
                                       latest_progress_cost,
+                                      SimplifyProgressStage::kRebuildDerivedState,
                                       false);
                 }
             } else if (result.stats.accepted_collapses >= next_progress_log) {
                 EmitProgressEvent(options,
                                   result,
                                   input_triangles,
-                                  derived.alive_face_count,
+                                  state.alive_face_count,
                                   target_triangles,
                                   started,
                                   latest_progress_cost,
+                                  SimplifyProgressStage::kRebuildDerivedState,
                                   false);
                 while (result.stats.accepted_collapses >= next_progress_log) {
                     next_progress_log += progress_interval;
@@ -744,7 +1033,7 @@ SimplifyResult Simplify(const IndexedTriangleMesh& input,
             }
         }
 
-        if (target_triangles.has_value() && derived.alive_face_count <= *target_triangles) {
+        if (target_triangles.has_value() && state.alive_face_count <= *target_triangles) {
             stop_reason.kind = StopReason::kTargetReached;
             break;
         }
@@ -755,9 +1044,28 @@ SimplifyResult Simplify(const IndexedTriangleMesh& input,
         }
 
         bool accepted_this_epoch = false;
-        while (!derived.candidates.empty()) {
-            const EdgeCandidate candidate = derived.candidates.top();
-            derived.candidates.pop();
+        bool emitted_eval_stage = false;
+        while (!state.candidates.empty()) {
+            if (emit_progress && !emitted_eval_stage) {
+                EmitProgressEvent(options,
+                                  result,
+                                  input_triangles,
+                                  state.alive_face_count,
+                                  target_triangles,
+                                  started,
+                                  latest_progress_cost,
+                                  SimplifyProgressStage::kEvaluateCandidates,
+                                  false);
+                emitted_eval_stage = true;
+            }
+
+            const EdgeCandidate candidate = state.candidates.top();
+            state.candidates.pop();
+
+            // Lazy invalidation: stale queue entries are expected after local updates.
+            if (!IsCurrentCandidate(candidate, vertices, state)) {
+                continue;
+            }
 
             if (!std::isfinite(candidate.cost)) {
                 ++result.stats.attempted_collapses;
@@ -772,18 +1080,30 @@ SimplifyResult Simplify(const IndexedTriangleMesh& input,
 
             ++result.stats.attempted_collapses;
             const CollapseDecision d = MakeDecisionFromCandidate(candidate);
-            if (!ValidateCollapse(d, vertices, faces, derived, options)) {
+            if (!ValidateCollapse(d, vertices, faces, state, options)) {
                 ++result.stats.rejected_collapses;
                 continue;
             }
 
-            ApplyCollapse(d, vertices, faces);
+            ApplyCollapseLocalAndUpdateState(d, vertices, faces, state, options);
             ++result.stats.accepted_collapses;
             result.stats.accumulated_error += d.cost;
             if (d.cost > result.stats.final_max_edge_error) {
                 result.stats.final_max_edge_error = d.cost;
             }
             latest_progress_cost = d.cost;
+
+            if (emit_progress) {
+                EmitProgressEvent(options,
+                                  result,
+                                  input_triangles,
+                                  state.alive_face_count,
+                                  target_triangles,
+                                  started,
+                                  latest_progress_cost,
+                                  SimplifyProgressStage::kApplyCollapse,
+                                  false);
+            }
 
             if (options.emit_collapse_trace) {
                 CollapseEvent evt;
@@ -795,6 +1115,8 @@ SimplifyResult Simplify(const IndexedTriangleMesh& input,
                 result.collapse_trace.push_back(evt);
             }
 
+            // Keep the original baseline behavior of applying at most one accepted collapse
+            // before re-evaluating stop conditions / progress thresholds.
             accepted_this_epoch = true;
             break;
         }
@@ -808,6 +1130,19 @@ SimplifyResult Simplify(const IndexedTriangleMesh& input,
         }
     }
 
+    if (emit_progress) {
+        EmitProgressEvent(options,
+                          result,
+                          input_triangles,
+                          state.alive_face_count,
+                          target_triangles,
+                          started,
+                          latest_progress_cost,
+                          SimplifyProgressStage::kFinalizeOutput,
+                          false);
+    }
+
+    // Final compaction/serialization pass happens after the incremental simplification loop.
     BuildOutputMesh(vertices, faces, options, output, result);
     FillTerminalStats(input, vertices, faces, output, result);
 
@@ -853,6 +1188,7 @@ SimplifyResult Simplify(const IndexedTriangleMesh& input,
                           target_triangles,
                           started,
                           latest_progress_cost,
+                          SimplifyProgressStage::kComplete,
                           true);
     }
 

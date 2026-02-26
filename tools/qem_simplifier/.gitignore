@@ -1,0 +1,40 @@
+# QEM simplifier local/generated artifacts
+
+# Generated renders, staged ops, videos, and frame dumps
+/output/
+/outputs/
+
+# Local standalone build directories (when building the tool in-place)
+/build/
+/builds/
+/cmake-build-*/
+/out/
+
+# CMake/Ninja local cache files if generated in this folder
+/CMakeCache.txt
+/CMakeFiles/
+/Testing/
+/compile_commands.json
+/cmake_install.cmake
+/install_manifest.txt
+/Makefile
+/.ninja_deps
+/.ninja_log
+/build.ninja
+
+# IDE/editor local state
+/.vs/
+/.vscode/
+/.idea/
+*.VC.db
+*.VC.opendb
+
+# Debugging/log/temp files
+*.log
+*.tmp
+*.temp
+*.bak
+
+# Optional local overrides (keep the checked-in baseline config)
+qem_shell.local.config
+qem_shell.user.config

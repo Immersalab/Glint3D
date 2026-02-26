@@ -19,7 +19,7 @@ class Light;
 struct UIState {
     // Visibility toggles
     bool showSettingsPanel = true;
-    bool showPerfHUD = false;
+    bool showPerfHUD = true;
     bool showGrid = true;
     bool showAxes = true;
     bool showSkybox = false;
