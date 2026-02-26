@@ -100,6 +100,14 @@ If `preview_preset_ops` exists, `render` automatically appends its `ops` (camera
 
 ![HUD Wireframe](../../resources/assets/img/HUD-Wireframe.png)
 
+### Decomposition Preview Video
+
+Example decomposition capture generated from the QEM shell animation workflow (`simplify --animate`). This is useful for visually checking collapse progression frame-by-frame and as an exported MP4.
+
+<video controls src="output/decomp/decomposition%20-%201.mp4"></video>
+
+[Open `decomposition - 1.mp4`](output/decomp/decomposition%20-%201.mp4)
+
 ## Design notes
 
 See `docs/BACKEND_INTERFACE_DISCUSSION.md` for why backend interfaces come before a runtime plugin ABI and how to keep the current scaffolding compatible with a future true plugin interface.
