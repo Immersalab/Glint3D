@@ -104,9 +104,9 @@ If `preview_preset_ops` exists, `render` automatically appends its `ops` (camera
 
 Example decomposition capture generated from the QEM shell animation workflow (`simplify --animate`). This is useful for visually checking collapse progression frame-by-frame and as an exported MP4.
 
-<video controls src="output/decomp/decomposition%20-%201.mp4"></video>
+![Decomposition Preview](../../resources/assets/videos/decomposition%20-%201.gif)
 
-[Open `decomposition - 1.mp4`](output/decomp/decomposition%20-%201.mp4)
+[Open `decomposition - 1.mp4`](../../resources/assets/videos/decomposition%20-%201.mp4)
 
 ## Design notes
 
