@@ -15,9 +15,9 @@ Glint3D is a C++ 3D engine focused on interactive desktop rendering and automati
 
 ![Glint3D HUD Wireframe](resources/assets/img/HUD-Wireframe.png)
 
-![QEM Decomposition Sample](resources/assets/videos/decomposition%20-%201.gif)
+![Glint3D HUD Solid](resources/assets/img/HUD-Solid.png)
 
-[QEM Decomposition Sample (MP4)](resources/assets/videos/decomposition%20-%201.mp4)
+![QEM Decomposition Sample](resources/assets/videos/decomposition%20-%201.gif)
 
 ## Highlights
 
