@@ -11,12 +11,15 @@ Welcome to...
 
 ```
 
-Glint3D is a 3D engine built for human and AI + automation driven workflows, combining an easy-to-use UI with an automation grade CLI for fast rendering, scripting, and visual iteration.
+Glint3D is a lightweigth 3D engine built for human and AI + automation driven workflows, combining an easy-to-use UI with an automation grade CLI for fast rendering, scripting, and visual iteration.
+
+**UI:**
+
 ![Glint3D HUD Wireframe](resources/assets/img/HUD-Wireframe.png)
 
 ![Glint3D HUD Solid](resources/assets/img/HUD-Solid.png)
 
-Animate a simplification pass: `glint simplify --10 --animate`
+**CLI:** `glint simplify --10 --animate` =
 
 ![QEM Decomposition Sample](resources/assets/videos/decomposition%20-%201.gif)
 
