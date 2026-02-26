@@ -27,8 +27,8 @@ cmake --build builds/desktop/cmake -j
 ```bash
 # Complete web build (engine + frontend)
 npm run web:build              # Builds WASM engine + React frontend
-./tools/build-web.sh          # Direct script execution
-./tools/build-web.bat         # Windows batch script
+./scripts/build-web.sh          # Direct script execution
+./scripts/build-web.bat         # Windows batch script
 
 # Manual engine-only build (if needed)
 emcmake cmake -S . -B builds/web/emscripten -DCMAKE_BUILD_TYPE=Release
@@ -411,7 +411,7 @@ BGFX enables reproducible outputs critical for automation:
 1. Seed RNG for raytracer: srand(manifest.seed)
 2. Submit BGFX draw calls in stable order (sort by state/depth)
 3. Use bgfx::readTexture for pixel-perfect framebuffer capture
-4. Generate checksums: SHA256(pixels) → run manifest
+4. Generate checksums: SHA256(pixels) â†’ run manifest
 5. Validate: compare checksums across platforms/runs
 ```
 
@@ -606,7 +606,7 @@ tests/scripts/run_golden_tests.sh      # Visual regression tests
 - **Logo**: Glint3D diamond icon in `engine/assets/img/Glint3DIcon.png`
 - **Windows Icon**: Auto-converted to ICO format and embedded in executable via Windows resources
 - **Resource File**: `engine/resources/glint3d.rc` includes icon and version information
-- **Icon Regeneration**: Use `tools/create_basic_ico.py` when updating logo
+- **Icon Regeneration**: Use `scripts/create_basic_ico.py` when updating logo
 
 ## Release & Versioning
 - **Engine**: tag semver releases (e.g., `v0.3.0`)
@@ -653,7 +653,7 @@ tests/scripts/run_golden_tests.sh      # Visual regression tests
 
 ### Current Implementation: OpenGL/WebGL2
 - **Desktop**: OpenGL 3.3+ core profile with mature feature set
-- **Web**: WebGL 2.0 with automatic shader translation (#version 330 core → #version 300 es)
+- **Web**: WebGL 2.0 with automatic shader translation (#version 330 core â†’ #version 300 es)
 - **Architecture**: Direct OpenGL calls in render_system.cpp (planned for BGFX migration)
 
 ### Planned Migration: BGFX Multi-Backend

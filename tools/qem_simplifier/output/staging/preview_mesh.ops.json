@@ -1,0 +1,7 @@
+{
+  "ops": [
+    { "op": "load", "path": "tools/qem_simplifier/output/staging/sample_preview_mesh.obj", "name": "qem_preview" },
+    { "op": "set_render_mode", "mode": "solid" },
+    { "op": "set_camera", "position": [5, 4, 5], "target": [0, 0, 0], "up": [0, 1, 0], "fov_deg": 45 }
+  ]
+}

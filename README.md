@@ -13,7 +13,7 @@ Welcome to...
 
 Glint3D is a C++ 3D engine focused on interactive desktop rendering and automation-friendly CLI workflows. It supports real-time OpenGL rendering, CPU raytracing, JSON-driven operations, and headless output generation.
 
-![Glint3D Interface](docs/images/interface-overview.png)
+![Glint3D HUD Wireframe](resources/assets/img/HUD-Wireframe.png)
 
 ## Highlights
 

@@ -1,4 +1,4 @@
-﻿# Machine Summary Block
+# Machine Summary Block
 # {"file":"CMakeLists.txt","purpose":"Configures Glint3D targets and build switches.","exports":["glint","glint_core","user_paths_probe"],"depends_on":["engine/core","engine/modules","engine/platform","third_party"],"notes":["modular_migration_core_sources_relocated","third_party_vendored_layout","desktop_platform_sources","managed_dependency_fallbacks"]}
 # Human Summary
 # Root CMake script wiring core targets, third-party bridges, and migration-friendly include paths.
@@ -421,14 +421,14 @@ install(DIRECTORY engine/include/ DESTINATION include/glint)
 install(FILES schemas/json_ops_v1.json DESTINATION share/glint/schemas)
 
 add_executable(user_paths_probe
-    tools/user_paths_probe.cpp
+    scripts/user_paths_probe.cpp
     ${GLINT_ENGINE_CORE_DIR}/io/user_paths.cpp
 )
 target_include_directories(user_paths_probe PRIVATE ${GLINT_CORE_PUBLIC_INCLUDE_DIRS} ${GLINT_CORE_PRIVATE_INCLUDE_DIRS})
 target_compile_definitions(user_paths_probe PRIVATE ${GLINT_OPTIONAL_COMPILE_DEFINITIONS})
 
 
-option(GLINT_ENABLE_QEM_TOOL_SCAFFOLD "Build the external QEM tool scaffold targets under tools/qem_simplifier" OFF)
+option(GLINT_ENABLE_QEM_TOOL_SCAFFOLD "Build the external QEM tool scaffold targets under apps/qem_simplifier" OFF)
 if (GLINT_ENABLE_QEM_TOOL_SCAFFOLD)
-    add_subdirectory(tools/qem_simplifier)
+    add_subdirectory(apps/qem_simplifier)
 endif()
