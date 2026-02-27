@@ -25,14 +25,9 @@ Glint3D is a lightweigth 3D engine built for human and AI + automation driven wo
 
 ## Highlights
 
-- Dual rendering paths: OpenGL rasterization and CPU raytracing
-- PBR material workflow (metallic/roughness)
 - JSON Ops pipeline for scripted scene actions and rendering
 - Headless rendering support for automation and batch jobs
 - Asset import via Assimp (OBJ / glTF / FBX / PLY and more)
-- Modular engine layout (`core`, `modules`, `platform`)
-
-![Rendering Comparison](docs/images/render-comparison.png)
 
 ## Install / Build
 
