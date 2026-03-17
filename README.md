@@ -23,6 +23,8 @@ Glint3D is a lightweigth 3D engine built for human and AI + automation driven wo
 
 ![QEM Decomposition Sample](resources/assets/videos/decomposition%20-%201.gif)
 
+Made with my own QEM algorithm!!
+
 ## Highlights
 
 - JSON Ops pipeline for scripted scene actions and rendering
